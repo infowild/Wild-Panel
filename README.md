@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README_FA.md) | [العربية](/README_AR.md) | [中文](/README_ZH.md) | [Español](/README_ES.md) | [Русский](/README_RU.md) | [Türkçe](/README_TR.md)
+[English](/README.md) | [فارسی](/README_FA.md)
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Sir-MmD/vpn-ui/refs/heads/main/media/logo.png" alt="VPN-UI Logo" width="260">
@@ -78,7 +78,7 @@ the core rather than by a daemon, and they work as **inbounds and outbounds**:
 ## Installing the Panel
 
 ```bash
-curl -Ls https://raw.githubusercontent.com/Sir-MmD/vpn-ui/refs/heads/main/deploy.sh | sudo bash
+curl -Ls https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/deploy.sh | sudo bash
 ```
 
 ## Uninstalling the Panel
