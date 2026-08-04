@@ -66,3 +66,6 @@ __pycache__/
 # Local-only project notes — keep on disk, never commit.
 /MEMORY.md
 /rules_and_progress.md
+
+# Cursor local agent rules / IDE state — never publish to GitHub.
+.cursor/
