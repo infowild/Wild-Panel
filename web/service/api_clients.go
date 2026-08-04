@@ -20,7 +20,7 @@ type ApiClientService struct {
 	Inbound  InboundService
 	Mtproto  MtprotoService
 	Setting  SettingService
-	SubLinks func(host, subId string) ([]string, error)
+	SubLinksBuilder func(host, subId string) ([]string, error)
 }
 
 // ClientCreatePayload matches mirzabot / Sanaei POST /panel/api/clients/add.
@@ -273,14 +273,14 @@ func (s *ApiClientService) ResetTraffic(email string) error {
 	return s.Inbound.ResetClientTrafficByEmail(strings.TrimSpace(email))
 }
 
-// SubLinks returns connection / subscription URLs for a subId.
-func (s *ApiClientService) SubLinks(host, subId string) ([]string, error) {
+// GetSubLinks returns connection / subscription URLs for a subId.
+func (s *ApiClientService) GetSubLinks(host, subId string) ([]string, error) {
 	subId = strings.TrimSpace(subId)
 	if subId == "" {
 		return nil, common.NewError("subId is required")
 	}
-	if s.SubLinks != nil {
-		return s.SubLinks(host, subId)
+	if s.SubLinksBuilder != nil {
+		return s.SubLinksBuilder(host, subId)
 	}
 	return []string{}, nil
 }

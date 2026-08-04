@@ -26,7 +26,7 @@ func NewClientController(g *gin.RouterGroup, inboundCtrl *InboundController) *Cl
 	a.clientService.Inbound = service.InboundService{}
 	a.clientService.Mtproto = service.MtprotoService{}
 	a.clientService.Setting = service.SettingService{}
-	a.clientService.SubLinks = a.buildSubLinks
+	a.clientService.SubLinksBuilder = a.buildSubLinks
 	a.initRouter(g)
 	return a
 }
@@ -122,7 +122,7 @@ func (a *ClientController) resetTraffic(c *gin.Context) {
 }
 
 func (a *ClientController) getSubLinks(c *gin.Context) {
-	links, err := a.clientService.SubLinks(resolveRequestHost(c), c.Param("subId"))
+	links, err := a.clientService.GetSubLinks(resolveRequestHost(c), c.Param("subId"))
 	if err != nil {
 		jsonMsg(c, "obtain", err)
 		return

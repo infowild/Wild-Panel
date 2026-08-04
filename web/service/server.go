@@ -989,7 +989,8 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 		}
 
 		// Use the configured unit name (default wild-panel) with validated parameters
-		unit := (SystemdService{}).GetServiceName()
+		sd := &SystemdService{}
+		unit := sd.GetServiceName()
 		cmd := exec.Command("journalctl", "-u", unit, "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
 		var out bytes.Buffer
 		cmd.Stdout = &out
