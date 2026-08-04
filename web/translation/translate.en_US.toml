@@ -202,8 +202,9 @@
 "rebooting" = "Rebooting the server…"
 
 [pages.login]
-"hello" = "Hello"
-"title" = "Welcome"
+"hello" = "Sign in"
+"title" = "Welcome to Wild Panel"
+"subtitle" = "Enter your credentials to access the control panel."
 "loginAgain" = "Your session has expired, please log in again"
 "showPassword" = "Show password"
 "hidePassword" = "Hide password"

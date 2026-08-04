@@ -111,6 +111,7 @@
 [pages.login]
 "hello" = "أهلا"
 "title" = "أهلاً وسهلاً"
+"subtitle" = "Enter your credentials to access the control panel."
 "loginAgain" = "انتهت صلاحية الجلسة، سجل دخول تاني"
 "showPassword" = "إظهار الباسورد"
 "hidePassword" = "إخفاء الباسورد"

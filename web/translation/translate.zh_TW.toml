@@ -111,6 +111,7 @@
 [pages.login]
 "hello" = "你好"
 "title" = "歡迎"
+"subtitle" = "Enter your credentials to access the control panel."
 "loginAgain" = "登入時效已過，請重新登入"
 "showPassword" = "顯示密碼"
 "hidePassword" = "隱藏密碼"

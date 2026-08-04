@@ -111,6 +111,7 @@
 [pages.login]
 "hello" = "Merhaba"
 "title" = "Hoş Geldiniz"
+"subtitle" = "Enter your credentials to access the control panel."
 "loginAgain" = "Oturum süreniz doldu, lütfen tekrar giriş yapın"
 "showPassword" = "Parolayı göster"
 "hidePassword" = "Parolayı gizle"

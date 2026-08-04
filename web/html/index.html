@@ -436,7 +436,10 @@
     <!-- ===== Wild Panel + updater ===== -->
     <article class="bo-tile bo-t-vpnui" aria-label="Wild Panel">
       <div class="bo-tile-head">
-        <h3 class="bo-tile-title">Wild Panel</h3>
+        <h3 class="bo-tile-title bo-vpnui-title">
+          <img class="bo-vpnui-mark" src="{{ .base_path }}assets/img/logo.png" width="28" height="28" alt="" aria-hidden="true" />
+          Wild Panel
+        </h3>
         <button type="button" class="bo-icon-btn bo-icon-btn--accent"
           :disabled="panelUpdate.checking" @click="checkForUpdate(true)">
           <svg class="bo-icon bo-icon-14" aria-hidden="true"><use href="#bo-i-refresh"></use></svg>

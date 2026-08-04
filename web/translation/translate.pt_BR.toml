@@ -111,6 +111,7 @@
 [pages.login]
 "hello" = "Olá"
 "title" = "Bem-vindo"
+"subtitle" = "Enter your credentials to access the control panel."
 "loginAgain" = "Sua sessão expirou, faça login novamente"
 "showPassword" = "Mostrar senha"
 "hidePassword" = "Ocultar senha"

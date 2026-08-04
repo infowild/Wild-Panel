@@ -111,6 +111,7 @@
 [pages.login]
 "hello" = "Hola"
 "title" = "Bienvenido"
+"subtitle" = "Enter your credentials to access the control panel."
 "loginAgain" = "El límite de tiempo de inicio de sesión ha expirado. Por favor, inicia sesión nuevamente."
 "showPassword" = "Mostrar contraseña"
 "hidePassword" = "Ocultar contraseña"

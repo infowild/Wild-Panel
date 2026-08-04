@@ -111,6 +111,7 @@
 [pages.login]
 "hello" = "こんにちは"
 "title" = "ようこそ"
+"subtitle" = "Enter your credentials to access the control panel."
 "loginAgain" = "ログインセッションが切れました。再度ログインしてください。"
 "showPassword" = "パスワードを表示"
 "hidePassword" = "パスワードを非表示"

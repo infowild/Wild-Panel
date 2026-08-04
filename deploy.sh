@@ -73,6 +73,56 @@ BANNER
     printf '\n'
 }
 
+# Install packages the installer itself needs (download, TLS, archive, systemd helpers).
+# Best-effort across apt / dnf / yum / apk / pacman. Skips packages already present.
+install_prerequisites() {
+    local need=() pkg missing=()
+    for pkg in curl wget ca-certificates tar gzip unzip openssl; do
+        case "$pkg" in
+            ca-certificates)
+                # Presence of the update-ca-certificates tool or the certs dir is enough.
+                if command -v update-ca-certificates >/dev/null 2>&1 \
+                   || [[ -d /etc/ssl/certs ]]; then
+                    continue
+                fi
+                ;;
+            *)
+                command -v "$pkg" >/dev/null 2>&1 && continue
+                ;;
+        esac
+        need+=("$pkg")
+    done
+    # At least one of curl/wget is enough for the download; keep both in `need`
+    # only when neither exists.
+    if command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1; then
+        local filtered=()
+        for pkg in "${need[@]+"${need[@]}"}"; do
+            [[ "$pkg" == "curl" || "$pkg" == "wget" ]] && continue
+            filtered+=("$pkg")
+        done
+        need=("${filtered[@]+"${filtered[@]}"}")
+    fi
+    (( ${#need[@]} == 0 )) && { ok "prerequisites already present"; return 0; }
+
+    msg "Installing prerequisites: ${need[*]}"
+    if command -v apt-get >/dev/null 2>&1; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y >/dev/null 2>&1 || warn "apt-get update failed — trying install anyway"
+        apt-get install -y "${need[@]}" || die "failed to install: ${need[*]}"
+    elif command -v dnf >/dev/null 2>&1; then
+        dnf install -y "${need[@]}" || die "failed to install: ${need[*]}"
+    elif command -v yum >/dev/null 2>&1; then
+        yum install -y "${need[@]}" || die "failed to install: ${need[*]}"
+    elif command -v apk >/dev/null 2>&1; then
+        apk add --no-cache "${need[@]}" || die "failed to install: ${need[*]}"
+    elif command -v pacman >/dev/null 2>&1; then
+        pacman -Sy --noconfirm "${need[@]}" || die "failed to install: ${need[*]}"
+    else
+        die "need packages (${need[*]}) but no supported package manager was found (apt/dnf/yum/apk/pacman)."
+    fi
+    ok "prerequisites ready"
+}
+
 # Byte counts the way a human reads them (one decimal from KB up). Shared by the
 # live download line and its final summary, so the two can never disagree about
 # units. Integer-only maths: no awk/bc dependency for something this small.
@@ -168,6 +218,8 @@ printf '  %s[%sWild Panel%s]%s  deploy\n' "$B$TEAL" "$GREEN" "$TEAL" "$R"
 hr
 
 command -v systemctl >/dev/null 2>&1 || die "systemctl not found — this host isn't running systemd."
+
+install_prerequisites
 
 arch="$(uname -m)"
 [[ "$arch" == "x86_64" || "$arch" == "amd64" ]] || \

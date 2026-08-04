@@ -45,7 +45,16 @@
   font-variant-numeric:tabular-nums;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
+  position:relative;
 }
+.bo-shell::before {
+  content:"";
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 55% 40% at 8% 0%, rgba(34,211,238,.10), transparent 55%),
+    radial-gradient(ellipse 45% 35% at 100% 100%, rgba(168,85,247,.09), transparent 50%);
+}
+.bo-shell > * { position:relative; z-index:1; }
 
 .bo-shell svg { display:block; }
 .bo-shell button { font-family:inherit; }
@@ -96,26 +105,34 @@
 .bo-rail {
   flex:0 0 124px; width:124px;
   height:100%;
-  background:var(--surface);
-  border-inline-end:1px solid var(--border);
+  background:var(--glass-bg);
+  border-inline-end:1px solid var(--glass-border);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.25);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.25);
   display:flex; flex-direction:column; align-items:center;
   padding:20px 0; gap:26px; overflow-y:auto;
   z-index:20;
 }
 
 .bo-rail-brand {
-  display:flex; flex-direction:column; align-items:center; gap:6px;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
   color:var(--accent); width:100%; padding-inline:14px;
 }
 .bo-rail-brand span {
-  font-size:var(--fs-sm); font-weight:var(--fw-bold);
-  color:var(--text); letter-spacing:.01em;
+  font-size:10px; font-weight:var(--fw-bold);
+  color:var(--text-2); letter-spacing:.12em; text-transform:uppercase;
+  text-align:center;
 }
-/* logo.png is 1456x368, a 3.96:1 wordmark. Sizing it by HEIGHT overflows the
-   rail (40px tall needs 158px of width against a 124px rail), and max-width
-   then squashed it horizontally because the height stayed fixed. Size by
-   width and let the height follow, so it can never distort. */
-.bo-rail-brand img { display:block; width:100%; max-width:88px; height:auto; }
+/* Square neon wolf mark — size by width so the rail never overflows. */
+.bo-rail-brand img {
+  display:block; width:100%; max-width:64px; height:auto; border-radius:14px;
+  box-shadow:0 0 0 1px rgba(34,211,238,.22), 0 0 20px -6px rgba(34,211,238,.4);
+  transition:box-shadow var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
+}
+.bo-rail-brand a:hover img {
+  transform:translateY(-1px);
+  box-shadow:0 0 0 1px rgba(168,85,247,.35), 0 0 28px -4px rgba(34,211,238,.55);
+}
 
 .bo-rail-nav {
   display:flex; flex-direction:column; gap:5px;
@@ -151,7 +168,7 @@
 .bo-rail--collapsed .bo-rail-item { width:64px; }
 .bo-rail--collapsed .bo-rail-item span,
 .bo-rail--collapsed .bo-rail-brand span { display:none; }
-.bo-rail--collapsed .bo-rail-brand img { max-width:52px; }
+.bo-rail--collapsed .bo-rail-brand img { max-width:44px; border-radius:10px; }
 
 .bo-rail-item {
   display:flex; flex-direction:column; align-items:center; gap:7px;
@@ -262,6 +279,24 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
   grid-template-areas:
     "ident" "flow" "xray" "users" "manage" "vpnui" "vit" "svc";
 }
+.bo-bento > .bo-tile {
+  animation:bo-tile-in .55s cubic-bezier(.22,1,.36,1) both;
+}
+.bo-bento > .bo-tile:nth-child(1) { animation-delay:.02s; }
+.bo-bento > .bo-tile:nth-child(2) { animation-delay:.06s; }
+.bo-bento > .bo-tile:nth-child(3) { animation-delay:.10s; }
+.bo-bento > .bo-tile:nth-child(4) { animation-delay:.14s; }
+.bo-bento > .bo-tile:nth-child(5) { animation-delay:.18s; }
+.bo-bento > .bo-tile:nth-child(6) { animation-delay:.22s; }
+.bo-bento > .bo-tile:nth-child(7) { animation-delay:.26s; }
+.bo-bento > .bo-tile:nth-child(8) { animation-delay:.30s; }
+@keyframes bo-tile-in {
+  from { opacity:0; transform:translateY(12px); }
+  to   { opacity:1; transform:none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bo-bento > .bo-tile { animation:none; }
+}
 @media (min-width:760px) {
   .bo-bento {
     grid-template-columns:repeat(4,1fr); gap:var(--gap-md);
@@ -306,15 +341,28 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
  * ================================================================== */
 
 .bo-tile {
-  background:var(--surface); border:1px solid var(--border);
+  background:var(--glass-bg);
+  border:1px solid var(--glass-border);
   border-radius:var(--radius-xl); padding:14px 16px;
   box-shadow:var(--shadow-md); min-width:0;
   display:flex; flex-direction:column;
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.2);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.2);
+  position:relative; overflow:hidden;
   transition:transform var(--dur-fast) var(--ease),
              box-shadow var(--dur-fast) var(--ease),
              border-color var(--dur-fast) var(--ease);
 }
-.bo-tile:hover { transform:translateY(-2px); border-color:var(--border-strong); }
+.bo-tile::before {
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:var(--glass-shine); border-radius:inherit; opacity:.85;
+}
+.bo-tile > * { position:relative; z-index:1; }
+.bo-tile:hover {
+  transform:translateY(-3px);
+  border-color:var(--border-strong);
+  box-shadow:0 16px 40px -18px rgba(0,0,0,.55), 0 0 28px -10px rgba(34,211,238,.18);
+}
 /* Content sits at the top of a stretched tile. space-between was tried and
    looks worse: it strands the heading at the top and the body at the very
    bottom with a hole in the middle.
@@ -614,6 +662,13 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 
 .bo-vpnui-body { display:flex; flex-direction:column; justify-content:space-between; gap:18px; flex:1; }
 .bo-vpnui-version { font-size:23px; font-weight:var(--fw-bold); color:var(--text); }
+.bo-vpnui-title {
+  display:inline-flex; align-items:center; gap:8px;
+}
+.bo-vpnui-mark {
+  width:28px; height:28px; border-radius:8px; object-fit:cover; flex:0 0 auto;
+  box-shadow:0 0 0 1px rgba(34,211,238,.25), 0 0 14px -4px rgba(34,211,238,.45);
+}
 .bo-status-line { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:var(--fw-semibold); margin-top:var(--sp-2); }
 .bo-status-line--ok { color:var(--ok); }
 .bo-status-line--warn { color:var(--warn); }
