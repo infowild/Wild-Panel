@@ -1,14 +1,34 @@
 [English](/README.md) | [فارسی](/README_FA.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/logo.png" alt="Wild Panel Logo" width="260">
+  <a href="https://github.com/infowild/Wild-Panel">
+    <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/overview.png" alt="Wild Panel — Overview" width="860">
+  </a>
 </p>
 
-**Wild Panel** یک فورک ارتقایافته از پنل **[3X-UI](https://github.com/MHSanaei/3x-ui)** (نسخه‌ی 2.9.3) بر پایه‌ی vpn-ui است. هدف، یک پنل همه‌کاره با پشتیبانی گسترده از پروتکل‌ها و قابلیت‌های **Xray-core** است.
+<p align="center">
+  <b>Wild Panel</b> — پنل همه‌کارهٔ VPN با رابط شیشه‌ای نئون، پشتیبانی گسترده از پروتکل‌ها و مسیریابی مبتنی بر Xray.
+</p>
 
-![نمای کلی](https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/overview.png)
+<p align="center">
+  <img src="https://img.shields.io/github/v/release/infowild/Wild-Panel?style=flat-square&color=06b6d4" alt="Release">
+  <img src="https://img.shields.io/github/license/infowild/Wild-Panel?style=flat-square" alt="License">
+</p>
 
-## پروتکل‌های جدید
+**Wild Panel** یک پنل کنترل مدرن برای اپراتورهایی است که هم پوشش پروتکل گسترده می‌خواهند و هم مانیتورینگ تمیز. بر پایهٔ **[3X-UI](https://github.com/MHSanaei/3x-ui)** ساخته شده، با UI شیشه‌ای جدید، توکن API برای ربات‌های فروش، و یک باینری خودکفا.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/login.png" alt="Wild Panel — Login" width="720">
+</p>
+
+## نکات برجسته
+
+- UI تیرهٔ شیشه‌ای / نئون (فیروزه‌ای + بنفش)، ریسپانسیو روی موبایل و دسکتاپ
+- **توکن API** برای اتوماسیون و ربات فروش (Settings → Security)
+- یک باینری: Geofile، Xray-core و دیمون‌های VPN داخلش
+- چند مدیره، نماینده، عملیات گروهی، فریز، خروجی TXT/PDF
+
+## پروتکل‌ها
 
 - PPTP
 - L2TP (RAW)
@@ -23,7 +43,7 @@
 - MTProto Proxy (Telegram)
 - SSH
 
-## امکانات جدید
+## امکانات
 
 - **چند مدیره** با دسترسی جداگانه به هر Inbound، هر مدیر فقط Inbound هایی را می‌بیند که به او داده‌اید
 - حساب‌های **نماینده** با اعتبار ترافیک که مدیر آن را شارژ می‌کند و فقط روی Inbound های داده‌شده خرج می‌شود
@@ -80,7 +100,7 @@ sudo /opt/wild-panel/wild-panel-amd64 --uninstall
 ```
 
 > [!NOTE]
-> نصب تازه از `/opt/wild-panel`، یونیت `wild-panel` و دیتابیس `wild-panel.db` استفاده می‌کند. ارتقا از نصب قدیمی `/opt/vpn-ui` را خودکار منتقل می‌کند. مسیرهای پروتکل زیر `/etc/vpn-ui-*` عمداً عوض نمی‌شوند تا تونل‌های در حال کار قطع نشوند. نسخه پنل **2.0.0** است تا آپدیت داخل پنل بعد از خط 1.8.8 درست تشخیص داده شود.
+> نصب تازه از `/opt/wild-panel`، یونیت `wild-panel` و دیتابیس `wild-panel.db` استفاده می‌کند. نصب‌های قدیمی هنگام ارتقا خودکار منتقل می‌شوند. نسخهٔ فعلی پنل **2.0.2** است.
 
 ## نحوه‌ی تعامل پروتکل‌های جدید با هسته‌ی Xray-core
 

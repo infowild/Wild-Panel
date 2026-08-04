@@ -123,15 +123,18 @@
   color:var(--text-2); letter-spacing:.12em; text-transform:uppercase;
   text-align:center;
 }
-/* Square neon wolf mark — size by width so the rail never overflows. */
+/* Square neon wolf mark — contain so the circular frame is not cropped. */
 .bo-rail-brand img {
-  display:block; width:100%; max-width:64px; height:auto; border-radius:14px;
-  box-shadow:0 0 0 1px rgba(34,211,238,.22), 0 0 20px -6px rgba(34,211,238,.4);
+  display:block; width:56px; height:56px; max-width:56px;
+  border-radius:50%;
+  object-fit:contain; object-position:center;
+  background:radial-gradient(circle at 50% 42%, #0a1020 0%, #05070e 72%);
+  box-shadow:0 0 0 1px rgba(34,211,238,.28), 0 0 20px -6px rgba(34,211,238,.45);
   transition:box-shadow var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
 }
 .bo-rail-brand a:hover img {
   transform:translateY(-1px);
-  box-shadow:0 0 0 1px rgba(168,85,247,.35), 0 0 28px -4px rgba(34,211,238,.55);
+  box-shadow:0 0 0 1px rgba(168,85,247,.4), 0 0 28px -4px rgba(34,211,238,.55);
 }
 
 .bo-rail-nav {
@@ -168,7 +171,7 @@
 .bo-rail--collapsed .bo-rail-item { width:64px; }
 .bo-rail--collapsed .bo-rail-item span,
 .bo-rail--collapsed .bo-rail-brand span { display:none; }
-.bo-rail--collapsed .bo-rail-brand img { max-width:44px; border-radius:10px; }
+.bo-rail--collapsed .bo-rail-brand img { width:40px; height:40px; max-width:40px; }
 
 .bo-rail-item {
   display:flex; flex-direction:column; align-items:center; gap:7px;
@@ -277,7 +280,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-bento {
   display:grid; grid-template-columns:1fr; gap:var(--gap-sm);
   grid-template-areas:
-    "ident" "flow" "xray" "users" "manage" "vpnui" "vit" "svc";
+    "ident" "flow" "xray" "users" "manage" "panel" "vit" "svc";
 }
 .bo-bento > .bo-tile {
   animation:bo-tile-in .55s cubic-bezier(.22,1,.36,1) both;
@@ -304,7 +307,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
       "ident ident ident ident"
       "flow flow flow flow"
       "xray xray users users"
-      "manage manage vpnui vpnui"
+      "manage manage panel panel"
       "vit vit vit vit"
       "svc svc svc svc";
   }
@@ -315,7 +318,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
     grid-template-areas:
       "ident ident ident ident flow flow flow flow vit vit vit vit"
       "xray xray xray xray users users users users vit vit vit vit"
-      "manage manage manage manage vpnui vpnui vpnui vpnui vit vit vit vit"
+      "manage manage manage manage panel panel panel panel vit vit vit vit"
       "svc svc svc svc svc svc svc svc svc svc svc svc";
     /* Tiles STRETCH to fill their row (grid's default) rather than sizing to
        content. align-items:start was tried and is worse: it removes the dead
@@ -332,7 +335,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-t-vit { grid-area:vit; }
 .bo-t-svc { grid-area:svc; }
 .bo-t-xray { grid-area:xray; }
-.bo-t-vpnui { grid-area:vpnui; }
+.bo-t-panel { grid-area:panel; }
 .bo-t-users { grid-area:users; }
 .bo-t-manage { grid-area:manage; }
 
@@ -660,14 +663,16 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-btn--ghost:hover { color:var(--accent); border-color:var(--accent); transform:translateY(-1px); }
 .bo-btn[disabled] { opacity:.5; cursor:not-allowed; transform:none; filter:none; }
 
-.bo-vpnui-body { display:flex; flex-direction:column; justify-content:space-between; gap:18px; flex:1; }
-.bo-vpnui-version { font-size:23px; font-weight:var(--fw-bold); color:var(--text); }
-.bo-vpnui-title {
+.bo-panel-body { display:flex; flex-direction:column; justify-content:space-between; gap:18px; flex:1; }
+.bo-panel-version { font-size:23px; font-weight:var(--fw-bold); color:var(--text); }
+.bo-panel-title {
   display:inline-flex; align-items:center; gap:8px;
 }
-.bo-vpnui-mark {
-  width:28px; height:28px; border-radius:8px; object-fit:cover; flex:0 0 auto;
-  box-shadow:0 0 0 1px rgba(34,211,238,.25), 0 0 14px -4px rgba(34,211,238,.45);
+.bo-panel-mark {
+  width:28px; height:28px; border-radius:50%; object-fit:contain; object-position:center;
+  background:radial-gradient(circle at 50% 42%, #0a1020 0%, #05070e 72%);
+  flex:0 0 auto;
+  box-shadow:0 0 0 1px rgba(34,211,238,.3), 0 0 14px -4px rgba(34,211,238,.5);
 }
 .bo-status-line { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:var(--fw-semibold); margin-top:var(--sp-2); }
 .bo-status-line--ok { color:var(--ok); }
@@ -721,7 +726,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 }
 .bo-relnotes-foot .bo-icon { flex:none; }
 
-/* Donate dialog (VPN-UI tile). Each row is chain / address / copy. The address
+/* Donate dialog (Wild Panel tile). Each row is chain / address / copy. The address
    is the payload, so it gets the monospace face and the room: the chain label
    is fixed-width and the button is intrinsic, leaving the middle column to
    absorb whatever is left. Addresses are long and unbreakable, hence the
@@ -960,12 +965,26 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
  * ================================================================== */
 
 @media (max-width:560px) {
-  .bo-rail { flex-basis:76px; width:76px; padding:16px 0; gap:20px; }
-  .bo-rail-item { width:64px; }
+  .bo-rail { flex-basis:68px; width:68px; padding:14px 0; gap:16px; }
+  .bo-rail-item { width:56px; padding:10px 4px 8px; }
   .bo-rail-item span,
   .bo-rail-brand span { display:none; }
-  .bo-topbar-inner { padding:12px 16px; }
-  .bo-content { padding:20px 16px 40px; }
+  .bo-rail-brand img { width:40px; height:40px; max-width:40px; }
+  .bo-topbar-inner { padding:10px 12px; }
+  .bo-content { padding:12px 12px max(28px, env(safe-area-inset-bottom)); }
+  .bo-page-title { font-size:20px; margin-bottom:14px; }
+  .bo-tile { padding:12px 12px; border-radius:14px; }
+  .bo-bento { gap:10px; }
+  .bo-shell { height:100dvh; }
+}
+@media (max-width:380px) {
+  .bo-rail { flex-basis:60px; width:60px; }
+  .bo-rail-item { width:52px; }
+  .bo-content { padding:10px 8px 24px; }
+}
+@media (min-width:561px) and (max-width:900px) {
+  .bo-content { padding:12px 16px 28px; }
+  .bo-rail { flex-basis:104px; width:104px; }
 }
 
 /* ================================================================== *

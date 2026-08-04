@@ -96,7 +96,7 @@ func requireRoot() {
 	if os.Geteuid() == 0 {
 		return
 	}
-	const m = "vpn-ui must be run as root. It binds privileged ports, writes systemd units, and manages nftables, routing and the VPN daemons.\n       Try: sudo vpn-ui"
+	const m = "Wild Panel must be run as root. It binds privileged ports, writes systemd units, and manages nftables, routing and the VPN daemons.\n       Try: sudo wild-panel"
 	if fi, err := os.Stderr.Stat(); err == nil && os.Getenv("NO_COLOR") == "" && fi.Mode()&os.ModeCharDevice != 0 {
 		fmt.Fprintf(os.Stderr, "\x1b[1;38;5;203mError:\x1b[0m %s\n", m)
 	} else {
@@ -135,7 +135,7 @@ func ansiWildPanel() string {
 func ansiVpnUI() string { return ansiWildPanel() }
 
 // warnUnsupportedDistro prints a prominent warning at panel startup when the host
-// distro is not on vpn-ui's tested list (service.DistroSupported). Colorful when
+// distro is not on Wild Panel's tested list (service.DistroSupported). Colorful when
 // stdout is a TTY (honors NO_COLOR); always also emits a logger.Warning so it lands
 // in the journal / non-TTY logs too.
 func warnUnsupportedDistro() {
@@ -149,7 +149,7 @@ func warnUnsupportedDistro() {
 	tested := service.SupportedDistroSummary()
 	if os.Getenv("NO_COLOR") != "" || !stdoutIsTTY() {
 		fmt.Fprintf(os.Stderr,
-			"\nWARNING: %s is NOT officially supported by vpn-ui. It may run, but expect errors.\n"+
+			"\nWARNING: %s is NOT officially supported by Wild Panel. It may run, but expect errors.\n"+
 				"Tested distros: %s.\n\n", pretty, tested)
 		return
 	}
@@ -162,7 +162,7 @@ func warnUnsupportedDistro() {
 	rule := yb + strings.Repeat("━", 64) + reset
 	fmt.Fprintln(os.Stderr, "\n"+rule)
 	fmt.Fprintln(os.Stderr, rb+"⚠  UNSUPPORTED DISTRO"+reset)
-	fmt.Fprintf(os.Stderr, "%s%s%s is not officially supported by vpn-ui — %sexpect errors%s.\n",
+	fmt.Fprintf(os.Stderr, "%s%s%s is not officially supported by Wild Panel — %sexpect errors%s.\n",
 		yb, pretty, reset, rb, reset)
 	fmt.Fprintf(os.Stderr, "%sTested: %s%s\n", dim, tested, reset)
 	fmt.Fprintln(os.Stderr, rule+"\n")

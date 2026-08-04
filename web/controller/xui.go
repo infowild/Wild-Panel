@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// XUIController is the main controller for the vpn-ui panel, managing sub-controllers.
+// XUIController is the main controller for the Wild Panel, managing sub-controllers.
 type XUIController struct {
 	BaseController
 

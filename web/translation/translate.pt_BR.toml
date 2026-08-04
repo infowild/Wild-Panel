@@ -126,8 +126,8 @@
 
 [pages.index]
 "donate" = "Doar"
-"donateTitle" = "Apoiar o VPN-UI"
-"donateIntro" = "Se o VPN-UI é útil para você, uma doação para qualquer um destes endereços ajuda a mantê-lo."
+"donateTitle" = "Apoiar o Wild Panel"
+"donateIntro" = "Se o Wild Panel é útil para você, uma doação para qualquer um destes endereços ajuda a mantê-lo."
 "restore" = "Restaurar"
 "systemStatus" = "Status do sistema"
 "title" = "Visão Geral"
@@ -843,7 +843,7 @@
 "report" = "🕰 Relatórios agendados: {{ .RunTime }}\r\n"
 "datetime" = "⏰ Data&Hora: {{ .DateTime }}\r\n"
 "hostname" = "💻 Host: {{ .Hostname }}\r\n"
-"version" = "🚀 Versão VPN-UI: {{ .Version }}\r\n"
+"version" = "🚀 Versão Wild Panel: {{ .Version }}\r\n"
 "xrayVersion" = "📡 Versão Xray: {{ .XrayVersion }}\r\n"
 "ipv6" = "🌐 IPv6: {{ .IPv6 }}\r\n"
 "ipv4" = "🌐 IPv4: {{ .IPv4 }}\r\n"

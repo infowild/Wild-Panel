@@ -111,6 +111,12 @@ jobs:
           NOTES="$(printf '%s\n' \
             '## Wild Panel' \
             '' \
+            '### v2.0.2' \
+            '- Logo display fix (circular contain) + aurora/orbital login motion' \
+            '- Scrub user-facing VPN-UI branding → Wild Panel only' \
+            '- Personalized README with UI screenshots' \
+            '- Stronger responsive layout (phone → desktop)' \
+            '' \
             '### v2.0.1' \
             '- Glass / neon UI theme (cyan + purple) aligned with the wolf logo' \
             '- Redesigned login welcome screen with logo and motion' \

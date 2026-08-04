@@ -434,10 +434,10 @@
     {{ end }}
 
     <!-- ===== Wild Panel + updater ===== -->
-    <article class="bo-tile bo-t-vpnui" aria-label="Wild Panel">
+    <article class="bo-tile bo-t-panel" aria-label="Wild Panel">
       <div class="bo-tile-head">
-        <h3 class="bo-tile-title bo-vpnui-title">
-          <img class="bo-vpnui-mark" src="{{ .base_path }}assets/img/logo.png" width="28" height="28" alt="" aria-hidden="true" />
+        <h3 class="bo-tile-title bo-panel-title">
+          <img class="bo-panel-mark" src="{{ .base_path }}assets/img/logo.png" width="28" height="28" alt="" aria-hidden="true" />
           Wild Panel
         </h3>
         <button type="button" class="bo-icon-btn bo-icon-btn--accent"
@@ -446,11 +446,11 @@
           {{ i18n "pages.index.checkUpdate" }}
         </button>
       </div>
-      <div class="bo-vpnui-body">
+      <div class="bo-panel-body">
         <div>
           <a rel="noopener" href="https://github.com/infowild/Wild-Panel" target="_blank"
             :style="{ color: 'inherit', textDecoration: 'none' }">
-            <div class="bo-vpnui-version num">v{{ .cur_ver }}</div>
+            <div class="bo-panel-version num">v{{ .cur_ver }}</div>
           </a>
           <p v-if="panelUpdate.checked && !panelUpdate.available && !panelUpdate.checking"
             class="bo-status-line bo-status-line--ok">
@@ -1506,7 +1506,7 @@
       this.visible = true;
       this.mode = 'panel';
       this.logs = logs;
-      this.render([{ source: 'vpn-ui', text: (logs || []).join('\n') }]);
+      this.render([{ source: 'Wild Panel', text: (logs || []).join('\n') }]);
     },
     // Every log the panel shows goes through LogFormatter, so the panel's own
     // lines, Xray's and each daemon's are coloured and laid out identically.
@@ -2676,7 +2676,8 @@
           if (msg.obj.supported) return;
           // "don't show again" is keyed by the distro name, so moving to a
           // different unsupported distro warns again.
-          if (localStorage.getItem('vpnui.distroWarnDismissed') === msg.obj.pretty) return;
+          if (localStorage.getItem('wildpanel.distroWarnDismissed') === msg.obj.pretty
+              || localStorage.getItem('panel.distroWarnDismissed') === msg.obj.pretty) return;
           this.distroModal.pretty = msg.obj.pretty || 'This system';
           this.distroModal.tested = msg.obj.tested || '';
           this.distroModal.visible = true;
@@ -2684,7 +2685,7 @@
       },
       dismissDistroWarning(forever) {
         if (forever) {
-          try { localStorage.setItem('vpnui.distroWarnDismissed', this.distroModal.pretty); } catch (e) { /* ignore */ }
+          try { localStorage.setItem('wildpanel.distroWarnDismissed', this.distroModal.pretty); } catch (e) { /* ignore */ }
         }
         this.distroModal.visible = false;
       },
@@ -3071,7 +3072,7 @@
         });
         fileInput.click();
       },
-      // Import a stock 3x-ui (or vpn-ui) backup over the current data, keeping this
+      // Import a stock 3x-ui backup over the current data, keeping this
       // panel's own address/cert/secret. Distinct from importDatabase (a like-for-like
       // restore): the admin accounts come from the backup, so the operator re-logs-in
       // with the imported panel's credentials afterwards.

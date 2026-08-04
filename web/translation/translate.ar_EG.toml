@@ -126,8 +126,8 @@
 
 [pages.index]
 "donate" = "تبرع"
-"donateTitle" = "ادعم VPN-UI"
-"donateIntro" = "إذا كان VPN-UI مفيدًا لك، فإن التبرع إلى أي من هذه العناوين يساعد على استمرار صيانته."
+"donateTitle" = "ادعم Wild Panel"
+"donateIntro" = "إذا كان Wild Panel مفيدًا لك، فإن التبرع إلى أي من هذه العناوين يساعد على استمرار صيانته."
 "restore" = "استعادة"
 "systemStatus" = "حالة النظام"
 "title" = "نظرة عامة"
@@ -843,7 +843,7 @@
 "report" = "🕰 التقارير المجدولة: {{ .RunTime }}\r\n"
 "datetime" = "⏰ التاريخ والوقت: {{ .DateTime }}\r\n"
 "hostname" = "💻 السيرفر: {{ .Hostname }}\r\n"
-"version" = "🚀 نسخة VPN-UI: {{ .Version }}\r\n"
+"version" = "🚀 نسخة Wild Panel: {{ .Version }}\r\n"
 "xrayVersion" = "📡 نسخة Xray: {{ .XrayVersion }}\r\n"
 "ipv6" = "🌐 IPv6: {{ .IPv6 }}\r\n"
 "ipv4" = "🌐 IPv4: {{ .IPv4 }}\r\n"

@@ -1,14 +1,35 @@
 [English](/README.md) | [فارسی](/README_FA.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/logo.png" alt="Wild Panel Logo" width="260">
+  <a href="https://github.com/infowild/Wild-Panel">
+    <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/overview.png" alt="Wild Panel — Overview" width="860">
+  </a>
 </p>
 
-**Wild Panel** is an enhanced fork of the **[3X-UI](https://github.com/MHSanaei/3x-ui)** panel (version 2.9.3), based on the vpn-ui lineage. The goal is an all-in-one control panel with broad protocol support and **Xray-core** features.
+<p align="center">
+  <b>Wild Panel</b> — all-in-one VPN control panel with a glass neon UI, multi-protocol cores, and Xray-powered routing.
+</p>
 
-![Overview](https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/overview.png)
+<p align="center">
+  <img src="https://img.shields.io/github/v/release/infowild/Wild-Panel?style=flat-square&color=06b6d4" alt="Release">
+  <img src="https://img.shields.io/github/license/infowild/Wild-Panel?style=flat-square" alt="License">
+  <img src="https://img.shields.io/github/actions/workflow/status/infowild/Wild-Panel/release.yml?style=flat-square&label=release" alt="CI">
+</p>
 
-## New Protocols
+**Wild Panel** is a modern control panel for operators who need broad protocol coverage and a clean monitoring experience. It builds on the **[3X-UI](https://github.com/MHSanaei/3x-ui)** foundation with a redesigned glass UI, stronger branding, API tokens for sales bots, and a single self-contained binary.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/login.png" alt="Wild Panel — Login" width="720">
+</p>
+
+## Highlights
+
+- Glass / neon dark UI (cyan + purple), responsive on phone and desktop
+- Bearer **API tokens** for automation and sales bots (Settings → Security)
+- Single binary: Geofiles, Xray-core, and VPN daemons embedded
+- Multi-admin, resellers, bulk ops, freeze, TXT/PDF export
+
+## Protocols
 
 - PPTP
 - L2TP (RAW)
@@ -30,7 +51,7 @@ the core rather than by a daemon, and they work as **inbounds and outbounds**:
 - TUIC (v5)
 - NaiveProxy
 
-## New Features
+## Features
 
 - **Multi-Admin** with per-inbound access, so each admin only sees the inbounds you assign it
 - **Reseller** accounts with a metered traffic balance an admin recharges, spent only on the inbounds it was given
@@ -88,7 +109,7 @@ sudo /opt/wild-panel/wild-panel-amd64 --uninstall
 ```
 
 > [!NOTE]
-> Fresh installs use `/opt/wild-panel`, the `wild-panel` systemd unit, and `wild-panel.db`. Upgrading from a pre-rebrand install migrates `/opt/vpn-ui` automatically. Protocol host paths under `/etc/vpn-ui-*` are left unchanged so live tunnels keep working. Panel version is **2.0.0** so in-panel update sorts correctly after the previous 1.8.8 line.
+> Fresh installs use `/opt/wild-panel`, the `wild-panel` systemd unit, and `wild-panel.db`. Older installs are migrated automatically on upgrade. Current panel version is **2.0.2**.
 
 ## How the New Protocols Interact with Xray-core
 
