@@ -129,6 +129,16 @@
       entryProtocol: null,
       entryIsIP: false,
       user: {},
+      apiTokens: [],
+      apiTokenName: '',
+      apiTokenPlaintext: '',
+      apiTokenBusy: false,
+      apiTokenColumns: [
+        { title: '{{ i18n "pages.settings.security.apiTokenColName" }}', dataIndex: 'name', key: 'name' },
+        { title: '{{ i18n "pages.settings.security.apiTokenColEnabled" }}', key: 'enabled', scopedSlots: { customRender: 'enabled' } },
+        { title: '{{ i18n "pages.settings.security.apiTokenColCreated" }}', dataIndex: 'createdAt', key: 'createdAt' },
+        { title: '{{ i18n "pages.settings.security.apiTokenColAction" }}', key: 'action', scopedSlots: { customRender: 'action' } },
+      ],
       serviceState: { available: null, name: 'vpn-ui', installed: false, enabled: false, active: false, unit: '', defaultUnit: '', exePath: '' },
       serviceSaving: false,
       serviceLog: '',
@@ -352,6 +362,40 @@
           })
         } else {
           sendUpdateUserRequest();
+        }
+      },
+      async loadApiTokens() {
+        const msg = await HttpUtil.get("/panel/setting/apiTokens");
+        if (msg && msg.success) {
+          this.apiTokens = msg.obj || [];
+        }
+      },
+      async createApiToken() {
+        if (!this.apiTokenName || !this.apiTokenName.trim()) {
+          return;
+        }
+        this.apiTokenBusy = true;
+        const msg = await HttpUtil.post("/panel/setting/apiTokens", { name: this.apiTokenName.trim() });
+        this.apiTokenBusy = false;
+        if (msg && msg.success && msg.obj) {
+          this.apiTokenPlaintext = msg.obj.token || '';
+          this.apiTokenName = '';
+          await this.loadApiTokens();
+        }
+      },
+      async deleteApiToken(record) {
+        const msg = await HttpUtil.post("/panel/setting/apiTokens/del/" + record.id);
+        if (msg && msg.success) {
+          if (this.apiTokenPlaintext) this.apiTokenPlaintext = '';
+          await this.loadApiTokens();
+        }
+      },
+      async setApiTokenEnabled(record, enabled) {
+        const msg = await HttpUtil.post("/panel/setting/apiTokens/enable/" + record.id, { enabled: !!enabled });
+        if (msg && msg.success) {
+          record.enabled = !!enabled;
+        } else {
+          await this.loadApiTokens();
         }
       },
       async restartPanel() {
@@ -664,6 +708,7 @@
       await this.loadInboundTags();
       await this.loadServiceState();
       await this.loadServiceLog();
+      await this.loadApiTokens();
       while (true) {
         await PromiseUtil.sleep(1000);
         this.saveBtnDisable = this.oldAllSetting.equals(this.allSetting);

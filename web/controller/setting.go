@@ -68,6 +68,9 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	// Writes a systemd unit as root: escalation-class, so no permission bit stands
 	// in for it.
 	g.POST("/service", requireSuperAdmin(), a.saveService)
+
+	// Bearer API tokens for mirzabot / scripts (session + PermPanelSettings only).
+	NewApiTokenController(g)
 }
 
 // serviceStatus returns the current systemd unit state for the panel.

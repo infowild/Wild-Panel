@@ -780,6 +780,17 @@
 "twoFactorModalSetSuccess" = "احراز هویت دو مرحله‌ای با موفقیت برقرار شد"
 "twoFactorModalDeleteSuccess" = "احراز هویت دو مرحله‌ای با موفقیت حذف شد"
 "twoFactorModalError" = "کد نادرست"
+"apiTokens" = "توکن‌های API"
+"apiTokensDesc" = "توکن Bearer برای ربات فروش (مثل mirzabot) و اسکریپت‌ها. در هدر Authorization: Bearer <token> برای مسیرهای /panel/api/* ارسال شود."
+"apiTokenName" = "نام توکن"
+"apiTokenNamePlaceholder" = "mirzabot"
+"apiTokenCreate" = "ساخت توکن"
+"apiTokenRefresh" = "بروزرسانی"
+"apiTokenCopyOnce" = "همین الان توکن را کپی کنید — دوباره نمایش داده نمی‌شود"
+"apiTokenColName" = "نام"
+"apiTokenColEnabled" = "فعال"
+"apiTokenColCreated" = "ایجاد"
+"apiTokenColAction" = "عملیات"
 
 [pages.settings.toasts]
 "modifySettings" = "پارامترها تغییر کرده‌اند."

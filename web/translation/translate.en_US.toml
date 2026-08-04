@@ -1045,6 +1045,17 @@
 "twoFactorModalSetSuccess" = "Two-factor authentication has been successfully established"
 "twoFactorModalDeleteSuccess" = "Two-factor authentication has been successfully deleted"
 "twoFactorModalError" = "Wrong code"
+"apiTokens" = "API tokens"
+"apiTokensDesc" = "Bearer tokens for sales bots (e.g. mirzabot) and scripts. Send as Authorization: Bearer <token> on /panel/api/*."
+"apiTokenName" = "Token name"
+"apiTokenNamePlaceholder" = "mirzabot"
+"apiTokenCreate" = "Generate token"
+"apiTokenRefresh" = "Refresh"
+"apiTokenCopyOnce" = "Copy this token now — it will not be shown again"
+"apiTokenColName" = "Name"
+"apiTokenColEnabled" = "Enabled"
+"apiTokenColCreated" = "Created"
+"apiTokenColAction" = "Action"
 
 [pages.settings.toasts]
 "modifySettings" = "The parameters have been changed."

@@ -40,5 +40,33 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
+    <a-collapse-panel key="3" header='{{ i18n "pages.settings.security.apiTokens" }}'>
+        <a-alert type="info" show-icon style="margin: 0 20px 12px"
+            message='{{ i18n "pages.settings.security.apiTokensDesc" }}'></a-alert>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.security.apiTokenName" }}</template>
+            <template #control>
+                <a-input v-model="apiTokenName" placeholder='{{ i18n "pages.settings.security.apiTokenNamePlaceholder" }}'></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-list-item>
+            <a-space direction="horizontal" style="padding: 0 20px">
+                <a-button type="primary" :loading="apiTokenBusy" @click="createApiToken">{{ i18n "pages.settings.security.apiTokenCreate" }}</a-button>
+                <a-button @click="loadApiTokens">{{ i18n "pages.settings.security.apiTokenRefresh" }}</a-button>
+            </a-space>
+        </a-list-item>
+        <a-alert v-if="apiTokenPlaintext" type="warning" show-icon style="margin: 12px 20px"
+            message='{{ i18n "pages.settings.security.apiTokenCopyOnce" }}'
+            :description="apiTokenPlaintext"></a-alert>
+        <a-table style="margin: 12px 20px" :columns="apiTokenColumns" :data-source="apiTokens"
+            :pagination="false" row-key="id" size="small">
+            <template slot="enabled" slot-scope="text, record">
+                <a-switch :checked="record.enabled" @change="(v) => setApiTokenEnabled(record, v)"></a-switch>
+            </template>
+            <template slot="action" slot-scope="text, record">
+                <a-button type="danger" size="small" @click="deleteApiToken(record)">{{ i18n "delete" }}</a-button>
+            </template>
+        </a-table>
+    </a-collapse-panel>
 </a-collapse>
 {{end}}
