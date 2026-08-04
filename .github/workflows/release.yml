@@ -84,6 +84,10 @@ jobs:
             echo "error: binary missing API tokens UI strings" >&2
             exit 1
           fi
+          if ! strings build/out/wild-panel-amd64 | grep -q 'Welcome to Wild Panel'; then
+            echo "error: binary missing login UI strings (Welcome to Wild Panel)" >&2
+            exit 1
+          fi
           cp -f build/out/wild-panel-amd64 wild-panel-amd64
           # Compat name for older deploy/update fallbacks
           cp -f wild-panel-amd64 vpn-ui-amd64
@@ -107,6 +111,13 @@ jobs:
           NOTES="$(printf '%s\n' \
             '## Wild Panel' \
             '' \
+            '### v2.0.1' \
+            '- Glass / neon UI theme (cyan + purple) aligned with the wolf logo' \
+            '- Redesigned login welcome screen with logo and motion' \
+            '- Overview tiles: glassmorphism + entrance animations' \
+            '- `deploy.sh` auto-installs curl/wget and other prerequisites' \
+            '' \
+            '### Core' \
             '- Branding: Wild Panel' \
             '- API Bearer tokens (Settings → Security) for sales bots / mirzabot' \
             '- Install paths: `/opt/wild-panel`, unit `wild-panel`, menu `wild-panel`' \
