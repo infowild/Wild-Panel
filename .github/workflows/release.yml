@@ -84,8 +84,14 @@ jobs:
             echo "error: binary missing API tokens UI strings" >&2
             exit 1
           fi
-          if ! strings build/out/wild-panel-amd64 | grep -q 'Welcome to Wild Panel'; then
-            echo "error: binary missing login UI strings (Welcome to Wild Panel)" >&2
+          # Login copy (en_US) — keep in sync with translate.en_US.toml pages.login.title
+          if ! strings build/out/wild-panel-amd64 | grep -q 'Sign in to Wild Panel'; then
+            echo "error: binary missing login UI strings (Sign in to Wild Panel)" >&2
+            exit 1
+          fi
+          # Login brand ring markup from login.html (logo UI)
+          if ! strings build/out/wild-panel-amd64 | grep -q 'lgt-brand-ring'; then
+            echo "error: binary missing login brand-ring markup" >&2
             exit 1
           fi
           cp -f build/out/wild-panel-amd64 wild-panel-amd64
@@ -110,6 +116,10 @@ jobs:
           set -euo pipefail
           NOTES="$(printf '%s\n' \
             '## Wild Panel' \
+            '' \
+            '### v2.0.3' \
+            '- Fix real PNG logo (was mislabeled JPEG) + neon ring brand on login/sidebar' \
+            '- Login/overview UI closer to mockups; release sanity checks synced to current copy' \
             '' \
             '### v2.0.2' \
             '- Logo display fix (circular contain) + aurora/orbital login motion' \

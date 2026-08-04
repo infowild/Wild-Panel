@@ -109,7 +109,7 @@ sudo /opt/wild-panel/wild-panel-amd64 --uninstall
 ```
 
 > [!NOTE]
-> Fresh installs use `/opt/wild-panel`, the `wild-panel` systemd unit, and `wild-panel.db`. Older installs are migrated automatically on upgrade. Current panel version is **2.0.2**.
+> Fresh installs use `/opt/wild-panel`, the `wild-panel` systemd unit, and `wild-panel.db`. Older installs are migrated automatically on upgrade. Current panel version is **2.0.3**.
 
 ## How the New Protocols Interact with Xray-core
 
