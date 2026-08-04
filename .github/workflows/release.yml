@@ -89,13 +89,18 @@ jobs:
             echo "error: binary missing login UI strings (Sign in to Wild Panel)" >&2
             exit 1
           fi
-          <!-- Login brand mark (holographic rings + wolf) -->
+          # Login brand mark (holographic rings + wolf)
           if ! strings build/out/wild-panel-amd64 | grep -q 'lgt-holo'; then
             echo "error: binary missing login holographic brand markup" >&2
             exit 1
           fi
           if ! strings build/out/wild-panel-amd64 | grep -q 'wp-mark'; then
             echo "error: binary missing Wild Panel brand mark class" >&2
+            exit 1
+          fi
+          # Design system tokens must ship in the embedded CSS
+          if ! strings build/out/wild-panel-amd64 | grep -q 'brand-cyan'; then
+            echo "error: binary missing brand design tokens" >&2
             exit 1
           fi
           cp -f build/out/wild-panel-amd64 wild-panel-amd64
@@ -120,6 +125,12 @@ jobs:
           set -euo pipefail
           NOTES="$(printf '%s\n' \
             '## Wild Panel' \
+            '' \
+            '### v2.0.4' \
+            '- Flagship glass Design System across the whole panel (logo-first cyan/violet)' \
+            '- Login holographic rings + wolf mark; glass cards/modals/buttons via ant-bridge' \
+            '- Branded empty states, terminal theme, subscription page mark' \
+            '- Release sanity checks synced to current UI markup' \
             '' \
             '### v2.0.3' \
             '- Fix real PNG logo (was mislabeled JPEG) + neon ring brand on login/sidebar' \
