@@ -60,7 +60,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 // so that one function answers "may this caller open the overview" for the route,
 // the landing resolver and the nav entry alike.
 func (a *XUIController) index(c *gin.Context) {
-	// The donate dialog on the VPN-UI tile. Rendered server-side rather than
+	// The donate dialog on the Wild Panel tile. Rendered server-side rather than
 	// fetched: the list is static, so a round trip would only add a spinner.
 	html(c, "index.html", "pages.index.title", gin.H{"donate": donateAddresses})
 }

@@ -518,9 +518,9 @@
           <input type="file" ref="panelBinaryInput" :style="{ display: 'none' }"
             @change="onPanelBinaryPicked">
           {{ end }}
-          <!-- Always offered, unlike Update Now: it is the one action on this
-               tile that does not depend on the release check having run. -->
+          <!-- Donate: only shown when addresses are configured (donate.go ↔ README). -->
           <button type="button" class="bo-btn bo-btn--ghost bo-btn--icon"
+            v-if="donateList && donateList.length"
             @click="openDonateModal">
             <svg class="bo-icon bo-icon-14" aria-hidden="true"><use href="#bo-i-heart"></use></svg>
             {{ i18n "pages.index.donate" }}
@@ -2266,7 +2266,7 @@
           this.updatedModal.visible = true;
         } catch (e) { /* nothing to announce */ }
       },
-      // --- Panel self-update (VPN-UI card) ------------------------------
+      // --- Panel self-update (Wild Panel card) ------------------------------
       // Runs automatically on every overview load (manual=false, silent) and on
       // the "Check for Update" button (manual=true, surfaces errors in the card).
       async checkForUpdate(manual) {
