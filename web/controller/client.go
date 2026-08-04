@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
-	"github.com/mhsanaei/3x-ui/v2/sub"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 )
 
@@ -16,14 +15,12 @@ type ClientController struct {
 	clientService     service.ApiClientService
 	xrayService       service.XrayService
 	inboundController *InboundController
-	subService        *sub.SubService
 }
 
 // NewClientController registers client routes on g (already under /panel/api + auth).
 func NewClientController(g *gin.RouterGroup, inboundCtrl *InboundController) *ClientController {
 	a := &ClientController{
 		inboundController: inboundCtrl,
-		subService:        sub.NewSubService(false, "-"),
 		xrayService:       service.XrayService{},
 	}
 	a.clientService.Inbound = service.InboundService{}
@@ -134,17 +131,11 @@ func (a *ClientController) getSubLinks(c *gin.Context) {
 }
 
 func (a *ClientController) buildSubLinks(host, subId string) ([]string, error) {
-	out := make([]string, 0)
-	if a.subService != nil {
-		links, _, _, err := a.subService.GetSubs(subId, host)
-		if err == nil {
-			for _, l := range links {
-				if strings.TrimSpace(l) != "" {
-					out = append(out, l)
-				}
-			}
-		}
-	}
+	// Do not import package sub here: sub → web → controller would create an
+	// import cycle. Subscription page URLs from settings are what sales bots
+	// (mirzabot) need; per-protocol share links stay on the subscription server.
+	_ = host
+	out := make([]string, 0, 3)
 	subURI, _ := a.clientService.Setting.GetSubURI()
 	subJsonURI, _ := a.clientService.Setting.GetSubJsonURI()
 	subClashURI, _ := a.clientService.Setting.GetSubClashURI()
