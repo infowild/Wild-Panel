@@ -1,13 +1,15 @@
-/* Streaming terminal console — deliberately dark in both themes.
-   Shared look for the Core Settings setup console, the systemd service
-   status log, and the WARP install log. Kept in sync with the inline copy
-   in web/html/core.html. */
+/* Streaming terminal console — Wild Panel brand (obsidian + cyan/violet).
+   Shared by Core Settings setup console, systemd service status log,
+   and WARP install log. Keep in sync with any residual inline .term rules. */
+
 .term {
-  border-radius: 10px;
+  border-radius: var(--radius-lg, 16px);
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.4);
-  background: #0d1117;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  background: rgba(6, 7, 13, 0.92);
+  box-shadow: var(--shadow-md, 0 16px 40px -18px rgba(0, 0, 0, 0.65));
+  backdrop-filter: blur(var(--glass-blur, 22px)) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--glass-blur, 22px)) saturate(1.2);
 }
 
 .term-bar {
@@ -15,26 +17,27 @@
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: #161b22;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(14, 18, 32, 0.72);
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
 }
 
 .term-bar-icon {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--accent, #00E8F0);
   font-size: 13px;
+  opacity: 0.7;
 }
 
 .term-bar-title {
   flex: 1;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-3, rgba(148, 170, 200, 0.52));
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
 }
 
 .term-count {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-3, rgba(148, 170, 200, 0.52));
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
 }
 
 .term-progress {
@@ -46,12 +49,21 @@
 .term-progress-bar {
   height: 100%;
   width: 0;
-  background: #1890ff;
+  background: var(--brand-cyan, #00E8F0);
+  box-shadow: 0 0 12px -2px rgba(0, 232, 240, 0.55);
   transition: width 0.3s ease;
 }
 
-.term-progress-bar.done { width: 100%; background: #27c93f; }
-.term-progress-bar.warn { width: 100%; background: #faad14; }
+.term-progress-bar.done {
+  width: 100%;
+  background: var(--ok, #4ade80);
+  box-shadow: 0 0 12px -2px rgba(74, 222, 128, 0.45);
+}
+.term-progress-bar.warn {
+  width: 100%;
+  background: var(--warn, #fbbf24);
+  box-shadow: none;
+}
 
 .term-progress-bar.indeterminate {
   width: 35%;
@@ -68,10 +80,10 @@
   max-height: 46vh;
   overflow: auto;
   padding: 12px 14px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 12.5px;
   line-height: 1.7;
-  color: #c9d1d9;
+  color: rgba(201, 214, 230, 0.92);
 }
 
 .term-line {
@@ -82,7 +94,7 @@
   word-break: break-word;
 }
 
-.term-ts { color: #6e7681; flex: 0 0 auto; }
+.term-ts { color: var(--text-3, #6e7681); flex: 0 0 auto; }
 
 .term-glyph {
   flex: 0 0 auto;
@@ -91,16 +103,16 @@
   font-weight: 700;
 }
 
-.term-name { flex: 0 0 auto; color: #e6edf3; }
-.term-msg { color: #8b949e; }
+.term-name { flex: 0 0 auto; color: rgba(230, 237, 243, 0.95); }
+.term-msg { color: var(--text-3, #8b949e); }
 
-.term-ok .term-glyph { color: #3fb950; }
-.term-warn .term-glyph { color: #d29922; }
-.term-warn .term-msg { color: #d29922; }
-.term-err .term-glyph { color: #f85149; }
-.term-err .term-msg { color: #ff7b72; }
+.term-ok .term-glyph { color: var(--ok, #4ade80); }
+.term-warn .term-glyph { color: var(--warn, #fbbf24); }
+.term-warn .term-msg { color: var(--warn, #fbbf24); }
+.term-err .term-glyph { color: var(--error, #fb7185); }
+.term-err .term-msg { color: var(--error, #fb7185); }
 .term-running .term-glyph,
-.term-running .term-name { color: #58a6ff; }
+.term-running .term-name { color: var(--accent, #00E8F0); }
 
 .term-clickable {
   cursor: pointer;
@@ -111,39 +123,15 @@
 }
 
 .term-clickable:hover {
-  background: rgba(88, 166, 255, 0.1);
+  background: var(--accent-weak, rgba(0, 232, 240, 0.12));
 }
 
 .term-toggle {
-  color: #58a6ff;
+  color: var(--accent, #00E8F0);
   font-size: 11px;
   margin-left: 6px;
-  opacity: 0.8;
 }
 
-.term-steplog {
-  margin: 4px 0 8px 20px;
-  padding: 10px 12px;
-  max-height: 300px;
-  overflow: auto;
-  border-radius: 6px;
-  background: #010409;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #9da7b3;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11.5px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
+@media (prefers-reduced-motion: reduce) {
+  .term-progress-bar.indeterminate { animation: none; width: 100%; opacity: 0.45; }
 }
-
-.term-cursor {
-  display: inline-block;
-  width: 8px;
-  height: 13px;
-  background: #58a6ff;
-  margin-left: 2px;
-  animation: term-blink 1s step-end infinite;
-}
-
-@keyframes term-blink { 50% { opacity: 0; } }

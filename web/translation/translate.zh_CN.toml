@@ -130,6 +130,7 @@
 "donateIntro" = "如果 Wild Panel 对你有帮助，向以下任一地址捐赠可以帮助它持续维护。"
 "restore" = "恢复"
 "systemStatus" = "系统状态"
+"controlCenter" = "控制中心"
 "title" = "系统状态"
 "cpu" = "CPU"
 "logicalProcessors" = "逻辑处理器"

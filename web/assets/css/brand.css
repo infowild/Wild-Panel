@@ -1,0 +1,140 @@
+/*
+ * brand.css — Wild Panel brand primitives.
+ * Logo-first glass language shared by login, shell, empty states, loading.
+ * Every surface in the product must compose from these tokens + primitives.
+ */
+
+/* Ambient ground used behind glass shells */
+.wp-ambient {
+  position:absolute; inset:0; pointer-events:none; overflow:hidden;
+  background:
+    radial-gradient(ellipse 55% 45% at 18% 12%, var(--ambient-cyan), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 88% 88%, var(--ambient-violet), transparent 55%),
+    radial-gradient(ellipse 70% 55% at 50% 50%, rgba(0,232,240,.04), transparent 70%);
+}
+
+.wp-noise {
+  position:absolute; inset:0; pointer-events:none; opacity:.035; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Glass surface */
+.wp-glass {
+  background:var(--glass-bg);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius-xl);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.35);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.35);
+  box-shadow:var(--shadow-md);
+  position:relative;
+  overflow:hidden;
+}
+.wp-glass::before {
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+  background:var(--glass-shine); opacity:.9;
+}
+.wp-glass > * { position:relative; z-index:1; }
+
+/* Neon ring around the wolf mark */
+.wp-mark {
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  padding:2px;
+  background:conic-gradient(from 200deg, var(--brand-cyan), var(--brand-violet), var(--brand-cyan));
+  box-shadow:var(--glow-cyan), var(--glow-violet);
+}
+.wp-mark__inner {
+  display:block; border-radius:50%; overflow:hidden; background:#05070e;
+  line-height:0;
+}
+.wp-mark img {
+  display:block; width:100%; height:100%;
+  object-fit:cover; object-position:center;
+  border-radius:50%;
+}
+
+.wp-mark--sm { width:36px; height:36px; }
+.wp-mark--sm .wp-mark__inner, .wp-mark--sm img { width:100%; height:100%; }
+.wp-mark--md { width:56px; height:56px; }
+.wp-mark--lg { width:96px; height:96px; }
+.wp-mark--xl { width:120px; height:120px; }
+
+.wp-wordmark {
+  font-family:var(--font-display);
+  font-weight:var(--fw-bold);
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  background:linear-gradient(90deg, var(--brand-cyan), var(--brand-violet));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+
+/* Premium primary control — also mirrored onto .ant-btn-primary via ant-bridge */
+.wp-btn-primary {
+  appearance:none; border:1px solid rgba(0,232,240,.35);
+  border-radius:var(--radius-md);
+  background:linear-gradient(135deg, var(--brand-cyan) 0%, #00C4D4 45%, var(--brand-violet) 130%);
+  color:#031016;
+  font-family:inherit; font-weight:var(--fw-semibold); font-size:var(--fs-base);
+  letter-spacing:.02em;
+  box-shadow:var(--glow-cyan), 0 8px 24px -10px rgba(168,85,247,.45);
+  transition:filter var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.wp-btn-primary:hover { filter:brightness(1.05); transform:translateY(-1px); }
+.wp-btn-primary:active { transform:translateY(0); }
+.wp-btn-primary:disabled { opacity:.55; cursor:not-allowed; transform:none; filter:none; }
+
+/* Branded empty — replaces Ant's default illustration language */
+.wp-empty {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; padding:36px 20px; text-align:center;
+}
+.wp-empty .wp-mark { width:64px; height:64px; opacity:.92; }
+.wp-empty__title {
+  margin:0; font-size:var(--fs-md); font-weight:var(--fw-semibold); color:var(--text);
+}
+.wp-empty__hint {
+  margin:0; max-width:36ch; font-size:var(--fs-sm); color:var(--text-3); line-height:1.5;
+}
+
+/* Global Ant empty: wolf mark instead of Ant SVG box */
+.ant-empty {
+  margin:24px 0; padding:12px;
+}
+.ant-empty-image {
+  height:72px !important;
+  margin-bottom:14px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(0,232,240,.12), transparent 62%),
+    url(../img/logo.png) center / 56px 56px no-repeat;
+  opacity:.95;
+}
+.ant-empty-image svg,
+.ant-empty-image img { display:none !important; }
+.ant-empty-description {
+  color:var(--text-3) !important;
+  font-size:var(--fs-sm);
+  font-weight:var(--fw-medium);
+}
+
+/* Branded loading tip under a-spin */
+.ant-spin-container { min-height:0; }
+.ant-spin-text {
+  color:var(--text-2) !important;
+  letter-spacing:.04em;
+  font-weight:var(--fw-medium);
+}
+.ant-spin-dot-item { background-color:var(--accent) !important; }
+.ant-spin-blur::after {
+  opacity:.55;
+  background:var(--bg);
+}
+
+/* Page toolbar glass strip (settings / xray / inbounds action cards) */
+.wp-page-toolbar.ant-card,
+.ant-card.wp-page-toolbar {
+  margin-bottom:16px;
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .wp-btn-primary { transition:none; }
+}

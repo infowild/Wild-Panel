@@ -63,39 +63,38 @@
 
     .subscription-page .subscription-link-box {
         cursor: pointer;
-        border-radius: 12px;
+        border-radius: var(--radius-lg);
         padding: 25px 20px 15px 20px;
         margin-top: -12px;
         word-break: break-all;
         font-size: 13px;
         line-height: 1.5;
         text-align: left;
-        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-        transition: all 0.3s;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        font-family: var(--font-mono);
+        transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        color: var(--text);
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
+        -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
     }
 
-    .dark.subscription-page .subscription-link-box {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #fff;
+    .subscription-page .subscription-link-box:hover {
+        border-color: var(--border-strong);
+        box-shadow: 0 0 24px -10px rgba(0,232,240,.28);
     }
 
-    .dark.subscription-page .subscription-link-box:hover {
-        background: rgba(0, 0, 0, 0.3);
-        border-color: rgba(255, 255, 255, 0.2);
+    .subscription-page .sub-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+        text-align: center;
     }
-
-    .light.subscription-page .subscription-link-box {
-        background: rgba(0, 0, 0, 0.03);
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        color: rgba(0, 0, 0, 0.85);
-    }
-
-    .light.subscription-page .subscription-link-box:hover {
-        background: rgba(0, 0, 0, 0.05);
-        border-color: rgba(0, 0, 0, 0.14);
-    }
+    .subscription-page .sub-brand .wp-mark { width: 64px; height: 64px; }
+    .subscription-page .sub-brand .wp-wordmark { font-size: 12px; letter-spacing: .16em; }
 </style>
 {{ template "page/head_end" .}}
 
@@ -105,6 +104,14 @@
         <a-row type="flex" justify="center" class="mt-2">
             <a-col :xs="24" :sm="22" :md="18" :lg="14" :xl="12">
                 <a-card hoverable class="subscription-card">
+                    <div class="sub-brand">
+                        <span class="wp-mark">
+                            <span class="wp-mark__inner">
+                                <img src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="64" height="64" alt="Wild Panel" />
+                            </span>
+                        </span>
+                        <span class="wp-wordmark">Wild Panel</span>
+                    </div>
                     <template #title>
                         <a-space>
                             <span>{{ i18n "subscription.title" }}</span>

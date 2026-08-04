@@ -130,6 +130,7 @@
 "donateIntro" = "Wild Panel がお役に立っているなら、以下のいずれかのアドレスへの寄付が開発の継続に役立ちます。"
 "restore" = "復元"
 "systemStatus" = "システム状態"
+"controlCenter" = "コントロールセンター"
 "title" = "システムステータス"
 "cpu" = "CPU"
 "logicalProcessors" = "論理プロセッサ"

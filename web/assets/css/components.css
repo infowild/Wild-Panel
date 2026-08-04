@@ -38,6 +38,7 @@
 .bo-shell {
   display:flex;
   height:100vh;
+  height:100dvh;
   overflow:hidden;
   font-family:var(--font-sans);
   background:var(--bg);
@@ -51,8 +52,13 @@
   content:"";
   position:absolute; inset:0; z-index:0; pointer-events:none;
   background:
-    radial-gradient(ellipse 55% 40% at 8% 0%, rgba(34,211,238,.10), transparent 55%),
-    radial-gradient(ellipse 45% 35% at 100% 100%, rgba(168,85,247,.09), transparent 50%);
+    radial-gradient(ellipse 55% 40% at 6% 0%, var(--ambient-cyan), transparent 58%),
+    radial-gradient(ellipse 45% 35% at 100% 100%, var(--ambient-violet), transparent 52%);
+}
+.bo-shell::after {
+  content:"";
+  position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.03; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .bo-shell > * { position:relative; z-index:1; }
 
@@ -118,37 +124,28 @@
   height:100%;
   background:var(--glass-bg);
   border-inline-end:1px solid var(--glass-border);
-  backdrop-filter:blur(var(--glass-blur)) saturate(1.25);
-  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.25);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.35);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.35);
   display:flex; flex-direction:column; align-items:center;
-  padding:20px 0; gap:26px; overflow-y:auto;
+  padding:22px 0; gap:24px; overflow-y:auto;
   z-index:20;
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.03);
 }
 
 .bo-rail-brand {
   display:flex; flex-direction:column; align-items:center; gap:10px;
   color:var(--accent); width:100%; padding-inline:14px;
 }
-.bo-rail-brand span {
-  font-size:10px; font-weight:var(--fw-bold);
-  color:var(--text); letter-spacing:.12em; text-transform:uppercase;
-  text-align:center;
+.bo-rail-brand .wp-wordmark {
+  font-size:9px; letter-spacing:.14em; text-align:center; line-height:1.2;
 }
 .bo-rail-brand-link { display:block; line-height:0; }
-.bo-rail-brand-ring {
-  display:block; width:60px; height:60px; padding:2px; border-radius:50%;
-  background:conic-gradient(from 210deg, #22d3ee, #a855f7, #22d3ee);
-  box-shadow:0 0 18px -4px rgba(34,211,238,.5), 0 0 22px -6px rgba(168,85,247,.4);
+.bo-rail-brand-link .wp-mark {
   transition:box-shadow var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
 }
-.bo-rail-brand-ring img {
-  display:block; width:100%; height:100%; max-width:none;
-  border-radius:50%; object-fit:cover; object-position:center;
-  background:#05070e;
-}
-.bo-rail-brand-link:hover .bo-rail-brand-ring {
+.bo-rail-brand-link:hover .wp-mark {
   transform:translateY(-1px);
-  box-shadow:0 0 26px -4px rgba(34,211,238,.65), 0 0 30px -4px rgba(168,85,247,.5);
+  box-shadow:var(--glow-cyan), var(--glow-violet);
 }
 
 .bo-rail-nav {
@@ -184,8 +181,8 @@
 .bo-rail--collapsed { flex-basis:76px; width:76px; }
 .bo-rail--collapsed .bo-rail-item { width:64px; }
 .bo-rail--collapsed .bo-rail-item span,
-.bo-rail--collapsed .bo-rail-brand span { display:none; }
-.bo-rail--collapsed .bo-rail-brand-ring { width:44px; height:44px; }
+.bo-rail--collapsed .bo-rail-brand .wp-wordmark { display:none; }
+.bo-rail--collapsed .bo-rail-brand .wp-mark { width:44px; height:44px; }
 
 .bo-rail-item {
   display:flex; flex-direction:column; align-items:center; gap:7px;
@@ -204,10 +201,10 @@
 /* The nav glyphs are ant <a-icon>, which renders at ~14px by default and looked
    undersized next to the 12px labels. */
 .bo-rail-item .anticon { font-size:21px; line-height:1; }
-.bo-rail-item:hover { color:var(--text-2); background:rgba(34,211,238,.06); }
+.bo-rail-item:hover { color:var(--text-2); background:var(--accent-weak); }
 .bo-rail-item.is-active {
-  background:rgba(34,211,238,.14); color:var(--accent);
-  box-shadow:inset 0 0 0 1px rgba(34,211,238,.22), 0 0 18px -8px rgba(34,211,238,.45);
+  background:var(--accent-weak); color:var(--accent);
+  box-shadow:inset 0 0 0 1px rgba(0,232,240,.28), var(--glow-cyan);
 }
 
 /* ================================================================== *
@@ -222,7 +219,10 @@
 }
 
 .bo-topbar {
-  background:var(--surface); border-bottom:1px solid var(--border);
+  background:var(--glass-bg);
+  border-bottom:1px solid var(--glass-border);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.3);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.3);
   position:sticky; top:0; z-index:10;
 }
 .bo-topbar-inner {
@@ -276,7 +276,55 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
   color:var(--text); margin:0; text-wrap:balance;
 }
 
-.bo-content { max-width:1320px; width:100%; margin:0 auto; padding:12px 22px 8px; }
+.bo-content { max-width:min(1320px, 100%); width:100%; margin:0 auto; padding:12px 22px 8px; }
+@media (min-width:1728px) {
+  .bo-content, .bo-topbar-inner { max-width:1480px; }
+}
+@media (min-width:2560px) {
+  .bo-content, .bo-topbar-inner { max-width:1680px; }
+}
+
+/* Dashboard welcome — logo as soul of the control center */
+.bo-welcome {
+  display:flex; align-items:center; gap:14px;
+  margin:4px 0 16px; padding:14px 16px;
+  background:var(--glass-bg);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius-xl);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.25);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.25);
+  box-shadow:var(--shadow-sm);
+  position:relative; overflow:hidden;
+}
+.bo-welcome::before {
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 40% 120% at 0% 50%, var(--ambient-cyan), transparent 70%),
+    radial-gradient(ellipse 35% 100% at 100% 50%, var(--ambient-violet), transparent 70%),
+    var(--glass-shine);
+  opacity:.9;
+}
+.bo-welcome > * { position:relative; z-index:1; }
+.bo-welcome .wp-mark { flex:0 0 auto; width:44px; height:44px; }
+.bo-welcome-copy { min-width:0; }
+.bo-welcome-eyebrow {
+  font-size:var(--fs-xs); font-weight:var(--fw-semibold);
+  letter-spacing:.12em; text-transform:uppercase; color:var(--text-3);
+  margin:0 0 2px;
+}
+.bo-welcome-title {
+  margin:0; font-size:clamp(16px, 2.2vw, 20px); font-weight:var(--fw-bold);
+  letter-spacing:-.01em; color:var(--text); line-height:1.25;
+}
+.bo-welcome-sub {
+  margin:2px 0 0; font-size:var(--fs-sm); color:var(--text-2); line-height:1.4;
+  max-width:52ch;
+}
+@media (max-width:480px) {
+  .bo-welcome { padding:12px; gap:12px; }
+  .bo-welcome .wp-mark { width:38px; height:38px; }
+  .bo-welcome-sub { display:none; }
+}
 .bo-page-title {
   font-size:24px; font-weight:var(--fw-semibold);
   margin-bottom:var(--sp-5); text-wrap:balance;
@@ -381,7 +429,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-tile:hover {
   transform:translateY(-3px);
   border-color:var(--border-strong);
-  box-shadow:0 16px 40px -18px rgba(0,0,0,.55), 0 0 28px -10px rgba(34,211,238,.18);
+  box-shadow:0 16px 40px -18px rgba(0,0,0,.55), 0 0 28px -10px rgba(0,232,240,.16);
 }
 /* Content sits at the top of a stretched tile. space-between was tried and
    looks worse: it strands the heading at the top and the body at the very
@@ -504,7 +552,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
   fill:none; stroke:var(--accent); stroke-width:4; stroke-linecap:round;
   stroke-dasharray:100.53; stroke-dashoffset:100.53;
   transition:stroke-dashoffset .8s cubic-bezier(.22,1,.36,1);
-  filter:drop-shadow(0 0 4px rgba(34,211,238,.55));
+  filter:drop-shadow(0 0 5px rgba(0,232,240,.55));
 }
 .bo-ring-progress--warn { stroke:var(--warn); filter:drop-shadow(0 0 4px rgba(251,191,36,.45)); }
 .bo-ring-progress--error { stroke:var(--error); filter:drop-shadow(0 0 4px rgba(251,113,133,.45)); }
@@ -527,7 +575,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-load-bar { flex:1; height:6px; border-radius:999px; background:rgba(255,255,255,.06); overflow:hidden; display:block; }
 .bo-load-bar > span {
   display:block; height:100%; border-radius:999px;
-  background:linear-gradient(90deg, #22d3ee, #a855f7);
+  background:linear-gradient(90deg, var(--brand-cyan), var(--brand-violet));
   box-shadow:0 0 10px rgba(34,211,238,.55);
 }
 .bo-load-val {
@@ -693,7 +741,10 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-panel-mark {
   width:28px; height:28px; border-radius:50%; object-fit:cover; object-position:center;
   background:#05070e; flex:0 0 auto;
-  box-shadow:0 0 0 1.5px rgba(34,211,238,.45), 0 0 14px -2px rgba(168,85,247,.45);
+  box-shadow:0 0 0 1.5px rgba(0,232,240,.5), 0 0 14px -2px rgba(168,85,247,.5);
+}
+.bo-panel-title .wp-mark {
+  width:28px; height:28px; flex:0 0 auto;
 }
 .bo-status-line { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:var(--fw-semibold); margin-top:var(--sp-2); }
 .bo-status-line--ok { color:var(--ok); }
@@ -989,8 +1040,8 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
   .bo-rail { flex-basis:68px; width:68px; padding:14px 0; gap:16px; }
   .bo-rail-item { width:56px; padding:10px 4px 8px; }
   .bo-rail-item span,
-  .bo-rail-brand span { display:none; }
-  .bo-rail-brand-ring { width:44px; height:44px; }
+  .bo-rail-brand .wp-wordmark { display:none; }
+  .bo-rail-brand .wp-mark { width:44px; height:44px; }
   .bo-topbar-inner { padding:10px 12px; }
   .bo-content { padding:12px 12px max(28px, env(safe-area-inset-bottom)); }
   .bo-page-title { font-size:20px; margin-bottom:14px; }

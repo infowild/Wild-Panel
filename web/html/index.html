@@ -32,7 +32,21 @@
        pop in against a collapsed container. -->
   <div v-if="!loadingStates.fetched" :style="{ minHeight: 'calc(100vh - 160px)' }"></div>
 
-  <div class="bo-bento" v-else>
+  <template v-else>
+  <header class="bo-welcome" aria-label="Wild Panel">
+    <span class="wp-mark">
+      <span class="wp-mark__inner">
+        <img src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="44" height="44" alt="" aria-hidden="true" />
+      </span>
+    </span>
+    <div class="bo-welcome-copy">
+      <p class="bo-welcome-eyebrow">{{ i18n "pages.index.controlCenter" }}</p>
+      <h2 class="bo-welcome-title">Wild Panel</h2>
+      <p class="bo-welcome-sub">{{ i18n "pages.index.systemStatus" }} · [[ serverLabel ]]</p>
+    </div>
+  </header>
+
+  <div class="bo-bento">
 
     <!-- ===== identity ===== -->
     <article class="bo-tile bo-t-ident" aria-label='{{ i18n "pages.index.systemStatus" }}'>
@@ -437,7 +451,11 @@
     <article class="bo-tile bo-t-panel" aria-label="Wild Panel">
       <div class="bo-tile-head">
         <h3 class="bo-tile-title bo-panel-title">
-          <img class="bo-panel-mark" src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="28" height="28" alt="" aria-hidden="true" />
+          <span class="wp-mark">
+            <span class="wp-mark__inner">
+              <img src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="28" height="28" alt="" aria-hidden="true" />
+            </span>
+          </span>
           Wild Panel
         </h3>
         <button type="button" class="bo-icon-btn bo-icon-btn--accent"
@@ -536,6 +554,7 @@
     <!-- ===== connections ===== -->
 
   </div>
+  </template>
 </a-spin>
   <!-- Panel update confirmation. The release notes are the whole point of the
        dialog: replacing the running binary and restarting is not something to
@@ -2024,8 +2043,8 @@
           } catch (e) { return fallback; }
         };
         return {
-          accent: read('--accent', '#008771'),
-          info: read('--info', '#1890ff'),
+          accent: read('--accent', '#00E8F0'),
+          info: read('--info', '#00E8F0'),
         };
       },
       connRatio() {
@@ -2705,7 +2724,7 @@
         return { l2tp: 'L2TP', ipsec: 'IPsec', pptp: 'PPTP', openvpn: 'OpenVPN', openconnect: 'OpenConnect (cisco)', sstp: 'SSTP', ikev2: 'IKEv2', wgc: 'WireGuard (C)', awg: 'AmneziaWG', gre: 'GRE', mtproto: 'MTProto Proxy', ssh: 'SSH', radius: 'RADIUS' }[name] || name;
       },
       coreStateColor(state) {
-        return { running: '#52c41a', idle: '#1890ff', stopped: '#faad14', not_installed: '#8c8c8c', error: '#f5222d' }[state] || '#8c8c8c';
+        return { running: '#4ade80', idle: '#00E8F0', stopped: '#fbbf24', not_installed: '#7c8aa0', error: '#fb7185' }[state] || '#7c8aa0';
       },
       coreStateText(state) {
         return { running: 'Running', idle: 'Idle', stopped: 'Stopped', not_installed: 'Not installed', error: 'Error', unknown: '-' }[state] || state;

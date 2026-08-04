@@ -89,9 +89,13 @@ jobs:
             echo "error: binary missing login UI strings (Sign in to Wild Panel)" >&2
             exit 1
           fi
-          # Login brand ring markup from login.html (logo UI)
-          if ! strings build/out/wild-panel-amd64 | grep -q 'lgt-brand-ring'; then
-            echo "error: binary missing login brand-ring markup" >&2
+          <!-- Login brand mark (holographic rings + wolf) -->
+          if ! strings build/out/wild-panel-amd64 | grep -q 'lgt-holo'; then
+            echo "error: binary missing login holographic brand markup" >&2
+            exit 1
+          fi
+          if ! strings build/out/wild-panel-amd64 | grep -q 'wp-mark'; then
+            echo "error: binary missing Wild Panel brand mark class" >&2
             exit 1
           fi
           cp -f build/out/wild-panel-amd64 wild-panel-amd64

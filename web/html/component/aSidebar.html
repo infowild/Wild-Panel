@@ -4,11 +4,13 @@
         aria-label='{{ i18n "menu.navigation"}}'>
         <div class="bo-rail-brand">
             <a class="bo-rail-brand-link" href="{{ .base_path }}panel/" aria-label="Wild Panel">
-                <span class="bo-rail-brand-ring" aria-hidden="true">
-                    <img src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="56" height="56" alt="Wild Panel" />
+                <span class="wp-mark wp-mark--md">
+                    <span class="wp-mark__inner">
+                        <img src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="56" height="56" alt="Wild Panel" />
+                    </span>
                 </span>
             </a>
-            <span>Wild Panel</span>
+            <span class="wp-wordmark">Wild Panel</span>
         </div>
 
         <div class="bo-rail-nav">

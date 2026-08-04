@@ -1054,11 +1054,11 @@
   }
 
   .core-value-ok {
-    color: #52c41a;
+    color: var(--ok);
   }
 
   .core-value-warn {
-    color: #faad14;
+    color: var(--warn);
   }
 
   /* Status pill in the card header */
@@ -1080,11 +1080,11 @@
     background: currentColor;
   }
 
-  .core-state-running { color: #52c41a; }
-  .core-state-idle { color: #1890ff; }
-  .core-state-stopped { color: #faad14; }
+  .core-state-running { color: var(--ok); }
+  .core-state-idle { color: var(--accent); }
+  .core-state-stopped { color: var(--warn); }
   .core-state-not_installed { color: #8c8c8c; }
-  .core-state-error { color: #f5222d; }
+  .core-state-error { color: var(--error); }
 
   /* System / provisioning */
   .system-desc {
@@ -1107,7 +1107,7 @@
   }
 
   .sys-tile-ok .sys-tile-icon {
-    color: #52c41a;
+    color: var(--ok);
   }
 
   .sys-tile-bad {
@@ -1116,7 +1116,7 @@
   }
 
   .sys-tile-bad .sys-tile-icon {
-    color: #f5222d;
+    color: var(--error);
   }
 
   .sys-tile-icon {
@@ -1158,13 +1158,13 @@
   }
 
   .module-ok {
-    color: #52c41a;
+    color: var(--ok);
     border-color: rgba(82, 196, 26, 0.35);
     background: rgba(82, 196, 26, 0.08);
   }
 
   .module-bad {
-    color: #f5222d;
+    color: var(--error);
     border-color: rgba(245, 34, 45, 0.35);
     background: rgba(245, 34, 45, 0.07);
   }
@@ -1199,7 +1199,7 @@
     justify-content: center;
     font-size: 36px;
     color: #fff;
-    background: linear-gradient(135deg, #1890ff, #52c41a);
+    background: linear-gradient(135deg, var(--brand-cyan), var(--brand-violet));
     box-shadow: 0 12px 30px rgba(24, 144, 255, 0.35);
   }
 
@@ -1236,7 +1236,7 @@
   }
 
   .setup-hero-step .anticon {
-    color: #1890ff;
+    color: var(--accent);
   }
 
   .setup-hero-btn {
@@ -1268,17 +1268,17 @@
   .setup-modal-head-icon.head-running,
   .setup-modal-head-icon.head-idle {
     background: rgba(24, 144, 255, 0.14);
-    color: #1890ff;
+    color: var(--accent);
   }
 
   .setup-modal-head-icon.head-ok {
     background: rgba(82, 196, 26, 0.15);
-    color: #52c41a;
+    color: var(--ok);
   }
 
   .setup-modal-head-icon.head-warn {
     background: rgba(250, 173, 20, 0.16);
-    color: #faad14;
+    color: var(--warn);
   }
 
   .setup-modal-head-title {
@@ -1296,7 +1296,7 @@
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid rgba(0, 0, 0, 0.4);
-    background: #0d1117;
+    background: rgba(6,7,13,.92);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
   }
 
@@ -1305,7 +1305,7 @@
     align-items: center;
     gap: 10px;
     padding: 8px 12px;
-    background: #161b22;
+    background: rgba(14,18,32,.72);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 
@@ -1336,12 +1336,12 @@
   .term-progress-bar {
     height: 100%;
     width: 0;
-    background: #1890ff;
+    background: var(--accent);
     transition: width 0.4s ease;
   }
 
-  .term-progress-bar.done { background: #27c93f; }
-  .term-progress-bar.warn { background: #faad14; }
+  .term-progress-bar.done { background: var(--ok); }
+  .term-progress-bar.warn { background: var(--warn); }
 
   .term-body {
     max-height: 46vh;
@@ -1350,7 +1350,7 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 12.5px;
     line-height: 1.7;
-    color: #c9d1d9;
+    color: rgba(201,214,230,.92);
   }
 
   .term-line {
@@ -1361,7 +1361,7 @@
     word-break: break-word;
   }
 
-  .term-ts { color: #6e7681; flex: 0 0 auto; }
+  .term-ts { color: var(--text-3); flex: 0 0 auto; }
 
   .term-glyph {
     flex: 0 0 auto;
@@ -1373,13 +1373,13 @@
   .term-name { flex: 0 0 auto; color: #e6edf3; }
   .term-msg { color: #8b949e; }
 
-  .term-ok .term-glyph { color: #3fb950; }
+  .term-ok .term-glyph { color: var(--ok); }
   .term-warn .term-glyph { color: #d29922; }
   .term-warn .term-msg { color: #d29922; }
   .term-err .term-glyph { color: #f85149; }
   .term-err .term-msg { color: #ff7b72; }
   .term-running .term-glyph,
-  .term-running .term-name { color: #58a6ff; }
+  .term-running .term-name { color: var(--accent); }
 
   .term-clickable {
     cursor: pointer;
@@ -1394,7 +1394,7 @@
   }
 
   .term-toggle {
-    color: #58a6ff;
+    color: var(--accent);
     font-size: 11px;
     margin-left: 6px;
     opacity: 0.8;
@@ -1420,7 +1420,7 @@
     display: inline-block;
     width: 8px;
     height: 13px;
-    background: #58a6ff;
+    background: var(--accent);
     margin-left: 2px;
     animation: term-blink 1s step-end infinite;
   }
@@ -1443,9 +1443,9 @@
     border-top: 1px dashed rgba(255, 255, 255, 0.08);
     font-variant-numeric: tabular-nums;
   }
-  .term-pct { color: #58a6ff; font-weight: 700; }
-  .term-cur { flex: 1 1 auto; min-width: 0; color: #58a6ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .term-status-done .term-summary { color: #c9d1d9; font-weight: 600; letter-spacing: .5px; }
+  .term-pct { color: var(--accent); font-weight: 700; }
+  .term-cur { flex: 1 1 auto; min-width: 0; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .term-status-done .term-summary { color: rgba(201,214,230,.92); font-weight: 600; letter-spacing: .5px; }
   .term-status-done .term-elapsed { color: #8b949e; }
 
   /* Reboot-required explainer (inside the setup modal) */
@@ -1463,7 +1463,7 @@
     gap: 10px;
   }
 
-  .reboot-panel-icon { color: #faad14; font-size: 20px; }
+  .reboot-panel-icon { color: var(--warn); font-size: 20px; }
   .reboot-panel-title { font-weight: 600; font-size: 15px; }
 
   .reboot-panel-what {
@@ -1539,7 +1539,7 @@
     background: rgba(250, 173, 20, 0.09);
   }
 
-  .reboot-banner-icon { color: #faad14; font-size: 24px; flex: 0 0 auto; }
+  .reboot-banner-icon { color: var(--warn); font-size: 24px; flex: 0 0 auto; }
   .reboot-banner-body { flex: 1 1 auto; min-width: 0; }
   .reboot-banner-title { font-weight: 600; font-size: 14px; }
 
@@ -1569,7 +1569,7 @@
 
   .rebooting-icon {
     font-size: 40px;
-    color: #faad14;
+    color: var(--warn);
     margin-bottom: 14px;
   }
 

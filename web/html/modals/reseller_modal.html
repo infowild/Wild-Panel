@@ -103,7 +103,7 @@
       </template>
       <a-input-number v-model.number="resellerModal.reseller.allowanceGb" :min="0"
         :disabled="resellerModal.isEdit" :style="{ width: '100%' }"></a-input-number>
-      <div v-if="resellerModal.isEdit" :style="{ fontSize: '12px', color: '#8c8c8c' }">
+      <div v-if="resellerModal.isEdit" :style="{ fontSize: '12px', color: 'var(--text-3)' }">
         {{ i18n "pages.resellers.rechargeDesc" }}
       </div>
     </a-form-item>
@@ -167,7 +167,7 @@
                 <a-checkbox :value="ib.id">
                   [[ ib.remark || ('#' + ib.id) ]]
                   <a-tag :style="{ marginLeft: '4px' }">[[ ib.protocol ]]</a-tag>
-                  <span :style="{ color: '#8c8c8c' }">:[[ ib.port ]]</span>
+                  <span :style="{ color: 'var(--text-3)' }">:[[ ib.port ]]</span>
                 </a-checkbox>
               </a-col>
             </a-row>

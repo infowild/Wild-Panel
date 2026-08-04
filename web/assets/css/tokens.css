@@ -1,32 +1,17 @@
 /*
- * tokens.css - the design-system layer for the panel redesign.
+ * tokens.css — Wild Panel Design System
  *
- * Loaded BEFORE custom.css. This file defines vocabulary only: it declares
- * custom properties and a handful of direction utilities, and styles no
- * component. Nothing here can change how the current panel renders.
+ * Brand extracted from the wolf logo:
+ *   Eyes / primary   #00E8F0  electric cyan
+ *   Aura / secondary #A855F7  neon violet
+ *   Ground           #06070D  obsidian
  *
- * Theme selectors match component/aThemeSwitch.html exactly:
- *   light        :root            (default; body also carries class="light")
- *   dark         body.dark        (localStorage 'dark-mode', defaults to true)
- *   ultra-dark   html[data-theme='ultra-dark'] body.dark
- *                (localStorage 'isUltraDarkThemeEnabled', independent of the
- *                 dark/light flag, so it is scoped to the dark pairing only)
- *
- * Note that aThemeSwitch does setAttribute('class', theme) on <body>, which
- * REPLACES the whole class list. Never expect another class to survive there.
- *
- * The legacy --dark-color-* palette in custom.css is deliberately NOT aliased
- * to these tokens yet. See "deferred alias map" at the foot of this file.
+ * Glass language: blur 22px, ~58% opacity surfaces, thin luminous borders.
+ * Glow is reserved for focus, primary actions, active nav, health, charts.
  */
 
-/* ------------------------------------------------------------------ *
- * 1. Non-colour tiers. Theme-independent.
- *    The mockups in redesign/ hardcode every dimension; these are the
- *    scales recovered from them.
- * ------------------------------------------------------------------ */
-
 :root {
-  /* spacing */
+  /* —— spacing —— */
   --sp-1:4px;
   --sp-2:8px;
   --sp-3:12px;
@@ -35,32 +20,34 @@
   --sp-6:24px;
   --sp-8:32px;
   --sp-10:40px;
+  --sp-12:48px;
+  --sp-16:64px;
 
-  /* grid gutters, as used by the bento mosaic at its three breakpoints */
   --gap-sm:12px;
-  --gap-md:13px;
-  --gap-lg:12px;
+  --gap-md:16px;
+  --gap-lg:20px;
 
-  /* radii */
+  /* —— radius —— */
   --radius-sm:8px;
-  --radius-md:10px;
-  --radius-lg:12px;
-  --radius-xl:16px;
+  --radius-md:12px;
+  --radius-lg:16px;
+  --radius-xl:20px;
+  --radius-2xl:24px;
   --radius-pill:999px;
 
-  /* type. Sora for Latin UI (tech, expressive); Vazirmatn covers Persian/Arabic. */
-  --font-sans:'Sora','Outfit','Vazirmatn UI NL','Vazirmatn',-apple-system,BlinkMacSystemFont,
-              'Segoe UI',system-ui,'Helvetica Neue',Arial,sans-serif;
-  --font-display:'Sora','Outfit','Vazirmatn UI NL',system-ui,sans-serif;
-  --font-mono:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,
-              'Liberation Mono',monospace;
+  /* —— type (Inter EN + Vazirmatn FA) —— */
+  --font-sans:'Inter','Vazirmatn UI NL','Vazirmatn',-apple-system,BlinkMacSystemFont,
+              'Segoe UI',system-ui,sans-serif;
+  --font-display:'Inter','Vazirmatn UI NL',system-ui,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace;
 
   --fs-xs:11px;
   --fs-sm:12.5px;
   --fs-base:14px;
   --fs-md:16px;
   --fs-lg:20px;
-  --fs-xl:26px;
+  --fs-xl:28px;
+  --fs-2xl:34px;
 
   --fw-normal:400;
   --fw-medium:500;
@@ -70,241 +57,156 @@
   --lh-tight:1.2;
   --lh-base:1.5;
 
-  /* motion. Consumed via var() so the anti-flicker guard below can zero
-     them out without every component needing its own override. */
-  --dur-fast:.15s;
-  --dur-med:.25s;
-  --ease:cubic-bezier(.4,0,.2,1);
+  /* —— motion (180–250ms) —— */
+  --dur-fast:.18s;
+  --dur-med:.22s;
+  --dur-slow:.28s;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --ease-spring:cubic-bezier(.34,1.4,.64,1);
+
+  /* —— brand raw —— */
+  --brand-cyan:#00E8F0;
+  --brand-violet:#A855F7;
+  --brand-obsidian:#06070D;
 }
 
-/* ------------------------------------------------------------------ *
- * 2. Semantic colour - LIGHT (default)
- *
- *    Light mode has never had tokens: every custom property in custom.css
- *    is --dark-color-*, so light has been stock ant-design. This block is
- *    net-new.
- * ------------------------------------------------------------------ */
-
+/* —— LIGHT —— */
 :root {
-  --bg:#f4f6f8;
-  --surface:#ffffff;
-  --surface-2:#eef2f4;
-  --border:#e4e9ee;
-  --border-strong:#d2dae1;
+  --bg:#f3f5f8;
+  --surface:rgba(255,255,255,.78);
+  --surface-2:rgba(241,244,248,.92);
+  --border:rgba(15,23,42,.08);
+  --border-strong:rgba(8,145,178,.28);
 
-  --text:#1b2430;          /* 15.65:1 on --surface */
-  --text-2:#5a6675;        /*  5.85:1 on --surface */
-  --text-3:#6b7787;        /*  4.55:1 on --surface - see contrast note */
+  --text:#0f172a;
+  --text-2:#475569;
+  --text-3:#64748b;
 
-  /* Brand. --accent is the identity colour and is used for text, borders,
-     icons and rings. --accent-strong is ONLY for filled surfaces that carry
-     --on-accent text, where the brand green is fractionally too light. */
-  --accent:#0891b2;        /* cyan brand aligned with logo */
+  --accent:#0891b2;
   --accent-strong:#0e7490;
-  --accent-weak:#e0f7fa;
+  --accent-weak:rgba(8,145,178,.12);
   --on-accent:#ffffff;
+  --glow:#A855F7;
+  --glow-weak:rgba(168,85,247,.12);
 
-  /* Status scale. RESERVED: these four encode state and nothing else, and
-     always ship with a text label, never colour alone.
+  --ok:#15803d;
+  --info:#0891b2;
+  --warn:#a16207;
+  --error:#b91c1c;
+  --off:#64748b;
 
-     Values are computed, not picked. Every one clears 4.5:1 as TEXT on this
-     surface (ant's stock #52c41a/#faad14 sit near 2:1 and were illegible on
-     the tinted pills this panel uses them in):
-       ok 5.36  warn 5.59  error 6.54  info 4.95  off 4.55
-     They are also muted relative to ant's defaults so they sit with the
-     teal/slate system instead of shouting over it. */
-  --ok:#1c7a45;
-  --info:#1f6fd0;
-  --warn:#8a6008;
-  --error:#b3261e;
-  --off:#6b7787;
+  --ok-weak:rgba(21,128,61,.10);
+  --info-weak:rgba(8,145,178,.10);
+  --warn-weak:rgba(161,98,7,.12);
+  --error-weak:rgba(185,28,28,.10);
+  --off-weak:rgba(100,116,139,.12);
 
-  --ok-weak:rgba(28,122,69,.10);
-  --info-weak:rgba(31,111,208,.10);
-  --warn-weak:rgba(138,96,8,.12);
-  --error-weak:rgba(179,38,30,.10);
-  --off-weak:rgba(107,119,135,.12);
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05);
+  --shadow-md:0 10px 30px -12px rgba(15,23,42,.12);
+  --shadow-lg:0 24px 48px -20px rgba(15,23,42,.18);
 
-  --shadow-sm:0 1px 2px rgba(16,24,32,.05);
-  --shadow-md:0 6px 16px -6px rgba(16,24,32,.10),0 2px 5px rgba(16,24,32,.05);
+  --glass-bg:rgba(255,255,255,.58);
+  --glass-border:rgba(15,23,42,.10);
+  --glass-blur:22px;
+  --glass-shine:linear-gradient(135deg, rgba(255,255,255,.65), rgba(255,255,255,.08) 42%, transparent 70%);
 
-  --glow:#7c3aed;
-  --glow-weak:rgba(124,58,237,.12);
-  --glass-bg:rgba(255,255,255,.72);
-  --glass-border:rgba(15,23,42,.08);
-  --glass-blur:16px;
-  --glass-shine:linear-gradient(135deg, rgba(255,255,255,.55), rgba(255,255,255,.08) 45%, transparent 70%);
+  --glow-cyan:0 0 24px -6px rgba(0,232,240,.35);
+  --glow-violet:0 0 24px -6px rgba(168,85,247,.30);
+  --ambient-cyan:rgba(0,232,240,.08);
+  --ambient-violet:rgba(168,85,247,.08);
 
   color-scheme:light;
 }
 
-/* ------------------------------------------------------------------ *
- * 3. Semantic colour - DARK
- *
- *    Values match the existing --dark-color-* palette where they overlap
- *    (--bg, --surface and --border are byte-identical to
- *    --dark-color-background / -surface-100 / -surface-300), so dark mode
- *    keeps its current identity.
- *
- *    Elevation is carried by borders, not shadows: both shadow tokens go
- *    to none, exactly as the mockups do.
- * ------------------------------------------------------------------ */
-
+/* —— DARK (flagship) —— */
 body.dark {
-  /* Wild Panel neon wolf palette: deep navy ground, cyan primary, purple glow */
-  --bg:#070a12;
-  --surface:rgba(18,24,40,.72);
-  --surface-2:rgba(28,36,58,.78);
-  --border:rgba(56,189,248,.16);
-  --border-strong:rgba(56,189,248,.32);
+  --bg:#06070D;
+  --surface:rgba(14,18,32,.58);
+  --surface-2:rgba(22,28,48,.72);
+  --border:rgba(255,255,255,.08);
+  --border-strong:rgba(0,232,240,.22);
 
-  --text:rgba(255,255,255,.92);
-  --text-2:rgba(186,210,235,.72);
-  --text-3:rgba(148,176,204,.55);
+  --text:rgba(255,255,255,.94);
+  --text-2:rgba(186,205,230,.72);
+  --text-3:rgba(148,170,200,.52);
 
-  --accent:#22d3ee;               /* neon cyan — logo eyes */
-  --accent-strong:#06b6d4;
-  --accent-weak:rgba(34,211,238,.14);
-  --on-accent:#041018;
-  --glow:#a855f7;                 /* magenta/purple — logo aura */
-  --glow-weak:rgba(168,85,247,.18);
+  --accent:#00E8F0;
+  --accent-strong:#00C4D4;
+  --accent-weak:rgba(0,232,240,.12);
+  --on-accent:#031016;
+  --glow:#A855F7;
+  --glow-weak:rgba(168,85,247,.16);
 
   --ok:#4ade80;
   --info:#38bdf8;
   --warn:#fbbf24;
   --error:#fb7185;
-  --off:#94a3b8;
+  --off:#7c8aa0;
 
-  --ok-weak:rgba(74,222,128,.13);
-  --info-weak:rgba(56,189,248,.13);
+  --ok-weak:rgba(74,222,128,.12);
+  --info-weak:rgba(56,189,248,.12);
   --warn-weak:rgba(251,191,36,.14);
-  --error-weak:rgba(251,113,133,.13);
-  --off-weak:rgba(148,163,184,.15);
+  --error-weak:rgba(251,113,133,.12);
+  --off-weak:rgba(124,138,160,.14);
 
-  --shadow-sm:0 0 0 1px rgba(34,211,238,.06);
-  --shadow-md:0 12px 40px -16px rgba(0,0,0,.55), 0 0 24px -8px rgba(34,211,238,.12);
+  --shadow-sm:0 0 0 1px rgba(255,255,255,.04);
+  --shadow-md:0 16px 40px -18px rgba(0,0,0,.65), 0 0 28px -14px rgba(0,232,240,.12);
+  --shadow-lg:0 28px 64px -24px rgba(0,0,0,.72), 0 0 40px -16px rgba(168,85,247,.16);
 
-  /* glass */
-  --glass-bg:rgba(16,22,38,.55);
+  --glass-bg:rgba(14,18,32,.58);
   --glass-border:rgba(255,255,255,.10);
-  --glass-blur:18px;
-  --glass-shine:linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.02) 40%, transparent 70%);
+  --glass-blur:22px;
+  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.02) 38%, transparent 68%);
+
+  --glow-cyan:0 0 28px -6px rgba(0,232,240,.55);
+  --glow-violet:0 0 28px -6px rgba(168,85,247,.48);
+  --ambient-cyan:rgba(0,232,240,.14);
+  --ambient-violet:rgba(168,85,247,.12);
 
   color-scheme:dark;
 }
 
-/* ------------------------------------------------------------------ *
- * 4. Semantic colour - ULTRA-DARK
- *
- *    Hand-authored, not derived. Ultra-dark deliberately INVERTS the
- *    surface relationship: normal dark puts cards lighter than the page
- *    (#0a1222 bg / #151f31 card), ultra-dark puts them darker
- *    (#21242a bg / #0c0e12 card). No lightness transform reproduces that,
- *    so these are written out.
- * ------------------------------------------------------------------ */
-
+/* —— ULTRA-DARK —— */
 html[data-theme='ultra-dark'] body.dark {
-  --bg:#04060c;
-  --surface:rgba(10,14,24,.78);
-  --surface-2:rgba(18,24,40,.82);
-  --border:rgba(168,85,247,.18);
-  --border-strong:rgba(34,211,238,.28);
+  --bg:#03040a;
+  --surface:rgba(8,10,18,.62);
+  --surface-2:rgba(14,18,30,.78);
+  --border:rgba(168,85,247,.14);
+  --border-strong:rgba(0,232,240,.26);
 
-  --text:rgba(255,255,255,.90);
-  --text-2:rgba(186,210,235,.68);
-  --text-3:rgba(148,176,204,.50);
+  --text:rgba(255,255,255,.92);
+  --text-2:rgba(180,200,225,.68);
+  --text-3:rgba(140,160,190,.48);
 
-  --accent:#67e8f9;
-  --accent-strong:#22d3ee;
-  --accent-weak:rgba(103,232,249,.14);
-  --on-accent:#031018;
-  --glow:#c084fc;
-  --glow-weak:rgba(192,132,252,.20);
+  --accent:#5CF0F7;
+  --accent-strong:#00E8F0;
+  --accent-weak:rgba(92,240,247,.12);
+  --on-accent:#02080c;
+  --glow:#C084FC;
+  --glow-weak:rgba(192,132,252,.18);
 
-  --ok:#4ade80;
-  --info:#38bdf8;
-  --warn:#fbbf24;
-  --error:#fb7185;
-  --off:#64748b;
-
-  --ok-weak:rgba(74,222,128,.14);
-  --info-weak:rgba(56,189,248,.14);
-  --warn-weak:rgba(251,191,36,.16);
-  --error-weak:rgba(251,113,133,.14);
-  --off-weak:rgba(100,116,139,.18);
-
-  --shadow-sm:0 0 0 1px rgba(168,85,247,.08);
-  --shadow-md:0 16px 48px -18px rgba(0,0,0,.7), 0 0 28px -10px rgba(168,85,247,.16);
-
-  --glass-bg:rgba(8,12,22,.62);
+  --glass-bg:rgba(8,10,18,.62);
   --glass-border:rgba(255,255,255,.08);
-  --glass-blur:22px;
-  --glass-shine:linear-gradient(135deg, rgba(255,255,255,.08), transparent 55%);
-}
+  --glass-blur:24px;
+  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.08), transparent 55%);
 
-/* ------------------------------------------------------------------ *
- * 5. Motion
- *
- *    data-theme-animations='off' is NOT a user preference. aThemeSwitch
- *    sets it while the theme control is hovered and drops it on
- *    mouseleave/touchend, to stop every transition firing at once during a
- *    theme swap. Zeroing the duration tokens keeps new components in step
- *    with that existing guard.
- * ------------------------------------------------------------------ */
+  --shadow-md:0 18px 48px -20px rgba(0,0,0,.78), 0 0 32px -12px rgba(168,85,247,.14);
+  --shadow-lg:0 32px 72px -28px rgba(0,0,0,.82), 0 0 48px -18px rgba(168,85,247,.18);
+}
 
 html[data-theme-animations='off'] {
   --dur-fast:0s;
   --dur-med:0s;
+  --dur-slow:0s;
 }
 
 @media (prefers-reduced-motion:reduce) {
   :root {
     --dur-fast:0s;
     --dur-med:0s;
+    --dur-slow:0s;
   }
 }
 
-/* ------------------------------------------------------------------ *
- * 6. Direction utilities
- *
- *    The panel ships Persian and Arabic. Flexbox and grid mirror on their
- *    own, but a few classes of content must NOT mirror: a time axis reads
- *    left-to-right in every locale, and bidi reordering mangles dotted and
- *    colonned strings such as IPs, versions and MAC addresses.
- *
- *    Component CSS should use logical properties (margin-inline-start,
- *    border-inline-end, text-align:start/end) rather than physical ones.
- * ------------------------------------------------------------------ */
-
-.ltr-island {
-  direction:ltr;
-  unicode-bidi:isolate;
-}
-
-.tnum {
-  font-variant-numeric:tabular-nums;
-  font-feature-settings:'tnum';
-}
-
-/* ------------------------------------------------------------------ *
- * Deferred alias map
- *
- * The obvious next step is to point the legacy --dark-color-* names at
- * these tokens so there is one source of truth. It is deliberately NOT
- * done yet, for two reasons:
- *
- *   1. Only four legacy values map exactly (--dark-color-background,
- *      -surface-100, -surface-300, -stroke). The rest differ: the mockups
- *      run text brighter (.88 vs .75) and use a different --surface-2
- *      (#1c2740 vs #222d42). Aliasing today would restyle all seven
- *      existing pages at once, before any of them has been recomposed.
- *
- *   2. Custom properties resolve against the element that declares them.
- *      Because the semantic tokens vary at body.dark while the legacy
- *      names are declared at :root, a naive `--dark-color-x:var(--y)` on
- *      :root would capture the LIGHT value and break dark mode. The alias
- *      map has to be declared at body level.
- *
- * Do it per page as each one is recomposed, so every visual change lands
- * with a page that was actually looked at.
- * ------------------------------------------------------------------ */
+/* —— direction helpers —— */
+[dir="rtl"] .bo-ltr-only { direction:ltr; unicode-bidi:isolate; }

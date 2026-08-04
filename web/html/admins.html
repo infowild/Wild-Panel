@@ -35,20 +35,20 @@
                   </template>
 
                   <template slot="twoFactor" slot-scope="text, admin">
-                    <a-icon v-if="admin.twoFactorEnable" type="lock" :style="{ color: '#52c41a' }"></a-icon>
-                    <span v-else :style="{ color: '#8c8c8c' }">{{ i18n "none" }}</span>
+                    <a-icon v-if="admin.twoFactorEnable" type="lock" :style="{ color: 'var(--ok)' }"></a-icon>
+                    <span v-else :style="{ color: 'var(--text-3)' }">{{ i18n "none" }}</span>
                   </template>
 
                   <template slot="inboundAccess" slot-scope="text, admin">
-                    <span v-if="admin.isSuperAdmin" :style="{ color: '#8c8c8c' }">{{ i18n "all" }}</span>
+                    <span v-if="admin.isSuperAdmin" :style="{ color: 'var(--text-3)' }">{{ i18n "all" }}</span>
                     <span v-else>[[ admin.inboundIds.length ]]</span>
                   </template>
 
                   <template slot="permissions" slot-scope="text, admin">
-                    <span v-if="admin.isSuperAdmin" :style="{ color: '#8c8c8c' }">
+                    <span v-if="admin.isSuperAdmin" :style="{ color: 'var(--text-3)' }">
                       {{ i18n "pages.admins.superAdminDesc" }}
                     </span>
-                    <span v-else-if="!admin.permissions.length" :style="{ color: '#8c8c8c' }">
+                    <span v-else-if="!admin.permissions.length" :style="{ color: 'var(--text-3)' }">
                       {{ i18n "none" }}
                     </span>
                     <template v-else>
