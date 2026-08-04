@@ -1,0 +1,133 @@
+# Build linux/amd64 Wild Panel and publish the release asset.
+# Trigger: Actions → Release → Run workflow, or push a tag matching v*.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (e.g. v1)
+        required: true
+        default: v1
+      make_latest:
+        description: Mark this release as GitHub "latest"
+        type: boolean
+        default: true
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          df -h
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install build deps (cgo / sqlite)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc libc6-dev pkg-config
+
+      - name: Cache VPN daemon bundle + Xray core embeds
+        uses: actions/cache@v4
+        with:
+          path: |
+            backend/bin
+            corebundle/core
+          key: embeds-amd64-${{ hashFiles('build/backend/**', 'build/core/**', '.gitmodules') }}
+          restore-keys: |
+            embeds-amd64-
+
+      - name: Build Wild Panel
+        env:
+          # First run builds Docker daemon bundles (slow). Cache hits skip that.
+          DOCKER_BUILDKIT: "1"
+        run: |
+          set -euo pipefail
+          chmod +x build.sh build/core/build.sh build/backend/build.sh || true
+          ./build.sh
+          test -x build/out/wild-panel-amd64
+          ls -lh build/out/wild-panel-amd64
+          # Sanity: ELF amd64
+          file build/out/wild-panel-amd64 | tee /tmp/file-out.txt
+          grep -qi 'ELF' /tmp/file-out.txt
+          # Branding + API token UI must be embedded (catch stale/wrong binary)
+          if ! strings build/out/wild-panel-amd64 | grep -q 'Wild Panel'; then
+            echo "error: binary missing 'Wild Panel' branding" >&2
+            exit 1
+          fi
+          if ! strings build/out/wild-panel-amd64 | grep -q 'apiTokens'; then
+            echo "error: binary missing API tokens UI strings" >&2
+            exit 1
+          fi
+          cp -f build/out/wild-panel-amd64 wild-panel-amd64
+          # Compat name for older deploy/update fallbacks
+          cp -f wild-panel-amd64 vpn-ui-amd64
+
+      - name: Resolve release tag
+        id: meta
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          MAKE_LATEST: ${{ github.event_name == 'workflow_dispatch' && inputs.make_latest || true }}
+        run: |
+          set -euo pipefail
+          NOTES="$(printf '%s\n' \
+            '## Wild Panel' \
+            '' \
+            '- Branding: Wild Panel' \
+            '- API Bearer tokens (Settings → Security) for sales bots / mirzabot' \
+            '- Install paths: `/opt/wild-panel`, unit `wild-panel`, menu `wild-panel`' \
+            '' \
+            'Asset: `wild-panel-amd64` (also uploaded as `vpn-ui-amd64` for legacy fallback).')"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG exists — uploading assets"
+            gh release upload "$TAG" wild-panel-amd64 vpn-ui-amd64 --clobber
+            if [[ "$MAKE_LATEST" == "true" ]]; then
+              gh release edit "$TAG" --latest
+            fi
+          else
+            EXTRA=()
+            if [[ "$MAKE_LATEST" == "true" ]]; then
+              EXTRA+=(--latest)
+            fi
+            gh release create "$TAG" wild-panel-amd64 vpn-ui-amd64 \
+              --title "Wild Panel ${TAG}" \
+              --notes "$NOTES" \
+              "${EXTRA[@]}"
+          fi
+          gh release view "$TAG" --json tagName,isLatest,assets \
+            --jq '{tag:.tagName, latest:.isLatest, assets:[.assets[].name]}'
