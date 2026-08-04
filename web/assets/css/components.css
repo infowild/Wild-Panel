@@ -90,10 +90,21 @@
 .bo-icon-fill { fill:currentColor; stroke:none; }
 
 .bo-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; background:var(--off); }
-.bo-dot--ok { background:var(--ok); }
-.bo-dot--info { background:var(--info); }
+.bo-dot--ok {
+  background:var(--ok);
+  box-shadow:0 0 8px rgba(74,222,128,.7);
+  animation:bo-dot-pulse 2.2s ease-in-out infinite;
+}
+.bo-dot--info { background:var(--info); box-shadow:0 0 8px rgba(56,189,248,.55); }
 .bo-dot--warn { background:var(--warn); }
-.bo-dot--error { background:var(--error); }
+.bo-dot--error { background:var(--error); box-shadow:0 0 8px rgba(251,113,133,.55); }
+@keyframes bo-dot-pulse {
+  0%,100% { transform:scale(1); opacity:1; }
+  50% { transform:scale(1.25); opacity:.75; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bo-dot--ok { animation:none; }
+}
 
 /* ================================================================== *
  * shell: rail nav
@@ -115,26 +126,29 @@
 }
 
 .bo-rail-brand {
-  display:flex; flex-direction:column; align-items:center; gap:8px;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
   color:var(--accent); width:100%; padding-inline:14px;
 }
 .bo-rail-brand span {
   font-size:10px; font-weight:var(--fw-bold);
-  color:var(--text-2); letter-spacing:.12em; text-transform:uppercase;
+  color:var(--text); letter-spacing:.12em; text-transform:uppercase;
   text-align:center;
 }
-/* Square neon wolf mark — contain so the circular frame is not cropped. */
-.bo-rail-brand img {
-  display:block; width:56px; height:56px; max-width:56px;
-  border-radius:50%;
-  object-fit:contain; object-position:center;
-  background:radial-gradient(circle at 50% 42%, #0a1020 0%, #05070e 72%);
-  box-shadow:0 0 0 1px rgba(34,211,238,.28), 0 0 20px -6px rgba(34,211,238,.45);
+.bo-rail-brand-link { display:block; line-height:0; }
+.bo-rail-brand-ring {
+  display:block; width:60px; height:60px; padding:2px; border-radius:50%;
+  background:conic-gradient(from 210deg, #22d3ee, #a855f7, #22d3ee);
+  box-shadow:0 0 18px -4px rgba(34,211,238,.5), 0 0 22px -6px rgba(168,85,247,.4);
   transition:box-shadow var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
 }
-.bo-rail-brand a:hover img {
+.bo-rail-brand-ring img {
+  display:block; width:100%; height:100%; max-width:none;
+  border-radius:50%; object-fit:cover; object-position:center;
+  background:#05070e;
+}
+.bo-rail-brand-link:hover .bo-rail-brand-ring {
   transform:translateY(-1px);
-  box-shadow:0 0 0 1px rgba(168,85,247,.4), 0 0 28px -4px rgba(34,211,238,.55);
+  box-shadow:0 0 26px -4px rgba(34,211,238,.65), 0 0 30px -4px rgba(168,85,247,.5);
 }
 
 .bo-rail-nav {
@@ -171,7 +185,7 @@
 .bo-rail--collapsed .bo-rail-item { width:64px; }
 .bo-rail--collapsed .bo-rail-item span,
 .bo-rail--collapsed .bo-rail-brand span { display:none; }
-.bo-rail--collapsed .bo-rail-brand img { width:40px; height:40px; max-width:40px; }
+.bo-rail--collapsed .bo-rail-brand-ring { width:44px; height:44px; }
 
 .bo-rail-item {
   display:flex; flex-direction:column; align-items:center; gap:7px;
@@ -190,8 +204,11 @@
 /* The nav glyphs are ant <a-icon>, which renders at ~14px by default and looked
    undersized next to the 12px labels. */
 .bo-rail-item .anticon { font-size:21px; line-height:1; }
-.bo-rail-item:hover { color:var(--text-2); background:var(--surface-2); }
-.bo-rail-item.is-active { background:var(--accent-weak); color:var(--accent); }
+.bo-rail-item:hover { color:var(--text-2); background:rgba(34,211,238,.06); }
+.bo-rail-item.is-active {
+  background:rgba(34,211,238,.14); color:var(--accent);
+  box-shadow:inset 0 0 0 1px rgba(34,211,238,.22), 0 0 18px -8px rgba(34,211,238,.45);
+}
 
 /* ================================================================== *
  * shell: topbar and content
@@ -487,9 +504,10 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
   fill:none; stroke:var(--accent); stroke-width:4; stroke-linecap:round;
   stroke-dasharray:100.53; stroke-dashoffset:100.53;
   transition:stroke-dashoffset .8s cubic-bezier(.22,1,.36,1);
+  filter:drop-shadow(0 0 4px rgba(34,211,238,.55));
 }
-.bo-ring-progress--warn { stroke:var(--warn); }
-.bo-ring-progress--error { stroke:var(--error); }
+.bo-ring-progress--warn { stroke:var(--warn); filter:drop-shadow(0 0 4px rgba(251,191,36,.45)); }
+.bo-ring-progress--error { stroke:var(--error); filter:drop-shadow(0 0 4px rgba(251,113,133,.45)); }
 .bo-ring-icon {
   position:absolute; inset:0; display:flex;
   align-items:center; justify-content:center; color:var(--text-2);
@@ -506,8 +524,12 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 
 .bo-load-row { display:flex; align-items:center; gap:var(--sp-2); padding:4px 0; }
 .bo-load-label { font-size:var(--fs-xs); color:var(--text-3); width:22px; flex:0 0 22px; }
-.bo-load-bar { flex:1; height:4px; border-radius:2px; background:var(--border); overflow:hidden; display:block; }
-.bo-load-bar > span { display:block; height:100%; border-radius:2px; background:var(--accent); }
+.bo-load-bar { flex:1; height:6px; border-radius:999px; background:rgba(255,255,255,.06); overflow:hidden; display:block; }
+.bo-load-bar > span {
+  display:block; height:100%; border-radius:999px;
+  background:linear-gradient(90deg, #22d3ee, #a855f7);
+  box-shadow:0 0 10px rgba(34,211,238,.55);
+}
 .bo-load-val {
   font-size:var(--fs-xs); font-weight:var(--fw-semibold); color:var(--text);
   width:36px; flex:0 0 36px; text-align:end;
@@ -669,10 +691,9 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
   display:inline-flex; align-items:center; gap:8px;
 }
 .bo-panel-mark {
-  width:28px; height:28px; border-radius:50%; object-fit:contain; object-position:center;
-  background:radial-gradient(circle at 50% 42%, #0a1020 0%, #05070e 72%);
-  flex:0 0 auto;
-  box-shadow:0 0 0 1px rgba(34,211,238,.3), 0 0 14px -4px rgba(34,211,238,.5);
+  width:28px; height:28px; border-radius:50%; object-fit:cover; object-position:center;
+  background:#05070e; flex:0 0 auto;
+  box-shadow:0 0 0 1.5px rgba(34,211,238,.45), 0 0 14px -2px rgba(168,85,247,.45);
 }
 .bo-status-line { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:var(--fw-semibold); margin-top:var(--sp-2); }
 .bo-status-line--ok { color:var(--ok); }
@@ -969,7 +990,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
   .bo-rail-item { width:56px; padding:10px 4px 8px; }
   .bo-rail-item span,
   .bo-rail-brand span { display:none; }
-  .bo-rail-brand img { width:40px; height:40px; max-width:40px; }
+  .bo-rail-brand-ring { width:44px; height:44px; }
   .bo-topbar-inner { padding:10px 12px; }
   .bo-content { padding:12px 12px max(28px, env(safe-area-inset-bottom)); }
   .bo-page-title { font-size:20px; margin-bottom:14px; }

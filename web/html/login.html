@@ -101,15 +101,16 @@ body { background:var(--bg); }
    up as a faint banded outline on a dark ground. Not painting is exact. */
 #app.login-app .lgt-card {
   position:relative; z-index:1;
-  background:var(--glass-bg);
-  border:1px solid var(--glass-border);
-  border-radius:22px;
-  box-shadow:var(--shadow-lg);
-  padding:28px 24px 26px;
-  backdrop-filter:blur(var(--glass-blur)) saturate(1.35);
-  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.35);
+  background:rgba(12,16,28,.62);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:24px;
+  box-shadow:var(--shadow-lg), 0 0 0 1px rgba(34,211,238,.08);
+  padding:32px 24px 28px;
+  backdrop-filter:blur(22px) saturate(1.4);
+  -webkit-backdrop-filter:blur(22px) saturate(1.4);
   overflow:hidden;
 }
+#app.login-app .lgt-card > * { position:relative; z-index:1; }
 #app.login-app .lgt-card::before {
   content:""; position:absolute; inset:0; pointer-events:none;
   background:var(--glass-shine);
@@ -120,29 +121,46 @@ body { background:var(--bg); }
 #app.login-app .lgt-rise { animation:lgt-rise .55s cubic-bezier(.22,1,.36,1) both; }
 @keyframes lgt-rise { from { opacity:0; transform:translateY(14px) scale(.98); } to { opacity:1; transform:none; } }
 
-/* ===== card head ===== */
-#app.login-app .lgt-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
-#app.login-app .lgt-brand {
-  display:flex; flex-direction:row; align-items:center; gap:14px;
-  min-width:0;
+/* ===== card head — centered brand (media/login.png) ===== */
+#app.login-app .lgt-head {
+  position:relative;
+  display:flex; flex-direction:column; align-items:center;
+  gap:14px; padding-top:4px; text-align:center;
 }
-#app.login-app .lgt-brand-mark {
-  width:64px; height:64px; flex:0 0 auto;
-  border-radius:50%;
-  object-fit:contain; object-position:center;
-  display:block;
-  background:radial-gradient(circle at 50% 42%, #0a1020 0%, #05070e 72%);
-  box-shadow:0 0 0 1px rgba(34,211,238,.35), 0 0 28px -4px rgba(34,211,238,.5), 0 0 36px -6px rgba(168,85,247,.4);
+#app.login-app .lgt-brand {
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  min-width:0; width:100%;
+}
+#app.login-app .lgt-brand-ring {
+  width:92px; height:92px; padding:3px; border-radius:50%;
+  background:conic-gradient(from 210deg, #22d3ee, #a855f7, #22d3ee);
+  box-shadow:0 0 28px -4px rgba(34,211,238,.55), 0 0 36px -6px rgba(168,85,247,.45);
   animation:lgt-logo-glow 3.6s ease-in-out infinite alternate;
 }
+#app.login-app .lgt-brand-ring-inner {
+  width:100%; height:100%; border-radius:50%;
+  background:#05070e;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+#app.login-app .lgt-brand-mark {
+  width:82px; height:82px; flex:0 0 auto;
+  border-radius:50%;
+  object-fit:cover; object-position:center;
+  display:block;
+  opacity:1 !important; visibility:visible !important;
+  max-width:none;
+}
 @keyframes lgt-logo-glow {
-  from { box-shadow:0 0 0 1px rgba(34,211,238,.28), 0 0 22px -6px rgba(34,211,238,.4), 0 0 28px -8px rgba(168,85,247,.28); }
-  to   { box-shadow:0 0 0 1px rgba(168,85,247,.4), 0 0 34px -4px rgba(34,211,238,.6), 0 0 44px -4px rgba(168,85,247,.5); }
+  from { box-shadow:0 0 22px -6px rgba(34,211,238,.4), 0 0 28px -8px rgba(168,85,247,.28); }
+  to   { box-shadow:0 0 34px -4px rgba(34,211,238,.65), 0 0 44px -4px rgba(168,85,247,.5); }
 }
 #app.login-app .lgt-brand-name {
   font-family:var(--font-display);
-  font-size:15px; font-weight:var(--fw-bold); letter-spacing:.16em;
-  text-transform:uppercase; color:var(--accent);
+  font-size:18px; font-weight:var(--fw-bold); letter-spacing:.2em;
+  text-transform:uppercase;
+  background:linear-gradient(90deg, #22d3ee 0%, #a855f7 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
   white-space:nowrap; direction:ltr; unicode-bidi:isolate;
 }
 #app.login-app .lgt-gear {
@@ -159,7 +177,7 @@ body { background:var(--bg); }
 }
 
 /* ===== settings popover ===== */
-#app.login-app .lgt-pop-wrap { position:relative; }
+#app.login-app .lgt-pop-wrap { position:absolute; top:0; inset-inline-end:0; z-index:4; }
 #app.login-app .lgt-pop {
   position:absolute; z-index:6; top:calc(100% + 8px); inset-inline-end:0; width:252px;
   background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:var(--radius-lg);
@@ -194,18 +212,16 @@ body { background:var(--bg); }
 #app.login-app .lgt-alert .lgt-icon { margin-top:1px; }
 
 /* ===== greeting ===== */
-#app.login-app .lgt-greet { margin-top:22px; display:flex; flex-direction:column; gap:6px; }
+#app.login-app .lgt-greet { margin-top:22px; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; }
 #app.login-app .lgt-eyebrow {
   font-size:var(--fs-sm); font-weight:var(--fw-semibold); color:var(--text-3);
   text-transform:uppercase; letter-spacing:.1em;
 }
 #app.login-app .lgt-title {
   font-family:var(--font-display);
-  font-size:clamp(26px, 5vw, 32px); font-weight:var(--fw-bold);
-  letter-spacing:-.03em; line-height:1.15; text-wrap:balance;
-  background:linear-gradient(120deg, var(--text) 0%, var(--accent) 55%, var(--glow, #a855f7) 100%);
-  -webkit-background-clip:text; background-clip:text;
-  color:transparent;
+  font-size:clamp(24px, 5vw, 30px); font-weight:var(--fw-bold);
+  letter-spacing:-.02em; line-height:1.15; text-wrap:balance;
+  color:var(--text);
 }
 #app.login-app .lgt-sub {
   margin-top:2px; font-size:var(--fs-sm); color:var(--text-2); line-height:1.5; max-width:34ch;
@@ -291,8 +307,9 @@ body { background:var(--bg); }
 @media (max-width:400px) {
   #app.login-app .lgt-main { padding:max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom)); }
   #app.login-app .lgt-title { font-size:var(--fs-lg); }
-  #app.login-app .lgt-brand-mark { width:52px; height:52px; }
-  #app.login-app .lgt-brand-name { font-size:13px; letter-spacing:.12em; }
+  #app.login-app .lgt-brand-ring { width:76px; height:76px; }
+  #app.login-app .lgt-brand-mark { width:66px; height:66px; }
+  #app.login-app .lgt-brand-name { font-size:14px; letter-spacing:.14em; }
   #app.login-app .lgt-card { padding:22px 16px 20px; border-radius:18px; }
   #app.login-app .lgt-stage { max-width:100%; }
 }
@@ -356,7 +373,11 @@ body { background:var(--bg); }
 
         <div class="lgt-head">
           <div class="lgt-brand">
-            <img class="lgt-brand-mark" src="{{ .base_path }}assets/img/logo.png" width="64" height="64" alt="Wild Panel" />
+            <div class="lgt-brand-ring" aria-hidden="true">
+              <div class="lgt-brand-ring-inner">
+                <img class="lgt-brand-mark" src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="82" height="82" alt="Wild Panel" />
+              </div>
+            </div>
             <span class="lgt-brand-name">Wild Panel</span>
           </div>
           <div class="lgt-pop-wrap">

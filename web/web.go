@@ -52,6 +52,8 @@ type wrapAssetsFS struct {
 }
 
 func (f *wrapAssetsFS) Open(name string) (fs.File, error) {
+	// http.FileServer may pass a leading slash; go:embed paths never have one.
+	name = strings.TrimPrefix(name, "/")
 	file, err := f.FS.Open("assets/" + name)
 	if err != nil {
 		return nil, err

@@ -94,7 +94,7 @@ func TestSidebarLogoSrcResolves(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	var buf bytes.Buffer
-	data := map[string]any{"base_path": "/test/", "request_uri": "/test/panel/"}
+	data := map[string]any{"base_path": "/test/", "request_uri": "/test/panel/", "cur_ver": "2.0.2"}
 	if err := tpl.ExecuteTemplate(&buf, "component/aSidebar", data); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
