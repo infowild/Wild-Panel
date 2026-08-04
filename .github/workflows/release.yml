@@ -129,5 +129,9 @@ jobs:
               --notes "$NOTES" \
               "${EXTRA[@]}"
           fi
-          gh release view "$TAG" --json tagName,isLatest,assets \
-            --jq '{tag:.tagName, latest:.isLatest, assets:[.assets[].name]}'
+          # Note: gh release view JSON schema has no "isLatest" field on all CLI
+          # versions — use name/url/assets only so publish is not marked failed
+          # after a successful upload.
+          gh release view "$TAG" --json tagName,name,url,assets \
+            --jq '{tag:.tagName, name:.name, url:.url, assets:[.assets[].name]}'
+          echo "Published $TAG successfully."
