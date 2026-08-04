@@ -1,12 +1,12 @@
 [English](/README.md) | [فارسی](/README_FA.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Sir-MmD/vpn-ui/refs/heads/main/media/logo.png" alt="VPN-UI Logo" width="260">
+  <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/logo.png" alt="Wild Panel Logo" width="260">
 </p>
 
-This project is an enhanced version of the **[3X-UI](https://github.com/MHSanaei/3x-ui)** panel (version 2.9.3). The goal of this project is to add various protocols and set it up as an all-in-one panel with support for **Xray-core** features.
+**Wild Panel** is an enhanced fork of the **[3X-UI](https://github.com/MHSanaei/3x-ui)** panel (version 2.9.3), based on the vpn-ui lineage. The goal is an all-in-one control panel with broad protocol support and **Xray-core** features.
 
-![Overview](https://raw.githubusercontent.com/Sir-MmD/vpn-ui/refs/heads/main/media/overview.png)
+![Overview](https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/overview.png)
 
 ## New Protocols
 
@@ -84,11 +84,11 @@ curl -Ls https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/d
 ## Uninstalling the Panel
 
 ```bash
-sudo /opt/vpn-ui/vpn-ui-amd64 --uninstall
+sudo /opt/wild-panel/wild-panel-amd64 --uninstall
 ```
 
 > [!NOTE]
-> The database path, the **systemd** service, and all default ports have been changed, so you can install this panel alongside your other panels without any issues.
+> Fresh installs use `/opt/wild-panel`, the `wild-panel` systemd unit, and `wild-panel.db`. Upgrading from a pre-rebrand install migrates `/opt/vpn-ui` automatically. Protocol host paths under `/etc/vpn-ui-*` are left unchanged so live tunnels keep working.
 
 ## How the New Protocols Interact with Xray-core
 
@@ -99,7 +99,7 @@ flowchart TB
   SSHC["SSH Client<br/>(ssh -D dynamic SOCKS · badvpn-udpgw for UDP)"]
   GREC["Customer Router<br/>(GRE · IP protocol 47 · optional IPsec / FOU)"]
 
-  subgraph PANEL["vpn-ui panel — root process"]
+  subgraph PANEL["Wild Panel — root process"]
     PROC["procmgr<br/>supervises the daemons"]
     RAD["in-binary RADIUS<br/>127.0.0.1:1812 auth · :1813 acct"]
     HOOK["OpenVPN hooks<br/>auth / connect / disconnect / evict"]
@@ -209,13 +209,13 @@ flowchart TB
 ## Building from Source
 
 ```bash
-git clone https://github.com/Sir-MmD/vpn-ui.git && cd vpn-ui
+git clone https://github.com/infowild/Wild-Panel.git && cd Wild-Panel
 ./build.sh
 ```
 
 ## E2E Testing
 
-![E2E Test](https://raw.githubusercontent.com/Sir-MmD/vpn-ui/refs/heads/main/media/test_unit.png)
+![E2E Test](https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/test_unit.png)
 
 A complete **E2E** test written in Python has been designed for this project inside the `test_unit` folder, which you are welcome to use. The steps are as follows:
 

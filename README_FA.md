@@ -1,12 +1,12 @@
 [English](/README.md) | [فارسی](/README_FA.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Sir-MmD/vpn-ui/refs/heads/main/media/logo.png" alt="VPN-UI Logo" width="260">
+  <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/logo.png" alt="Wild Panel Logo" width="260">
 </p>
 
-این پروژه، یک نسخه‌ی ارتقایافته از پنل **[3X-UI](https://github.com/MHSanaei/3x-ui)** (نسخه‌ی 2.9.3) هستش.  هدف این پروژه اضافه کردن پروتکل های مختلف و راه اندازی بصورت یک پنل جامعه با پشتیبانی از قابلیت های **Xray-core**  هستش
+**Wild Panel** یک فورک ارتقایافته از پنل **[3X-UI](https://github.com/MHSanaei/3x-ui)** (نسخه‌ی 2.9.3) بر پایه‌ی vpn-ui است. هدف، یک پنل همه‌کاره با پشتیبانی گسترده از پروتکل‌ها و قابلیت‌های **Xray-core** است.
 
-![نمای کلی](https://raw.githubusercontent.com/Sir-MmD/vpn-ui/refs/heads/main/media/overview.png)
+![نمای کلی](https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/overview.png)
 
 ## پروتکل‌های جدید
 
@@ -76,11 +76,11 @@ curl -Ls https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/d
 ## حذف پنل
 
 ```bash
-sudo /opt/vpn-ui/vpn-ui-amd64 --uninstall
+sudo /opt/wild-panel/wild-panel-amd64 --uninstall
 ```
 
 > [!NOTE]
-> مسیر دیتابیس، سرویس systemd و همه‌ی پورت‌های پیش‌فرض تغییر کرده‌اند، پس می‌تونید این پنل رو بدون هیچ مشکلی کنار پنل‌های دیگه‌تون نصب کنید.
+> نصب تازه از `/opt/wild-panel`، یونیت `wild-panel` و دیتابیس `wild-panel.db` استفاده می‌کند. ارتقا از نصب قدیمی `/opt/vpn-ui` را خودکار منتقل می‌کند. مسیرهای پروتکل زیر `/etc/vpn-ui-*` عمداً عوض نمی‌شوند تا تونل‌های در حال کار قطع نشوند.
 
 ## نحوه‌ی تعامل پروتکل‌های جدید با هسته‌ی Xray-core
 
@@ -91,7 +91,7 @@ flowchart TB
   SSHC["SSH Client<br/>(ssh -D dynamic SOCKS · badvpn-udpgw for UDP)"]
   GREC["Customer Router<br/>(GRE · IP protocol 47 · optional IPsec / FOU)"]
 
-  subgraph PANEL["vpn-ui panel — root process"]
+  subgraph PANEL["Wild Panel — root process"]
     PROC["procmgr<br/>supervises the daemons"]
     RAD["in-binary RADIUS<br/>127.0.0.1:1812 auth · :1813 acct"]
     HOOK["OpenVPN hooks<br/>auth / connect / disconnect / evict"]
@@ -199,13 +199,13 @@ flowchart TB
 ## کامپایل از سورس
 
 ```bash
-git clone https://github.com/Sir-MmD/vpn-ui.git && cd vpn-ui
+git clone https://github.com/infowild/Wild-Panel.git && cd Wild-Panel
 ./build.sh
 ```
 
 ## تست E2E
 
-![تست E2E](https://raw.githubusercontent.com/Sir-MmD/vpn-ui/refs/heads/main/media/test_unit.png)
+![تست E2E](https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/test_unit.png)
 
 یک تست **E2E** کامل با Python داخل فولدر `test_unit` برای این پروژه طراحی شده که می‌تونید ازش استفاده کنید. مراحلش این‌طوریه:
 

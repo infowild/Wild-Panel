@@ -218,8 +218,8 @@
 
 [pages.index]
 "donate" = "Donate"
-"donateTitle" = "Support VPN-UI"
-"donateIntro" = "If VPN-UI is useful to you, a donation to any of these addresses helps keep it maintained."
+"donateTitle" = "Support Wild Panel"
+"donateIntro" = "If Wild Panel is useful to you, a donation to any of these addresses helps keep it maintained."
 "restore" = "Restore"
 "systemStatus" = "System Status"
 "title" = "Overview"
@@ -238,7 +238,7 @@
 "updateFromFileDesc" = "Pick a binary on this computer. Your browser uploads it to the panel."
 "updateFromUrl" = "Update from URL"
 "updateFromUrlDesc" = "Give an address and the panel downloads it itself, from the server. Use this when the server can reach the file but you cannot upload it."
-"updateFromUrlIntro" = "The panel downloads this itself, so the address has to be reachable from the server. Give the direct link to the vpn-ui binary, not to a page about it."
+"updateFromUrlIntro" = "The panel downloads this itself, so the address has to be reachable from the server. Give the direct link to the wild-panel binary, not to a page about it."
 "updateFetch" = "Download"
 "updateUploading" = "Uploading"
 "updateChecking" = "Checking the binary"
@@ -1011,7 +1011,7 @@
 [pages.settings.service]
 "noSystemd" = "This host doesn't have systemctl (not a systemd system), so the service can't be managed here."
 "name" = "Service name"
-"nameDesc" = "The systemd unit name for the panel (without .service). Default: vpn-ui."
+"nameDesc" = "The systemd unit name for the panel (without .service). Default: wild-panel."
 "enable" = "Start on boot"
 "enableDesc" = "Enable the service so the panel starts automatically after a reboot."
 "start" = "Run now"
@@ -1118,7 +1118,7 @@
 "report" = "🕰 Scheduled Reports: {{ .RunTime }}\r\n"
 "datetime" = "⏰ Date&Time: {{ .DateTime }}\r\n"
 "hostname" = "💻 Host: {{ .Hostname }}\r\n"
-"version" = "🚀 VPN-UI Version: {{ .Version }}\r\n"
+"version" = "🚀 Wild Panel Version: {{ .Version }}\r\n"
 "xrayVersion" = "📡 Xray Version: {{ .XrayVersion }}\r\n"
 "ipv6" = "🌐 IPv6: {{ .IPv6 }}\r\n"
 "ipv4" = "🌐 IPv4: {{ .IPv4 }}\r\n"

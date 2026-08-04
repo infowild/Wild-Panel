@@ -48,10 +48,11 @@
   --radius-xl:16px;
   --radius-pill:999px;
 
-  /* type. Vazirmatn is @font-face'd in common/page.html and carries the
-     Persian and Arabic locales; keep it ahead of the system stack. */
-  --font-sans:'Vazirmatn UI NL',-apple-system,BlinkMacSystemFont,'Segoe UI',
-              system-ui,Roboto,'Helvetica Neue',Arial,sans-serif;
+  /* type. Outfit for Latin UI; Vazirmatn covers Persian/Arabic (unicode-range
+     @font-face in common/page.html). Avoid Inter/Roboto defaults. */
+  --font-sans:'Outfit','Vazirmatn UI NL','Vazirmatn',-apple-system,BlinkMacSystemFont,
+              'Segoe UI',system-ui,'Helvetica Neue',Arial,sans-serif;
+  --font-display:'Outfit','Vazirmatn UI NL',system-ui,sans-serif;
   --font-mono:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,
               'Liberation Mono',monospace;
 

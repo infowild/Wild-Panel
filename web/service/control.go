@@ -40,7 +40,7 @@ import (
 // neither a command set nor a reply, and cores.status has to return data.
 
 const (
-	controlSocketName = "vpn-ui.sock"
+	controlSocketName = "wild-panel.sock"
 	// How long to wait for the stale-socket probe. Only a live panel's accept loop
 	// answers, and it is local, so this is generous already.
 	controlDialTimeout = 500 * time.Millisecond

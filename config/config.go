@@ -1,5 +1,6 @@
-// Package config provides configuration management utilities for the vpn-ui panel,
-// including version information, logging levels, database paths, and environment variable handling.
+// Package config provides configuration management utilities for the Wild Panel
+// application, including version information, logging levels, database paths,
+// and environment variable handling.
 package config
 
 import (
@@ -28,14 +29,24 @@ const (
 	Error   LogLevel = "error"
 )
 
-// GetVersion returns the version string of the vpn-ui application.
+// GetVersion returns the version string of Wild Panel.
 func GetVersion() string {
 	return strings.TrimSpace(version)
 }
 
-// GetName returns the name of the vpn-ui application.
+// GetName returns the display name of Wild Panel.
 func GetName() string {
 	return strings.TrimSpace(name)
+}
+
+// envFirst returns the first non-empty value among the given environment keys.
+func envFirst(keys ...string) string {
+	for _, k := range keys {
+		if v := os.Getenv(k); v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // GetLogLevel returns the current logging level based on environment variables or defaults to Info.
@@ -43,21 +54,21 @@ func GetLogLevel() LogLevel {
 	if IsDebug() {
 		return Debug
 	}
-	logLevel := os.Getenv("VPNUI_LOG_LEVEL")
+	logLevel := envFirst("WILDPANEL_LOG_LEVEL", "VPNUI_LOG_LEVEL")
 	if logLevel == "" {
 		return Info
 	}
 	return LogLevel(logLevel)
 }
 
-// IsDebug returns true if debug mode is enabled via the VPNUI_DEBUG environment variable.
+// IsDebug returns true if debug mode is enabled.
 func IsDebug() bool {
-	return os.Getenv("VPNUI_DEBUG") == "true"
+	return envFirst("WILDPANEL_DEBUG", "VPNUI_DEBUG") == "true"
 }
 
-// GetBinFolderPath returns the path to the binary folder, defaulting to "bin" if not set via VPNUI_BIN_FOLDER.
+// GetBinFolderPath returns the path to the binary folder.
 func GetBinFolderPath() string {
-	binFolderPath := os.Getenv("VPNUI_BIN_FOLDER")
+	binFolderPath := envFirst("WILDPANEL_BIN_FOLDER", "VPNUI_BIN_FOLDER")
 	if binFolderPath == "" {
 		binFolderPath = "bin"
 	}
@@ -82,20 +93,17 @@ func getBaseDir() string {
 }
 
 // GetDBFolderPath returns the folder that holds the database file. It defaults to
-// the directory of the binary (overridable with VPNUI_DB_FOLDER) so a copied or
-// moved install carries its data with it, rather than silently sharing a fixed
-// /etc/vpn-ui. Legacy installs are migrated from LegacyDBPath on first init.
+// the directory of the binary (overridable with WILDPANEL_DB_FOLDER / VPNUI_DB_FOLDER).
 func GetDBFolderPath() string {
-	dbFolderPath := os.Getenv("VPNUI_DB_FOLDER")
+	dbFolderPath := envFirst("WILDPANEL_DB_FOLDER", "VPNUI_DB_FOLDER")
 	if dbFolderPath != "" {
 		return dbFolderPath
 	}
 	return getBaseDir()
 }
 
-// dbBaseName is the database file's base name (without extension). It is fixed
-// rather than derived from GetName() so the on-disk DB is always "vpn-ui.db".
-const dbBaseName = "vpn-ui"
+// dbBaseName is the database file's base name (without extension).
+const dbBaseName = "wild-panel"
 
 // GetDBPath returns the full path to the database file (next to the binary).
 func GetDBPath() string {
@@ -103,18 +111,15 @@ func GetDBPath() string {
 }
 
 // LegacyDBPaths lists previous database names next to the binary to migrate from
-// on first init when the current DB doesn't exist yet:
-//   - <bindir>/x-ui.db — the prior next-to-binary name (before the vpn-ui rename)
-//
-// It deliberately does NOT reach into /etc/vpn-ui — a DB left there is not adopted.
-// The current GetDBPath is never included. Empty on a custom VPNUI_DB_FOLDER.
+// on first init when the current DB doesn't exist yet.
 func LegacyDBPaths() []string {
-	if os.Getenv("VPNUI_DB_FOLDER") != "" {
+	if envFirst("WILDPANEL_DB_FOLDER", "VPNUI_DB_FOLDER") != "" {
 		return nil
 	}
 	current := GetDBPath()
 	var out []string
 	for _, p := range []string{
+		fmt.Sprintf("%s/vpn-ui.db", GetDBFolderPath()),
 		fmt.Sprintf("%s/x-ui.db", GetDBFolderPath()),
 	} {
 		if p != current {
@@ -124,13 +129,13 @@ func LegacyDBPaths() []string {
 	return out
 }
 
-// GetLogFolder returns the path to the log folder based on environment variables or platform defaults.
+// GetLogFolder returns the path to the log folder.
 func GetLogFolder() string {
-	logFolderPath := os.Getenv("VPNUI_LOG_FOLDER")
+	logFolderPath := envFirst("WILDPANEL_LOG_FOLDER", "VPNUI_LOG_FOLDER")
 	if logFolderPath != "" {
 		return logFolderPath
 	}
-	return "/var/log/vpn-ui"
+	return "/var/log/wild-panel"
 }
 
 // DB migration (moving/renaming a legacy database to GetDBPath) is handled

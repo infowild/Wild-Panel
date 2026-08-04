@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# build.sh — build the complete, self-contained vpn-ui binary. Run it, that's it.
+# build.sh — build the complete, self-contained Wild Panel binary. Run it, that's it.
 #
 #   ./build.sh
 #
 # The Xray core is pinned as a git submodule (third_party/Xray-core, at a fixed
 # commit). On every run it syncs that submodule, builds the Xray core from it, and
-# fetches the latest geo files — then compiles build/out/vpn-ui-<arch> with everything
+# fetches the latest geo files — then compiles build/out/wild-panel-<arch> with everything
 # baked in via go:embed. warpcli.sh is committed project source
 # (web/service/warpcli.sh) and embedded directly. The static VPN daemon bundle is
 # pinned + slow to build, so it is reused when already present.
@@ -39,7 +39,7 @@ ARCH="$(go env GOARCH)"
 source "$REPO_ROOT/build/lib/log.sh" 2>/dev/null || { step(){ echo "==> $*"; }; ok(){ echo "  - $*"; }; info(){ echo "  $*"; }; warn(){ echo "  ! $*" >&2; }; err(){ echo "  x $*" >&2; }; hr(){ :; }; }
 
 hr
-step "vpn-ui build ${_CD:-}(${ARCH})${_CR:-}"
+step "Wild Panel build ${_CD:-}(${ARCH})${_CR:-}"
 hr
 
 # 0. Pinned upstream (third_party/Xray-core). Clone it
@@ -126,12 +126,12 @@ fi
 
 # 3. Panel binary (cgo required for sqlite). Output goes to build/out/.
 OUT_DIR="$REPO_ROOT/build/out"
-OUT_BIN="$OUT_DIR/vpn-ui-$ARCH"
-step "compiling vpn-ui"
+OUT_BIN="$OUT_DIR/wild-panel-$ARCH"
+step "compiling Wild Panel"
 mkdir -p "$OUT_DIR"
 CGO_ENABLED=1 go build -o "$OUT_BIN" main.go
 
 hr
-ok "done: ${_CB:-}$(ls -lh "$OUT_BIN" | awk '{print $5}')${_CR:-} -> ${_CB:-}build/out/vpn-ui-${ARCH}${_CR:-}"
-info "run it:  ./build/out/vpn-ui-${ARCH}"
+ok "done: ${_CB:-}$(ls -lh "$OUT_BIN" | awk '{print $5}')${_CR:-} -> ${_CB:-}build/out/wild-panel-${ARCH}${_CR:-}"
+info "run it:  ./build/out/wild-panel-${ARCH}"
 hr

@@ -988,13 +988,14 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 			return []string{"Invalid level parameter - must be a valid syslog level"}
 		}
 
-		// Use hardcoded command with validated parameters
-		cmd := exec.Command("journalctl", "-u", "vpn-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
+		// Use the configured unit name (default wild-panel) with validated parameters
+		unit := (SystemdService{}).GetServiceName()
+		cmd := exec.Command("journalctl", "-u", unit, "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
 		var out bytes.Buffer
 		cmd.Stdout = &out
 		err = cmd.Run()
 		if err != nil {
-			return []string{"Failed to run journalctl command! Make sure systemd is available and vpn-ui service is registered."}
+			return []string{"Failed to run journalctl command! Make sure systemd is available and the Wild Panel service is registered."}
 		}
 		lines = strings.Split(out.String(), "\n")
 	} else {

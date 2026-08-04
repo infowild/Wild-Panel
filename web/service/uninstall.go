@@ -15,11 +15,16 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/xray"
 )
 
-// MenuScriptPath is where the `vpn-ui` management menu is installed, by
-// `vpn-ui-amd64 install-menu` (which deploy.sh runs on every install and update).
+// MenuScriptPath is where the Wild Panel management menu is installed by
+// `wild-panel-amd64 install-menu` (which deploy.sh runs on every install and update).
 // Declared here, in the package that must REMOVE it, so the installer in main.go
 // and this teardown can never drift apart on the path.
-const MenuScriptPath = "/usr/bin/vpn-ui"
+const MenuScriptPath = "/usr/bin/wild-panel"
+
+// LegacyMenuScriptPath is the pre-rebrand menu path. Kept so uninstall and
+// install-menu can clean up / refresh the old command without leaving a stale
+// script that points at the wrong binary.
+const LegacyMenuScriptPath = "/usr/bin/vpn-ui"
 
 // UninstallOptions configures a host teardown.
 type UninstallOptions struct {
@@ -68,6 +73,13 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 	//     the inode outlives the directory entry (same reason main.runUninstall can
 	//     remove the running binary).
 	removePath(r, MenuScriptPath)
+	removePath(r, LegacyMenuScriptPath)
+	// Also remove a pre-rebrand systemd unit if the operator never renamed it.
+	if name != "vpn-ui" {
+		if err := sd.RemoveService("vpn-ui"); err == nil {
+			r.Removed = append(r.Removed, unitPath("vpn-ui"))
+		}
+	}
 	// The panel's control socket, now that step 1 stopped the panel that served it.
 	// A leftover socket file is what StartControlSocket's stale-socket check exists
 	// to clear, but an uninstall should not leave one behind at all.

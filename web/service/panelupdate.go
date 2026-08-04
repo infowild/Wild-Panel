@@ -42,22 +42,26 @@ var (
 )
 
 // Panel self-update. The panel binary ships as a single GitHub release asset
-// (Sir-MmD/vpn-ui, "vpn-ui-amd64") — the same source deploy.sh installs from — so
-// the overview can both check for and apply updates in place.
+// (infowild/Wild-Panel, "wild-panel-amd64") — the same source deploy.sh installs from —
+// so the overview can both check for and apply updates in place.
 //
-// PanelAsset and PanelDownloadURL are exported because `vpn-ui-amd64 update` (the
+// PanelAsset and PanelDownloadURL are exported because `wild-panel-amd64 update` (the
 // CLI/menu updater in main.go) installs from the very same release asset. It
 // reuses these plus DownloadPanelBinary/IsCompatibleBinary rather than reaching
 // for UpdatePanel: that path ends in restartPanel, whose no-systemd branch
 // syscall.Exec's os.Args back into itself. That is harmless for the panel, but from
 // a CLI process it would re-exec the CLI with its own `update` arguments, in a loop.
 const (
-	panelRepo      = "Sir-MmD/vpn-ui"
-	PanelAsset     = "vpn-ui-amd64"
-	panelLatestAPI = "https://api.github.com/repos/" + panelRepo + "/releases/latest"
+	panelRepo      = "infowild/Wild-Panel"
+	PanelAsset     = "wild-panel-amd64"
+	// PanelLegacyAsset is the pre-rebrand release name. Used only as a download
+	// fallback so in-panel / CLI update still works until wild-panel-amd64 is published.
+	PanelLegacyAsset = "vpn-ui-amd64"
+	panelLatestAPI   = "https://api.github.com/repos/" + panelRepo + "/releases/latest"
 	// PanelDownloadURL is the release asset both the in-panel updater and the CLI
 	// `update` subcommand download.
-	PanelDownloadURL = "https://github.com/" + panelRepo + "/releases/latest/download/" + PanelAsset
+	PanelDownloadURL       = "https://github.com/" + panelRepo + "/releases/latest/download/" + PanelAsset
+	PanelLegacyDownloadURL = "https://github.com/" + panelRepo + "/releases/latest/download/" + PanelLegacyAsset
 )
 
 // PanelUpdateInfo reports the running version vs. the latest published release,
@@ -94,7 +98,7 @@ func (s *ServerService) CheckPanelUpdate() (*PanelUpdateInfo, error) {
 	if err != nil {
 		return info, err
 	}
-	req.Header.Set("User-Agent", "vpn-ui") // GitHub API rejects requests without a UA
+	req.Header.Set("User-Agent", "Wild-Panel") // GitHub API rejects requests without a UA
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	resp, err := client.Do(req)
@@ -327,22 +331,29 @@ func (s *ServerService) UpdatePanel() error {
 	tmp := exe + ".new"
 	logger.Infof("panel update: downloading %s", PanelDownloadURL)
 	if err := DownloadPanelBinary(ctx, tmp, PanelDownloadURL); err != nil {
-		_ = os.Remove(tmp)
-		// A cancelled download surfaces as a transport error; ctx is what says the
-		// user asked for it rather than the network failing.
 		if ctx.Err() != nil {
+			_ = os.Remove(tmp)
 			cancelled = true
 			logger.Info("panel update: cancelled by user during download")
 			return ErrPanelUpdateCancelled
 		}
-		return err
+		logger.Warningf("panel update: primary asset failed (%v); trying legacy %s", err, PanelLegacyAsset)
+		if err2 := DownloadPanelBinary(ctx, tmp, PanelLegacyDownloadURL); err2 != nil {
+			_ = os.Remove(tmp)
+			if ctx.Err() != nil {
+				cancelled = true
+				logger.Info("panel update: cancelled by user during download")
+				return ErrPanelUpdateCancelled
+			}
+			return err2
+		}
 	}
 	// Validate it's an ELF for THIS architecture — a 404 HTML page, a truncated
 	// file, or a wrong-arch asset would otherwise be renamed over the running binary
 	// and brick the panel (the restart would fail with exec-format-error).
 	if !IsCompatibleBinary(tmp) {
 		_ = os.Remove(tmp)
-		return fmt.Errorf("downloaded file is not a %s Linux binary (no valid '%s' asset?)", runtime.GOARCH, PanelAsset)
+		return fmt.Errorf("downloaded file is not a %s Linux binary (no valid '%s' or '%s' asset?)", runtime.GOARCH, PanelAsset, PanelLegacyAsset)
 	}
 	if err := os.Chmod(tmp, 0o755); err != nil {
 		_ = os.Remove(tmp)
@@ -450,7 +461,7 @@ func DownloadPanelBinary(ctx context.Context, dst, url string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "vpn-ui")
+	req.Header.Set("User-Agent", "Wild-Panel")
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -533,7 +544,7 @@ func backupPanelDB() {
 			_, _ = sqlDB.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
 		}
 	}
-	base := fmt.Sprintf("vpn-ui_%s.db", config.GetVersion())
+	base := fmt.Sprintf("wild-panel_%s.db", config.GetVersion())
 	dst := filepath.Join(dir, base)
 	if err := CopyFile(db, dst); err != nil {
 		logger.Warning("panel update: DB backup failed:", err)

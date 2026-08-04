@@ -105,36 +105,34 @@ func requireRoot() {
 	os.Exit(1)
 }
 
-// ansiVpnUI renders "[VPN-UI]" in the panel logo's colours — teal brackets,
-// deep-teal letters, a green hyphen — as a bold CLI banner. Falls back to plain
+// ansiWildPanel renders a bold CLI brand mark for Wild Panel. Falls back to plain
 // text when NO_COLOR is set or stdout isn't a TTY.
-func ansiVpnUI() string {
-	const text = "[VPN-UI]"
+func ansiWildPanel() string {
+	const text = "Wild Panel"
 	if os.Getenv("NO_COLOR") != "" || !stdoutIsTTY() {
 		return text
 	}
-	// 24-bit colour matched to media/logo.png.
 	const (
-		reset   = "\x1b[0m"
-		bracket = "\x1b[1;38;2;23;212;212m" // bright teal  #17d4d4
-		letter  = "\x1b[1;38;2;14;165;165m" // deep teal    #0ea5a5
-		hyphen  = "\x1b[1;38;2;79;175;100m" // green        #4faf64
+		reset  = "\x1b[0m"
+		letter = "\x1b[1;38;2;14;165;165m" // deep teal #0ea5a5
+		space  = "\x1b[0m"
 	)
 	var b strings.Builder
 	for _, r := range text {
-		switch r {
-		case '[', ']':
-			b.WriteString(bracket)
-		case '-':
-			b.WriteString(hyphen)
-		default:
-			b.WriteString(letter)
+		if r == ' ' {
+			b.WriteString(space)
+			b.WriteRune(r)
+			continue
 		}
+		b.WriteString(letter)
 		b.WriteRune(r)
 	}
 	b.WriteString(reset)
 	return b.String()
 }
+
+// ansiVpnUI is kept as an alias so older call sites compile during the rebrand.
+func ansiVpnUI() string { return ansiWildPanel() }
 
 // warnUnsupportedDistro prints a prominent warning at panel startup when the host
 // distro is not on vpn-ui's tested list (service.DistroSupported). Colorful when
@@ -145,7 +143,7 @@ func warnUnsupportedDistro() {
 	if ok {
 		return
 	}
-	logger.Warningf("unsupported distro: %s (%s) — not officially supported by vpn-ui, expect errors",
+	logger.Warningf("unsupported distro: %s (%s) — not officially supported by Wild Panel, expect errors",
 		pretty, reason)
 
 	tested := service.SupportedDistroSummary()
@@ -1117,16 +1115,19 @@ func runUpdate() {
 	tmp := exe + ".new"
 	fmt.Printf("Downloading %s ...\n", service.PanelDownloadURL)
 	if err := service.DownloadPanelBinary(context.Background(), tmp, service.PanelDownloadURL); err != nil {
-		_ = os.Remove(tmp)
-		fmt.Fprintln(os.Stderr, "Download failed:", err)
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "Primary asset failed (%v); trying legacy %s ...\n", err, service.PanelLegacyAsset)
+		if err2 := service.DownloadPanelBinary(context.Background(), tmp, service.PanelLegacyDownloadURL); err2 != nil {
+			_ = os.Remove(tmp)
+			fmt.Fprintln(os.Stderr, "Download failed:", err2)
+			os.Exit(1)
+		}
 	}
 	// An HTML 404 page, a truncated transfer or a wrong-arch asset would otherwise be
 	// renamed over the running binary and brick the panel on its next start.
 	if !service.IsCompatibleBinary(tmp) {
 		_ = os.Remove(tmp)
-		fmt.Fprintf(os.Stderr, "Downloaded file is not a %s Linux binary (no valid '%s' asset?)\n",
-			runtime.GOARCH, service.PanelAsset)
+		fmt.Fprintf(os.Stderr, "Downloaded file is not a %s Linux binary (no valid '%s' or '%s' asset?)\n",
+			runtime.GOARCH, service.PanelAsset, service.PanelLegacyAsset)
 		os.Exit(1)
 	}
 	if err := os.Chmod(tmp, 0o755); err != nil {
@@ -1253,7 +1254,7 @@ func backupPanelDBForUpdate(fromVersion string) (string, error) {
 // `install-menu` on the NEW binary. It also means deploy.sh can install the menu
 // while piped from curl, with no second download.
 //
-//go:embed vpn-ui.sh
+//go:embed wild-panel.sh
 var menuScript []byte
 
 // The Let's Encrypt / ACME client (pinned acme.sh, see build/acme/README.md),
@@ -1354,9 +1355,9 @@ func runCloudflare(args []string) {
 	}
 }
 
-// installMenuScript implements `vpn-ui install-menu [path]`: write the embedded
-// menu to /usr/bin/vpn-ui (0755). deploy.sh runs it on both fresh install and
-// update; `update` runs it again from the newly installed binary.
+// installMenuScript implements `wild-panel install-menu [path]`: write the embedded
+// menu to /usr/bin/wild-panel (0755) and keep a compatibility symlink at the
+// legacy /usr/bin/vpn-ui path so existing muscle memory and scripts keep working.
 func installMenuScript(args []string) {
 	dest := service.MenuScriptPath
 	if len(args) > 0 && args[0] != "" {
@@ -1364,7 +1365,7 @@ func installMenuScript(args []string) {
 	}
 	// WriteFileAtomic (temp file + rename) rather than a plain write, because the
 	// target may be THE SCRIPT CURRENTLY RUNNING: the menu's own Update item calls
-	// this via `vpn-ui-amd64 update`. bash reads a script lazily by offset from an
+	// this via `wild-panel-amd64 update`. bash reads a script lazily by offset from an
 	// open fd, so overwriting it in place would feed the running shell the tail of a
 	// different file. Renaming leaves the old inode intact for as long as bash holds
 	// it open.
@@ -1372,13 +1373,18 @@ func installMenuScript(args []string) {
 		fmt.Fprintln(os.Stderr, "Failed to install the management menu:", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Installed the vpn-ui management menu -> %s (run: %s)\n", dest, filepath.Base(dest))
+	// Best-effort legacy symlink so `vpn-ui` still works after the rebrand.
+	if dest == service.MenuScriptPath {
+		_ = os.Remove(service.LegacyMenuScriptPath)
+		_ = os.Symlink(dest, service.LegacyMenuScriptPath)
+	}
+	fmt.Printf("Installed the Wild Panel management menu -> %s (run: %s)\n", dest, filepath.Base(dest))
 }
 
-// ensureMenuInstalled writes the `vpn-ui` management menu to MenuScriptPath on panel
-// startup when it is missing or out of date, so the `vpn-ui` command exists no matter
+// ensureMenuInstalled writes the Wild Panel management menu to MenuScriptPath on panel
+// startup when it is missing or out of date, so the `wild-panel` command exists no matter
 // how the panel was deployed. deploy.sh runs `install-menu` explicitly, but a manual
-// launch (scp the binary, `setsid ./vpn-ui-amd64 &`) never does, so the command was
+// launch (scp the binary, `setsid ./wild-panel-amd64 &`) never does, so the command was
 // simply absent on hand-deployed boxes.
 //
 // Compare-then-write: it only writes when the on-disk script differs from the embedded
@@ -1390,13 +1396,17 @@ func installMenuScript(args []string) {
 func ensureMenuInstalled() {
 	dest := service.MenuScriptPath
 	if cur, err := os.ReadFile(dest); err == nil && bytes.Equal(cur, menuScript) {
+		_ = os.Remove(service.LegacyMenuScriptPath)
+		_ = os.Symlink(dest, service.LegacyMenuScriptPath)
 		return
 	}
 	if err := backend.WriteFileAtomic(dest, menuScript, 0o755); err != nil {
-		logger.Warning("could not install the vpn-ui management menu at", dest, ":", err)
+		logger.Warning("could not install the Wild Panel management menu at", dest, ":", err)
 		return
 	}
-	logger.Info("installed the vpn-ui management menu at", dest)
+	_ = os.Remove(service.LegacyMenuScriptPath)
+	_ = os.Symlink(dest, service.LegacyMenuScriptPath)
+	logger.Info("installed the Wild Panel management menu at", dest)
 }
 
 // applyCredential updates the first user's login from the CLI: both fields set both;
@@ -2647,7 +2657,7 @@ func main() {
 		fmt.Println("    ctl <cmd>      control the RUNNING panel over its socket:")
 		fmt.Println("                   " + strings.Join(service.ControlCommands, ", "))
 		fmt.Println("    update         install the latest release (backs the DB up first)")
-		fmt.Println("    install-menu   install the 'vpn-ui' management menu to " + service.MenuScriptPath)
+		fmt.Println("    install-menu   install the 'wild-panel' management menu to " + service.MenuScriptPath)
 		fmt.Println("    --systemd      install+enable+start the panel as a systemd service")
 		fmt.Println("    --random       randomize panel port + username + password + web path")
 		fmt.Println("                   (combinable, e.g. --random --systemd)")

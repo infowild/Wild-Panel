@@ -6,11 +6,12 @@ import "testing"
 
 func TestSanitizeServiceName(t *testing.T) {
 	cases := map[string]string{
+		"wild-panel":          "wild-panel",
 		"vpn-ui":              "vpn-ui",
 		"  my-panel  ":        "my-panel",
 		"my-panel.service":    "my-panel", // .service suffix stripped
 		"x_ui@1":              "x_ui@1",
-		"":                    "vpn-ui", // empty falls back
+		"":                    "wild-panel", // empty falls back
 		"../../etc/passwd":    "....etcpasswd",
 		"a/b/c":               "abc",
 		"na me/../evil":       "name..evil",
@@ -30,8 +31,8 @@ func TestSanitizeServiceName(t *testing.T) {
 }
 
 func TestDefaultUnitShape(t *testing.T) {
-	u := DefaultUnit("vpn-ui")
-	for _, must := range []string{"[Unit]", "[Service]", "ExecStart=", "WantedBy=multi-user.target", "Description=vpn-ui"} {
+	u := DefaultUnit("wild-panel")
+	for _, must := range []string{"[Unit]", "[Service]", "ExecStart=", "WantedBy=multi-user.target", "Description=wild-panel"} {
 		if !strings.Contains(u, must) {
 			t.Errorf("DefaultUnit missing %q", must)
 		}

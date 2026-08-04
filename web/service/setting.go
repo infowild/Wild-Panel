@@ -52,7 +52,7 @@ var defaultValueMap = map[string]string{
 	"tgLang":                      "en-US",
 	"twoFactorEnable":             "false",
 	"twoFactorToken":              "",
-	"systemdServiceName":          "vpn-ui",
+	"systemdServiceName":          "wild-panel",
 	"subEnable":                   "false",
 	"subJsonEnable":               "false",
 	"subTitle":                    "",
