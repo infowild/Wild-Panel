@@ -286,7 +286,7 @@ func StagePanelBinaryFromURL(rawURL string) (StagedPanelInfo, error) {
 	if err != nil {
 		return info, fmt.Errorf("that URL could not be requested: %w", err)
 	}
-	req.Header.Set("User-Agent", "vpn-ui")
+	req.Header.Set("User-Agent", "Wild-Panel")
 
 	resp, err := panelFetchClient().Do(req)
 	if err != nil {

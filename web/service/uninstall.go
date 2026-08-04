@@ -58,48 +58,46 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 	r := &UninstallReport{}
 	logger.Info("uninstall: starting host teardown")
 
-	// 1. The panel's own systemd unit (default "vpn-ui"). disable --now stops it
-	//    without self-killing: this process was started outside that unit's PID.
+	// 1. The panel's own systemd unit (default "wild-panel"). Also always try the
+	//    pre-rebrand "vpn-ui" unit so a migrated host does not leave a second unit
+	//    enabled after the operator uninstalls from the new name.
 	var sd SystemdService
 	name := sd.GetServiceName()
-	if err := sd.RemoveService(name); err != nil {
-		r.fail("remove systemd unit "+name, err)
-	} else {
-		r.Removed = append(r.Removed, unitPath(name))
-	}
-
-	// 1b. The `vpn-ui` management menu. Unlinking it while it is the very script
-	//     running this uninstall is safe on Linux: bash holds an open fd on it, so
-	//     the inode outlives the directory entry (same reason main.runUninstall can
-	//     remove the running binary).
-	removePath(r, MenuScriptPath)
-	removePath(r, LegacyMenuScriptPath)
-	// Also remove a pre-rebrand systemd unit if the operator never renamed it.
-	if name != "vpn-ui" {
-		if err := sd.RemoveService("vpn-ui"); err == nil {
-			r.Removed = append(r.Removed, unitPath("vpn-ui"))
+	removedUnits := map[string]bool{}
+	for _, u := range []string{name, "wild-panel", "vpn-ui"} {
+		if u == "" || removedUnits[u] {
+			continue
+		}
+		removedUnits[u] = true
+		up := unitPath(u)
+		_, statErr := os.Lstat(up)
+		if err := sd.RemoveService(u); err != nil {
+			r.fail("remove systemd unit "+u, err)
+			continue
+		}
+		if statErr == nil {
+			r.Removed = append(r.Removed, up)
 		}
 	}
+
+	// 1b. Management menu + legacy symlink. Unlinking while this is the script
+	//     running uninstall is safe on Linux (bash holds an open fd on the inode).
+	removePath(r, MenuScriptPath)
+	removePath(r, LegacyMenuScriptPath)
+
 	// The panel's control socket, now that step 1 stopped the panel that served it.
-	// A leftover socket file is what StartControlSocket's stale-socket check exists
-	// to clear, but an uninstall should not leave one behind at all.
 	removePath(r, ControlSocketPath())
+	// Legacy socket name next to older binaries.
+	if opts.ExePath != "" {
+		removePath(r, filepath.Join(filepath.Dir(opts.ExePath), "vpn-ui.sock"))
+		removePath(r, filepath.Join(filepath.Dir(opts.ExePath), "wild-panel.sock"))
+	}
 
 	// 2. Stop/kill the daemons a live panel supervised (our fresh process's
 	//    procMgr is empty, so fall back to pkill by resolved binary path).
 	stopVpnDaemons(r, opts.ExePath)
 
-	// 2b. Client-side VPN outbound tunnels (wg/gre/tun/ppp/xfrm netdevs plus whatever
-	//     client each driver spawned). Nothing else here reaches them: they are not
-	//     procMgr children of THIS process, they are not in the /etc list below, and
-	//     the panel that raised them was SIGKILLed just above, which skips the shutdown
-	//     hook that would normally take them down. Left alone, an uninstalled host
-	//     keeps a live interface with a route into somebody else's VPN.
-	//
-	//     Runs after stopVpnDaemons on purpose: with every other panel dead, nothing is
-	//     left to reconcile a tunnel back up behind us. Driven off the stored list and
-	//     each driver's own Down rather than a name pattern, so a protocol added later
-	//     is covered on the day its driver lands.
+	// 2b. Client-side VPN outbound tunnels.
 	var vpnOut VpnOutboundService
 	if tunnels := vpnOut.List(); len(tunnels) > 0 {
 		vpnOut.StopAll()
@@ -143,7 +141,6 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 
 	// 7. Policy routing (fwmark 1 → table 100). Not reversed anywhere else.
 	if commandExists("ip") {
-		// There may be more than one identical rule; delete until none remain.
 		for i := 0; i < 10; i++ {
 			if err := exec.Command("ip", "rule", "del", "fwmark", "1", "lookup", "100").Run(); err != nil {
 				break
@@ -165,11 +162,25 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 		"/etc/swanctl/conf.d/l2tp.conf",
 		"/etc/modules-load.d/vpn-ui.conf",
 		"/etc/sysctl.d/99-vpn-ui.conf",
+		// Outbound client config trees (not covered by inbound coreCatalog paths).
+		"/etc/vpn-ui-l2tp-out",
+		"/etc/vpn-ui-sstp-out",
+		"/etc/vpn-ui-ikev2",
 	} {
 		removePath(r, p)
 	}
-	// Per-inbound OpenVPN config dirs (/etc/openvpn/server-<id>).
+	// Per-inbound OpenVPN + OpenConnect outbound dirs.
 	if matches, _ := filepath.Glob("/etc/openvpn/server-*"); len(matches) > 0 {
+		for _, m := range matches {
+			removePath(r, m)
+		}
+	}
+	if matches, _ := filepath.Glob("/etc/openconnect/out-*"); len(matches) > 0 {
+		for _, m := range matches {
+			removePath(r, m)
+		}
+	}
+	if matches, _ := filepath.Glob("/etc/ppp/options.pptp-out-*"); len(matches) > 0 {
 		for _, m := range matches {
 			removePath(r, m)
 		}
@@ -182,34 +193,23 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 			removePath(r, m)
 		}
 	}
-	removePath(r, config.GetLogFolder()) // /var/log/vpn-ui
+	removePath(r, config.GetLogFolder()) // /var/log/wild-panel
+	removePath(r, "/var/log/vpn-ui")     // pre-rebrand log dir
 	removePath(r, "/var/log/pluto.log")
 
-	// 9. Bundled daemon trees + their host symlinks. Remove the outward symlinks
-	//    ONLY when they point into our bundle, so a distro-native pppd is never
-	//    unlinked; then remove the bundle root itself (pptpctrl link lives inside).
+	// 9. Bundled daemon trees + their host symlinks.
 	removeSymlinkIfTarget(r, backend.PppdSystem, backend.PppdBundled)
 	removeSymlinkIfTarget(r, backend.PppdPluginDir, backend.PppdBundleRoot+"/lib/pppd")
 	removePath(r, backend.PppdBundleRoot) // /usr/libexec/vpn-ui (incl. libreswan/, pptpctrl)
+	removePath(r, backend.AccelBundleRoot)
+	removePath(r, backend.StrongswanBundleRoot)
+	removePath(r, backend.SstpcBundleRoot)
 	if usingBundledIpsec() {
 		removePath(r, backend.LibreswanNssDir) // /etc/ipsec.d — only ours on the bundled path
 	}
 
 	// 9b. Everything the CORE CATALOG owns, driven off the catalog rather than a
 	//     hand-written list.
-	//
-	//     The hand-written steps above are frozen at the four-protocol era: they
-	//     name xl2tpd, pptpd, openvpn and libreswan and nothing else. Six cores
-	//     shipped after that (openconnect, sstp, ikev2, wgc, awg, mtproto, ssh),
-	//     each declaring its own paths/globs/feats in coreCatalog, and none of it
-	//     reached here — a verified uninstall on Ubuntu 24.04 left /etc/ocserv,
-	//     /etc/vpn-ui-ikev2, /etc/strongswan.conf, /var/run/{ocserv,charon.vici}
-	//     and both bundle trees behind. Iterating the catalog means core #11 is
-	//     covered the day it is added, with no second list to remember.
-	//
-	//     Features are removed unconditionally here, unlike the per-core path
-	//     which reference-counts them against the cores that REMAIN: this is a
-	//     full uninstall, so nothing remains to keep them for.
 	for _, spec := range coreCatalog {
 		if spec.builtin {
 			continue
@@ -230,8 +230,6 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 	seenFeat := map[string]bool{}
 	for _, spec := range coreCatalog {
 		for _, f := range spec.feats {
-			// featPppd/featPptpCtrl are already handled above, and featKernelMods
-			// is deliberately a no-op (the host's kernel package is not ours).
 			if seenFeat[f] || f == featPppd || f == featPptpCtrl || f == featKernelMods {
 				continue
 			}
@@ -242,9 +240,7 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 		}
 	}
 
-	// 10. The bin/ dir next to the binary (xray core, geo files, config.json, and
-	//     the flat VPN daemons — all extract here now). Resolve a relative path
-	//     against the exe's dir so it works regardless of the caller's working dir.
+	// 10. The bin/ dir next to the binary (xray core, geo files, config.json).
 	binDir := config.GetBinFolderPath()
 	base := "."
 	if opts.ExePath != "" {
@@ -255,13 +251,19 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 	}
 	removePath(r, binDir)
 
-	// 10b. The other two directories that live beside the binary. `backups` holds
-	//      copies of the DATABASE, i.e. every admin's bcrypt hash and every
-	//      client's credentials, so leaving it on a decommissioned host is the
-	//      worst of the leftovers even though it is the quietest. `cert` holds the
-	//      panel's TLS key and any issued certificates.
+	// 10b. cert/ + backups/ beside the binary.
 	removePath(r, filepath.Join(base, "cert"))
 	removePath(r, filepath.Join(base, "backups"))
+
+	// 10c. Scrub the other install root after a rebrand migrate (/opt/vpn-ui ↔
+	//      /opt/wild-panel) so uninstall from one name does not leave the sibling
+	//      tree with DB/binary leftovers.
+	for _, dir := range []string{"/opt/wild-panel", "/opt/vpn-ui"} {
+		if opts.ExePath != "" && filepath.Clean(dir) == filepath.Clean(base) {
+			continue // caller removes this dir after deleting the binary
+		}
+		scrubInstallDir(r, dir)
+	}
 
 	// 11. Kept — not removed (shared, or irreversible without a backup we never took).
 	r.Kept = append(r.Kept,
@@ -272,6 +274,30 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 
 	logger.Info("uninstall: host teardown complete")
 	return r
+}
+
+// scrubInstallDir removes known panel leftovers under an install root (binary,
+// databases, cert, backups, bin/, sockets) and then rmdirs the root if empty.
+func scrubInstallDir(r *UninstallReport, dir string) {
+	if dir == "" || dir == "/" || dir == "." {
+		return
+	}
+	if _, err := os.Lstat(dir); err != nil {
+		return
+	}
+	for _, name := range []string{
+		"wild-panel-amd64", "vpn-ui-amd64", "wild-panel", "vpn-ui",
+		"wild-panel.db", "wild-panel.db-wal", "wild-panel.db-shm", "wild-panel.db-journal",
+		"vpn-ui.db", "vpn-ui.db-wal", "vpn-ui.db-shm", "vpn-ui.db-journal",
+		"x-ui.db", "x-ui.db-wal", "x-ui.db-shm", "x-ui.db-journal",
+		"wild-panel.sock", "vpn-ui.sock",
+		"cert", "backups", "bin",
+	} {
+		removePath(r, filepath.Join(dir, name))
+	}
+	if err := os.Remove(dir); err == nil {
+		r.Removed = append(r.Removed, dir)
+	}
 }
 
 // stopVpnDaemons stops the supervised VPN daemons. procMgr.StopAll covers
@@ -323,6 +349,12 @@ func stopVpnDaemons(r *UninstallReport, exePath string) {
 	// caller's exec channel -> spurious 255 exit though teardown still completes.
 	if exePath == "" {
 		return
+	}
+	// Reap panel binaries by well-known basenames. Do NOT match `wild-panel` /
+	// `vpn-ui` — those are the management menu scripts; killing them mid-uninstall
+	// would abort the teardown that the menu just started.
+	for _, n := range []string{"wild-panel-amd64", "vpn-ui-amd64"} {
+		_ = exec.Command("pkill", "-KILL", "-x", n).Run()
 	}
 	skip := map[string]bool{}
 	for pid := os.Getpid(); pid > 1; {

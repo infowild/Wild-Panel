@@ -389,11 +389,11 @@ func runUninstall(assumeYes bool) {
 	exePath, _ := os.Executable()
 
 	if !assumeYes {
-		fmt.Println("This will REMOVE vpn-ui and everything it installed on this host:")
-		fmt.Println("  • the systemd unit, child daemons (openvpn/xl2tpd/pptpd/pluto)")
+		fmt.Println("This will REMOVE Wild Panel and everything it installed on this host:")
+		fmt.Println("  • the systemd unit, child daemons (openvpn/xl2tpd/pptpd/pluto/…)")
 		fmt.Println("  • nftables 'ip vpn' table, firewalld trust, fwmark routing (table 100)")
-		fmt.Println("  • /etc configs, /usr/libexec/vpn-ui bundles, logs, bin/, the database")
-		fmt.Println("  • the vpn-ui binary itself")
+		fmt.Println("  • /etc configs, /usr/libexec/vpn-ui* bundles, logs, bin/, the database")
+		fmt.Println("  • the Wild Panel binary itself (and legacy /opt/vpn-ui leftovers)")
 		fmt.Println("Distro packages and boot/modprobe edits are kept and listed at the end.")
 		fmt.Print("Type 'yes' to proceed: ")
 		line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
@@ -403,17 +403,19 @@ func runUninstall(assumeYes bool) {
 		}
 	}
 
-	fmt.Println("Uninstalling vpn-ui...")
+	fmt.Println("Uninstalling Wild Panel...")
 	report := service.Uninstall(service.UninstallOptions{ExePath: exePath})
 
-	// Remove the database (next to the binary) — done here, after the service
-	// teardown that needed it to resolve the unit name.
-	dbPath := config.GetDBPath()
-	for _, p := range []string{dbPath, dbPath + "-wal", dbPath + "-shm", dbPath + "-journal"} {
-		if err := os.Remove(p); err == nil {
-			report.Removed = append(report.Removed, p)
-		} else if !os.IsNotExist(err) {
-			report.Errors = append(report.Errors, fmt.Sprintf("%s: %v", p, err))
+	// Remove databases next to the binary (current + legacy basenames).
+	dbDir := config.GetDBFolderPath()
+	for _, base := range []string{"wild-panel", "vpn-ui", "x-ui"} {
+		dbPath := filepath.Join(dbDir, base+".db")
+		for _, p := range []string{dbPath, dbPath + "-wal", dbPath + "-shm", dbPath + "-journal"} {
+			if err := os.Remove(p); err == nil {
+				report.Removed = append(report.Removed, p)
+			} else if !os.IsNotExist(err) {
+				report.Errors = append(report.Errors, fmt.Sprintf("%s: %v", p, err))
+			}
 		}
 	}
 
@@ -454,7 +456,7 @@ func runUninstall(assumeYes bool) {
 			fmt.Println("  !", e)
 		}
 	}
-	fmt.Println("\nvpn-ui uninstalled.")
+	fmt.Println("\nWild Panel uninstalled.")
 }
 
 // randomFreePort returns a random, currently-bindable TCP port in a high range,
@@ -1229,7 +1231,7 @@ func backupPanelDBForUpdate(fromVersion string) (string, error) {
 	if fromVersion == "" {
 		fromVersion = "unknown"
 	}
-	dst := filepath.Join(dir, fmt.Sprintf("vpn-ui_%s_%s.db", fromVersion, time.Now().Format("20060102-150405")))
+	dst := filepath.Join(dir, fmt.Sprintf("wild-panel_%s_%s.db", fromVersion, time.Now().Format("20060102-150405")))
 	if err := service.CopyFile(db, dst); err != nil {
 		return "", fmt.Errorf("%s -> %s: %w", db, dst, err)
 	}

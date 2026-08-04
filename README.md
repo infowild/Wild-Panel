@@ -88,7 +88,7 @@ sudo /opt/wild-panel/wild-panel-amd64 --uninstall
 ```
 
 > [!NOTE]
-> Fresh installs use `/opt/wild-panel`, the `wild-panel` systemd unit, and `wild-panel.db`. Upgrading from a pre-rebrand install migrates `/opt/vpn-ui` automatically. Protocol host paths under `/etc/vpn-ui-*` are left unchanged so live tunnels keep working.
+> Fresh installs use `/opt/wild-panel`, the `wild-panel` systemd unit, and `wild-panel.db`. Upgrading from a pre-rebrand install migrates `/opt/vpn-ui` automatically. Protocol host paths under `/etc/vpn-ui-*` are left unchanged so live tunnels keep working. Panel version is **2.0.0** so in-panel update sorts correctly after the previous 1.8.8 line.
 
 ## How the New Protocols Interact with Xray-core
 

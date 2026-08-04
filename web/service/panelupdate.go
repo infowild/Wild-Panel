@@ -124,6 +124,13 @@ func (s *ServerService) CheckPanelUpdate() (*PanelUpdateInfo, error) {
 		info.Latest = latest
 	}
 	info.Available = versionNewer(latest, cur)
+	info.URL = rel.HTMLURL
+	// Refuse to advertise an update that is not from our own releases page (defence
+	// in depth if the API URL were ever pointed elsewhere).
+	if info.URL != "" && !strings.Contains(info.URL, "github.com/"+panelRepo) {
+		info.Available = false
+		return info, fmt.Errorf("latest release URL is not from %s", panelRepo)
+	}
 
 	notes := strings.TrimSpace(rel.Body)
 	if len(notes) > panelNotesLimit {
@@ -131,7 +138,6 @@ func (s *ServerService) CheckPanelUpdate() (*PanelUpdateInfo, error) {
 	}
 	info.Notes = notes
 	info.PublishedAt = rel.PublishedAt
-	info.URL = rel.HTMLURL
 	return info, nil
 }
 

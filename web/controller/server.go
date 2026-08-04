@@ -622,7 +622,7 @@ func (a *ServerController) getDb(c *gin.Context) {
 		return
 	}
 
-	filename := fmt.Sprintf("vpn-ui_%s.db", time.Now().Format("20060102-150405"))
+	filename := fmt.Sprintf("wild-panel_%s.db", time.Now().Format("20060102-150405"))
 
 	if !isValidFilename(filename) {
 		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
