@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v2/xray"
@@ -54,6 +55,20 @@ func TestApplyEgressProfileRouting(t *testing.T) {
 	}
 	if !foundIntl || !foundIran {
 		t.Fatalf("intl=%v iran=%v", foundIntl, foundIran)
+	}
+	// Iran rules must use panel geo files, not tags that may be absent from geosite.dat.
+	for _, r := range rules {
+		rule, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		if domains, _ := rule["domain"].([]any); len(domains) > 0 {
+			for _, d := range domains {
+				if ds, _ := d.(string); strings.HasPrefix(ds, "geosite:category-ir") {
+					t.Fatalf("unexpected geosite tag %q", ds)
+				}
+			}
+		}
 	}
 }
 

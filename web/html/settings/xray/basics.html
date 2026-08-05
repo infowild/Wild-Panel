@@ -375,7 +375,7 @@
                     :disabled="!egressProfile.enabled"
                     :dropdown-class-name="themeSwitcher.currentTheme"
                     :style="{ width: '100%' }"
-                    :placeholder='{{ i18n "pages.xray.egressProfile.outboundPlaceholder" }}'>
+                    placeholder='{{ i18n "pages.xray.egressProfile.outboundPlaceholder" }}'>
                     <a-select-option v-for="ob in outboundTags" :key="ob" :value="ob">[[ ob ]]</a-select-option>
                 </a-select>
             </template>

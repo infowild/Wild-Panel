@@ -1490,6 +1490,10 @@
       },
       // The banner's own X is a session dismiss and needs no handler; this is
       // the permanent one, and it silences the banner on every page.
+      dismissSecAlert() {
+        SecAlertDismissal.dismiss();
+        this.showAlert = false;
+      },
       async saveEgressProfile() {
         this.egressProfile.saving = true;
         const servers = (this.egressProfile.dnsServersText || '')
@@ -1510,10 +1514,6 @@
         } finally {
           this.egressProfile.saving = false;
         }
-      },
-      dismissSecAlert() {
-        SecAlertDismissal.dismiss();
-        this.showAlert = false;
       }
     },
     async mounted() {
@@ -1556,9 +1556,13 @@
     },
     computed: {
       outboundTags() {
-        const obs = this.templateSettings && this.templateSettings.outbounds;
-        if (!Array.isArray(obs)) return [];
-        return obs.map(o => o && o.tag).filter(t => t && t !== 'api' && t !== 'blocked');
+        try {
+          const obs = this.templateSettings && this.templateSettings.outbounds;
+          if (!Array.isArray(obs)) return [];
+          return obs.map(o => o && o.tag).filter(t => t && t !== 'api' && t !== 'blocked');
+        } catch (e) {
+          return [];
+        }
       },
       templateSettings: {
         get: function () {

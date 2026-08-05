@@ -162,12 +162,12 @@ func applyEgressProfileRouting(config *xray.Config, profile EgressProfile, inbou
 			map[string]any{
 				"type":        "field",
 				"outboundTag": "direct",
-				"ip":          []any{"geoip:ir", "ext:geoip_IR.dat:ir"},
+				"ip":          []any{"ext:geoip_IR.dat:ir"},
 			},
 			map[string]any{
 				"type":        "field",
 				"outboundTag": "direct",
-				"domain":      []any{"geosite:category-ir", "ext:geosite_IR.dat:ir", "regexp:.*\\.ir$"},
+				"domain":      []any{"ext:geosite_IR.dat:ir", "regexp:.*\\.ir$"},
 			},
 		)
 	}
