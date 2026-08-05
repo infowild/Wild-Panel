@@ -91,7 +91,7 @@ func (s *EgressProfileService) Save(p EgressProfile) error {
 	if err := s.SettingService.saveSetting(settingEgressProfileDnsServers, strings.Join(servers, ",")); err != nil {
 		return err
 	}
-	SetToNeedRestart()
+	(&XrayService{}).SetToNeedRestart()
 	return nil
 }
 
