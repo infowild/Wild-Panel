@@ -10,13 +10,14 @@
   background:
     radial-gradient(ellipse 55% 45% at 18% 12%, var(--ambient-cyan), transparent 60%),
     radial-gradient(ellipse 50% 40% at 88% 88%, var(--ambient-violet), transparent 55%),
-    radial-gradient(ellipse 70% 55% at 50% 50%, rgba(0,232,240,.04), transparent 70%);
+    radial-gradient(ellipse 70% 55% at 50% 50%, rgba(0,200,210,.05), transparent 70%);
 }
 
 .wp-noise {
-  position:absolute; inset:0; pointer-events:none; opacity:.035; mix-blend-mode:overlay;
+  position:absolute; inset:0; pointer-events:none; opacity:.04; mix-blend-mode:multiply;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
+body.dark .wp-noise { opacity:.035; mix-blend-mode:overlay; }
 
 /* Glass surface */
 .wp-glass {
@@ -43,6 +44,13 @@
   background:conic-gradient(from 200deg, var(--brand-cyan), var(--brand-violet), var(--brand-cyan));
   box-shadow:var(--glow-cyan), var(--glow-violet);
 }
+body:not(.dark) .wp-mark {
+  box-shadow:
+    0 0 0 1px rgba(15,40,70,.06),
+    0 8px 20px -10px rgba(15,40,70,.18),
+    var(--glow-cyan), var(--glow-violet);
+}
+
 .wp-mark__inner {
   display:block; border-radius:50%; overflow:hidden; background:#05070e;
   line-height:0;

@@ -70,50 +70,61 @@
   --brand-obsidian:#06070D;
 }
 
-/* —— LIGHT —— */
+/* —— LIGHT (flagship daylight) ——
+ * Same brand DNA as dark: cyan eyes + violet aura + glass.
+ * Ground is a cool mist with soft cyan/violet ambient — never flat white,
+ * never purple-on-white template, never warm cream newspaper.
+ */
 :root {
-  --bg:#f3f5f8;
-  --surface:rgba(255,255,255,.78);
-  --surface-2:rgba(241,244,248,.92);
-  --border:rgba(15,23,42,.08);
-  --border-strong:rgba(8,145,178,.28);
+  --bg:#eef3f8;
+  --surface:rgba(255,255,255,.72);
+  --surface-2:rgba(244,248,252,.88);
+  --border:rgba(15,40,70,.08);
+  --border-strong:rgba(0,180,190,.32);
 
-  --text:#0f172a;
-  --text-2:#475569;
-  --text-3:#64748b;
+  --text:#0b1220;
+  --text-2:#3d5168;
+  --text-3:#6b8098;
 
-  --accent:#0891b2;
-  --accent-strong:#0e7490;
-  --accent-weak:rgba(8,145,178,.12);
+  /* Accent stays readable on light glass; brand cyan reserved for glow/CTA */
+  --accent:#0a9eab;
+  --accent-strong:#088892;
+  --accent-weak:rgba(0,200,210,.12);
   --on-accent:#ffffff;
-  --glow:#A855F7;
-  --glow-weak:rgba(168,85,247,.12);
+  --glow:#9333ea;
+  --glow-weak:rgba(147,51,234,.10);
 
   --ok:#15803d;
-  --info:#0891b2;
-  --warn:#a16207;
-  --error:#b91c1c;
-  --off:#64748b;
+  --info:#0a9eab;
+  --warn:#b45309;
+  --error:#be123c;
+  --off:#6b8098;
 
   --ok-weak:rgba(21,128,61,.10);
-  --info-weak:rgba(8,145,178,.10);
-  --warn-weak:rgba(161,98,7,.12);
-  --error-weak:rgba(185,28,28,.10);
-  --off-weak:rgba(100,116,139,.12);
+  --info-weak:rgba(10,158,171,.10);
+  --warn-weak:rgba(180,83,9,.10);
+  --error-weak:rgba(190,18,60,.10);
+  --off-weak:rgba(107,128,152,.10);
 
-  --shadow-sm:0 1px 2px rgba(15,23,42,.05);
-  --shadow-md:0 10px 30px -12px rgba(15,23,42,.12);
-  --shadow-lg:0 24px 48px -20px rgba(15,23,42,.18);
+  --shadow-sm:0 1px 2px rgba(15,40,70,.04), 0 0 0 1px rgba(15,40,70,.03);
+  --shadow-md:
+    0 12px 32px -16px rgba(15,40,70,.14),
+    0 0 28px -14px rgba(0,200,210,.10),
+    0 0 24px -16px rgba(147,51,234,.08);
+  --shadow-lg:
+    0 28px 56px -24px rgba(15,40,70,.18),
+    0 0 40px -18px rgba(0,200,210,.12),
+    0 0 36px -16px rgba(147,51,234,.10);
 
   --glass-bg:rgba(255,255,255,.58);
-  --glass-border:rgba(15,23,42,.10);
+  --glass-border:rgba(15,40,70,.10);
   --glass-blur:22px;
-  --glass-shine:linear-gradient(135deg, rgba(255,255,255,.65), rgba(255,255,255,.08) 42%, transparent 70%);
+  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.85), rgba(255,255,255,.28) 38%, transparent 68%);
 
-  --glow-cyan:0 0 24px -6px rgba(0,232,240,.35);
-  --glow-violet:0 0 24px -6px rgba(168,85,247,.30);
-  --ambient-cyan:rgba(0,232,240,.08);
-  --ambient-violet:rgba(168,85,247,.08);
+  --glow-cyan:0 0 22px -6px rgba(0,200,210,.35);
+  --glow-violet:0 0 22px -6px rgba(147,51,234,.28);
+  --ambient-cyan:rgba(0,210,220,.14);
+  --ambient-violet:rgba(147,51,234,.10);
 
   color-scheme:light;
 }

@@ -25,7 +25,7 @@
    are the mockup's. (The mockup also carried --bg-rgb; nothing in this
    design reads it, because the card is deliberately opaque rather than a
    translucent scrim. See the note above .lgt-card.) */
-:root { --shadow-lg:0 18px 40px -18px rgba(16,24,32,.22),0 4px 10px rgba(16,24,32,.06); }
+:root { --shadow-lg:0 18px 40px -18px rgba(16,24,32,.14), 0 0 32px -14px rgba(0,200,210,.12), 0 0 28px -12px rgba(147,51,234,.08); }
 body.dark {
   --shadow-lg:0 24px 60px -20px rgba(0,0,0,.7), 0 0 40px -12px rgba(0,232,240,.22), 0 0 48px -16px rgba(168,85,247,.18);
 }
@@ -51,9 +51,9 @@ body { background:var(--bg); }
 #app.login-app::before {
   content:""; position:fixed; inset:-20%; z-index:0; pointer-events:none;
   background:
-    radial-gradient(ellipse 50% 40% at 20% 15%, rgba(0,232,240,.18), transparent 60%),
-    radial-gradient(ellipse 45% 35% at 85% 80%, rgba(168,85,247,.16), transparent 55%),
-    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(6,182,212,.06), transparent 70%);
+    radial-gradient(ellipse 50% 40% at 20% 15%, var(--ambient-cyan), transparent 60%),
+    radial-gradient(ellipse 45% 35% at 85% 80%, var(--ambient-violet), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,200,210,.05), transparent 70%);
   animation:lgt-aurora 14s ease-in-out infinite alternate;
 }
 @keyframes lgt-aurora {
@@ -101,13 +101,13 @@ body { background:var(--bg); }
    up as a faint banded outline on a dark ground. Not painting is exact. */
 #app.login-app .lgt-card {
   position:relative; z-index:1;
-  background:rgba(14,18,32,.58);
-  border:1px solid rgba(255,255,255,.12);
+  background:var(--glass-bg);
+  border:1px solid var(--glass-border);
   border-radius:24px;
-  box-shadow:var(--shadow-lg), 0 0 0 1px rgba(0,232,240,.08);
+  box-shadow:var(--shadow-lg);
   padding:32px 24px 28px;
-  backdrop-filter:blur(22px) saturate(1.4);
-  -webkit-backdrop-filter:blur(22px) saturate(1.4);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.4);
   overflow:hidden;
 }
 #app.login-app .lgt-card > * { position:relative; z-index:1; }
@@ -139,14 +139,19 @@ body { background:var(--bg); }
   position:absolute; inset:0; border-radius:50%; pointer-events:none;
   border:1px solid transparent;
   background:linear-gradient(var(--bg), var(--bg)) padding-box,
-             conic-gradient(from 0deg, rgba(0,232,240,.0), rgba(0,232,240,.55), rgba(168,85,247,.0), rgba(168,85,247,.5), rgba(0,232,240,.0)) border-box;
+             conic-gradient(from 0deg, rgba(0,200,210,.0), rgba(0,180,190,.55), rgba(147,51,234,.0), rgba(147,51,234,.45), rgba(0,200,210,.0)) border-box;
   -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor; mask-composite:exclude;
   padding:1px;
 }
+body.dark #app.login-app .lgt-holo-ring {
+  background:linear-gradient(var(--bg), var(--bg)) padding-box,
+             conic-gradient(from 0deg, rgba(0,232,240,.0), rgba(0,232,240,.55), rgba(168,85,247,.0), rgba(168,85,247,.5), rgba(0,232,240,.0)) border-box;
+}
 #app.login-app .lgt-holo-ring--a { inset:0; animation:lgt-spin-slow 28s linear infinite; opacity:.7; }
 #app.login-app .lgt-holo-ring--b { inset:12px; animation:lgt-spin-slow 38s linear infinite reverse; opacity:.45; }
-#app.login-app .lgt-holo-ring--c { inset:24px; border:1px solid rgba(0,232,240,.18); background:none; animation:none; }
+#app.login-app .lgt-holo-ring--c { inset:24px; border:1px solid rgba(10,158,171,.22); background:none; animation:none; }
+body.dark #app.login-app .lgt-holo-ring--c { border-color:rgba(0,232,240,.18); }
 @keyframes lgt-spin-slow { to { transform:rotate(360deg); } }
 #app.login-app .lgt-holo .wp-mark {
   width:96px; height:96px; position:relative; z-index:1;
@@ -156,6 +161,13 @@ body { background:var(--bg); }
   width:100%; height:100%;
 }
 @keyframes lgt-logo-glow {
+  from { box-shadow:0 0 18px -6px rgba(0,180,190,.28), 0 0 22px -8px rgba(147,51,234,.18); }
+  to   { box-shadow:0 0 28px -4px rgba(0,180,190,.45), 0 0 34px -4px rgba(147,51,234,.32); }
+}
+body.dark #app.login-app .lgt-holo .wp-mark {
+  animation:lgt-logo-glow-dark 4s ease-in-out infinite alternate;
+}
+@keyframes lgt-logo-glow-dark {
   from { box-shadow:0 0 22px -6px rgba(0,232,240,.4), 0 0 28px -8px rgba(168,85,247,.28); }
   to   { box-shadow:0 0 36px -4px rgba(0,232,240,.7), 0 0 48px -4px rgba(168,85,247,.55); }
 }
@@ -169,7 +181,7 @@ body { background:var(--bg); }
 }
 #app.login-app .lgt-gear {
   width:36px; height:36px; flex:0 0 auto; border-radius:999px;
-  border:1px solid var(--glass-border); background:rgba(255,255,255,.04); color:var(--text-2);
+  border:1px solid var(--glass-border); background:var(--surface-2); color:var(--text-2);
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
   display:flex; align-items:center; justify-content:center; cursor:pointer;
   transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
@@ -203,7 +215,7 @@ body { background:var(--bg); }
   border:1px solid var(--border); background:var(--surface-2); color:var(--text);
   font-size:var(--fs-sm); cursor:pointer;
 }
-#app.login-app .lgt-select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-weak); }
+#app.login-app .lgt-select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-weak), var(--glow-cyan); }
 
 /* ===== notices ===== */
 #app.login-app .lgt-alert {
@@ -245,14 +257,14 @@ body { background:var(--bg); }
 #app.login-app .lgt-label { font-size:var(--fs-sm); font-weight:var(--fw-semibold); color:var(--text-2); }
 #app.login-app .lgt-control {
   display:flex; align-items:center; gap:10px;
-  background:rgba(255,255,255,.04); border:1px solid var(--glass-border); border-radius:14px;
+  background:var(--surface-2); border:1px solid var(--glass-border); border-radius:14px;
   padding-inline:12px;
   transition:border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
 #app.login-app .lgt-control > .lgt-icon { color:var(--text-3); }
 #app.login-app .lgt-control:focus-within {
-  background:rgba(0,232,240,.06); border-color:var(--accent);
-  box-shadow:0 0 0 3px var(--accent-weak), 0 0 20px -8px rgba(0,232,240,.45);
+  background:var(--accent-weak); border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-weak), var(--glow-cyan);
 }
 #app.login-app .lgt-control:focus-within > .lgt-icon { color:var(--accent); }
 #app.login-app .lgt-control.is-invalid { border-color:var(--error); }
@@ -301,6 +313,12 @@ body { background:var(--bg); }
 }
 #app.login-app .lgt-submit:active { transform:translateY(1px); }
 #app.login-app .lgt-submit[aria-busy="true"] { cursor:progress; filter:none; }
+body:not(.dark) #app.login-app .lgt-submit {
+  box-shadow:0 8px 24px -10px rgba(15,40,70,.2), 0 0 22px -10px rgba(0,180,190,.35), 0 0 20px -10px rgba(147,51,234,.25);
+}
+body:not(.dark) #app.login-app .lgt-submit:hover {
+  box-shadow:0 10px 28px -8px rgba(15,40,70,.24), 0 0 26px -8px rgba(0,180,190,.42), 0 0 24px -8px rgba(147,51,234,.3);
+}
 #app.login-app .lgt-spin {
   width:16px; height:16px; flex:0 0 auto; border-radius:50%;
   border:2px solid currentColor; border-top-color:transparent; opacity:.9;
@@ -598,9 +616,10 @@ body { background:var(--bg); }
     function seedDots() {
       const n = Math.max(MIN_DOTS, Math.min(MAX_DOTS, Math.round(W * H / 28000)));
       const rnd = mulberry32(0x57494C44 ^ (W * 73856093) ^ (H * 19349663));
-      const accent = tokenRGB('--accent');
+      const dark = isDarkGround();
+      const accent = dark ? tokenRGB('--accent') : [10, 158, 171];
       let glow;
-      try { glow = tokenRGB('--glow'); } catch (e) { glow = [168, 85, 247]; }
+      try { glow = tokenRGB('--glow'); } catch (e) { glow = [147, 51, 234]; }
       dots = [];
       for (let i = 0; i < n; i++) {
         const useGlow = rnd() > 0.55;
@@ -621,51 +640,43 @@ body { background:var(--bg); }
     function paintShell() {
       sizeCanvas(shellCv, shell);
       shell.clearRect(0, 0, W, H);
-      if (!isDarkGround()) {
-        const g = shell.createRadialGradient(geo.cx, geo.cy, 0, geo.cx, geo.cy, Math.max(W, H) * 0.55);
-        g.addColorStop(0, 'rgba(8,145,178,0.06)');
-        g.addColorStop(0.55, 'rgba(124,58,237,0.04)');
-        g.addColorStop(1, 'rgba(0,0,0,0)');
-        shell.fillStyle = g;
-        shell.fillRect(0, 0, W, H);
-        return;
-      }
-      const accent = tokenRGB('--accent');
+      const dark = isDarkGround();
+      const accent = dark ? tokenRGB('--accent') : [10, 158, 171];
       let glow;
-      try { glow = tokenRGB('--glow'); } catch (e) { glow = [168, 85, 247]; }
+      try { glow = tokenRGB('--glow'); } catch (e) { glow = [147, 51, 234]; }
 
-      // Soft aurora washes
+      // Soft aurora washes (stronger in dark, mist-soft in light)
       const a1 = shell.createRadialGradient(W * 0.18, H * 0.12, 0, W * 0.18, H * 0.12, Math.max(W, H) * 0.45);
-      a1.addColorStop(0, rgba(accent, 0.16));
+      a1.addColorStop(0, rgba(accent, dark ? 0.16 : 0.10));
       a1.addColorStop(1, rgba(accent, 0));
       shell.fillStyle = a1;
       shell.fillRect(0, 0, W, H);
 
       const a2 = shell.createRadialGradient(W * 0.88, H * 0.88, 0, W * 0.88, H * 0.88, Math.max(W, H) * 0.42);
-      a2.addColorStop(0, rgba(glow, 0.14));
+      a2.addColorStop(0, rgba(glow, dark ? 0.14 : 0.08));
       a2.addColorStop(1, rgba(glow, 0));
       shell.fillStyle = a2;
       shell.fillRect(0, 0, W, H);
 
-      // Orbital crosshair (logo geometry)
+      // Orbital crosshair (logo geometry) — both themes
       shell.save();
       shell.translate(geo.cx, geo.cy);
       const rings = [geo.ring * 0.72, geo.ring * 1.05, geo.ring * 1.38];
       for (let i = 0; i < rings.length; i++) {
         const rad = rings[i];
-        const alpha = quiet(geo.cx + rad, geo.cy) * (0.10 + i * 0.04);
+        const base = dark ? (0.10 + i * 0.04) : (0.14 + i * 0.05);
+        const alpha = quiet(geo.cx + rad, geo.cy) * base;
         shell.beginPath();
         shell.arc(0, 0, rad, 0, Math.PI * 2);
         shell.strokeStyle = rgba(i === 1 ? glow : accent, alpha);
         shell.lineWidth = i === 1 ? 1.25 : 0.8;
         shell.stroke();
       }
-      // Cross lines
       const arm = geo.ring * 1.55;
       shell.beginPath();
       shell.moveTo(-arm, 0); shell.lineTo(arm, 0);
       shell.moveTo(0, -arm); shell.lineTo(0, arm);
-      shell.strokeStyle = rgba(accent, 0.08);
+      shell.strokeStyle = rgba(accent, dark ? 0.08 : 0.10);
       shell.lineWidth = 0.7;
       shell.stroke();
       shell.restore();
@@ -674,7 +685,7 @@ body { background:var(--bg); }
     function paintFlow(dt) {
       sizeCanvas(flowCv, flow);
       flow.clearRect(0, 0, W, H);
-      if (!isDarkGround()) return;
+      const dark = isDarkGround();
       clock += dt;
       for (let i = 0; i < dots.length; i++) {
         const d = dots[i];
@@ -686,7 +697,7 @@ body { background:var(--bg); }
         const q = quiet(x, y);
         if (q < 0.04) continue;
         const breath = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(d.pulse));
-        const a = q * breath * 0.85;
+        const a = q * breath * (dark ? 0.85 : 0.55);
         const rg = flow.createRadialGradient(x, y, 0, x, y, d.sz * 3.2);
         rg.addColorStop(0, rgba(d.col, a));
         rg.addColorStop(1, rgba(d.col, 0));

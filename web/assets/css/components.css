@@ -57,8 +57,11 @@
 }
 .bo-shell::after {
   content:"";
-  position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.03; mix-blend-mode:overlay;
+  position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.045; mix-blend-mode:multiply;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+body.dark .bo-shell::after {
+  opacity:.03; mix-blend-mode:overlay;
 }
 .bo-shell > * { position:relative; z-index:1; }
 
@@ -98,12 +101,12 @@
 .bo-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; background:var(--off); }
 .bo-dot--ok {
   background:var(--ok);
-  box-shadow:0 0 8px rgba(74,222,128,.7);
+  box-shadow:0 0 8px color-mix(in srgb, var(--ok) 55%, transparent);
   animation:bo-dot-pulse 2.2s ease-in-out infinite;
 }
-.bo-dot--info { background:var(--info); box-shadow:0 0 8px rgba(56,189,248,.55); }
+.bo-dot--info { background:var(--info); box-shadow:0 0 8px color-mix(in srgb, var(--info) 45%, transparent); }
 .bo-dot--warn { background:var(--warn); }
-.bo-dot--error { background:var(--error); box-shadow:0 0 8px rgba(251,113,133,.55); }
+.bo-dot--error { background:var(--error); box-shadow:0 0 8px color-mix(in srgb, var(--error) 45%, transparent); }
 @keyframes bo-dot-pulse {
   0%,100% { transform:scale(1); opacity:1; }
   50% { transform:scale(1.25); opacity:.75; }
@@ -129,6 +132,9 @@
   display:flex; flex-direction:column; align-items:center;
   padding:22px 0; gap:24px; overflow-y:auto;
   z-index:20;
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.55), 4px 0 24px -16px rgba(15,40,70,.08);
+}
+body.dark .bo-rail {
   box-shadow:inset -1px 0 0 rgba(255,255,255,.03);
 }
 
@@ -429,6 +435,9 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-tile:hover {
   transform:translateY(-3px);
   border-color:var(--border-strong);
+  box-shadow:var(--shadow-lg);
+}
+body.dark .bo-tile:hover {
   box-shadow:0 16px 40px -18px rgba(0,0,0,.55), 0 0 28px -10px rgba(0,232,240,.16);
 }
 /* Content sits at the top of a stretched tile. space-between was tried and
