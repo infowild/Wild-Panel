@@ -144,6 +144,11 @@ jobs:
           NOTES="$(printf '%s\n' \
             '## Wild Panel' \
             '' \
+            '### v2.0.7' \
+            '- Full-width dashboard on desktop (content uses the whole viewport beside the rail)' \
+            '- Modern sidebar: horizontal nav items, active accent bar, glass ambient, logout separated' \
+            '- `deploy.sh`: Wild Panel branding only in all operator-facing messages; silent migration from previous installs' \
+            '' \
             '### v2.0.6' \
             '- Fix in-panel update showing the wrong version (embedded `config/version` now synced to the release tag in CI)' \
             '' \

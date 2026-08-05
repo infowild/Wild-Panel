@@ -4,20 +4,16 @@ set -euo pipefail
 
 REPO="infowild/Wild-Panel"
 ASSET="wild-panel-amd64"
-LEGACY_ASSET="vpn-ui-amd64"          # pre-rebrand release asset (fallback download)
 DEST_DIR="/opt/wild-panel"
-LEGACY_DIR="/opt/vpn-ui"             # pre-rebrand install root
+PREV_INSTALL_DIR="/opt/vpn-ui"       # silent migration source (pre-Wild Panel path)
 DEST="$DEST_DIR/$ASSET"
 UNIT="wild-panel"
-LEGACY_UNIT="vpn-ui"
+PREV_UNIT="vpn-ui"                   # silent: stop/disable during migration only
+DL_URL="https://github.com/$REPO/releases/latest/download/$ASSET"
 # The management menu (`wild-panel`). Installed from INSIDE the binary we just placed
 # ($DEST install-menu), never curled from the repo's default branch: that would pin
 # a menu from a different release than the binary it drives.
 MENU="/usr/bin/wild-panel"
-LEGACY_MENU="/usr/bin/vpn-ui"
-DL_URL="https://github.com/$REPO/releases/latest/download/$ASSET"
-LEGACY_DL_URL="https://github.com/$REPO/releases/latest/download/$LEGACY_ASSET"
-# The panel keeps its SQLite DB next to the binary (exe dir). Backups go beside it.
 DB="$DEST_DIR/wild-panel.db"
 BACKUP_DIR="$DEST_DIR/backups"
 # Real-SSL (Let's Encrypt via acme.sh: Cloudflare DNS-01 or standalone HTTP-01).
@@ -34,7 +30,7 @@ BACKUP_DIR="$DEST_DIR/backups"
 CERT_DIR="$DEST_DIR/cert"
 DOMAIN="${DEPLOY_DOMAIN:-}"
 EMAIL="${DEPLOY_EMAIL:-}"
-PANEL_VERSION="2.0.6"
+PANEL_VERSION="2.0.7"
 GITHUB_URL="https://github.com/$REPO"
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -151,53 +147,51 @@ fmt_time() {
 # in THIS shell, so its DOMAIN/EMAIL prompts fill in the variables the completion
 # message below prints.
 
-# Migrate a pre-rebrand install (/opt/vpn-ui) into /opt/wild-panel without dropping
-# the operator's database, certs or backups. Safe to call repeatedly: no-op when the
-# new tree already has a binary or when no legacy tree exists.
+# Migrate a previous install into /opt/wild-panel without dropping the operator's
+# database, certs or backups. Safe to call repeatedly: no-op when the new tree
+# already has a binary or when no previous tree exists.
 #
-# IMPORTANT: keep the SQLite basename as vpn-ui.db here. A fallback download of the
-# pre-rebrand binary still opens vpn-ui.db next to itself. A rebuilt Wild Panel
-# binary renames vpn-ui.db → wild-panel.db on first start (config.LegacyDBPaths).
-# Renaming in this script before that would hide the DB from a legacy binary.
+# Keep the interim SQLite basename during migration; Wild Panel renames it to
+# wild-panel.db on first start (config.LegacyDBPaths).
 migrate_legacy_install() {
-    if [[ ! -d "$LEGACY_DIR" ]]; then
+    if [[ ! -d "$PREV_INSTALL_DIR" ]]; then
         return 0
     fi
     if [[ -e "$DEST" ]]; then
         return 0
     fi
-    msg "Migrating legacy install ${LEGACY_DIR} → ${DEST_DIR}"
-    if systemctl is-active --quiet "$LEGACY_UNIT" 2>/dev/null; then
-        act "stopping ${LEGACY_UNIT}"
-        systemctl stop "$LEGACY_UNIT" || true
+    msg "Migrating previous installation to Wild Panel"
+    if systemctl is-active --quiet "$PREV_UNIT" 2>/dev/null; then
+        act "stopping previous panel service"
+        systemctl stop "$PREV_UNIT" || true
     fi
     install -d -m 0755 "$DEST_DIR" "$BACKUP_DIR" "$CERT_DIR"
-    local legacy_db="$LEGACY_DIR/vpn-ui.db"
+    local prev_db="$PREV_INSTALL_DIR/vpn-ui.db"
     local dest_db="$DEST_DIR/vpn-ui.db"
-    if [[ -f "$legacy_db" && ! -f "$dest_db" && ! -f "$DB" ]]; then
-        if mv "$legacy_db" "$dest_db" 2>/dev/null; then
+    if [[ -f "$prev_db" && ! -f "$dest_db" && ! -f "$DB" ]]; then
+        if mv "$prev_db" "$dest_db" 2>/dev/null; then
             ok "database → $dest_db"
         else
-            cp -p "$legacy_db" "$dest_db"
+            cp -p "$prev_db" "$dest_db"
             ok "database copied → $dest_db"
         fi
         for side in wal shm; do
-            [[ -f "$legacy_db-$side" ]] || continue
-            mv "$legacy_db-$side" "$dest_db-$side" 2>/dev/null \
-                || cp -p "$legacy_db-$side" "$dest_db-$side" || true
+            [[ -f "$prev_db-$side" ]] || continue
+            mv "$prev_db-$side" "$dest_db-$side" 2>/dev/null \
+                || cp -p "$prev_db-$side" "$dest_db-$side" || true
         done
     fi
-    if [[ -d "$LEGACY_DIR/cert" ]] && [[ -z "$(ls -A "$CERT_DIR" 2>/dev/null || true)" ]]; then
-        cp -a "$LEGACY_DIR/cert/." "$CERT_DIR/" 2>/dev/null || true
+    if [[ -d "$PREV_INSTALL_DIR/cert" ]] && [[ -z "$(ls -A "$CERT_DIR" 2>/dev/null || true)" ]]; then
+        cp -a "$PREV_INSTALL_DIR/cert/." "$CERT_DIR/" 2>/dev/null || true
         ok "certs → $CERT_DIR"
     fi
-    if [[ -d "$LEGACY_DIR/backups" ]]; then
-        cp -a "$LEGACY_DIR/backups/." "$BACKUP_DIR/" 2>/dev/null || true
+    if [[ -d "$PREV_INSTALL_DIR/backups" ]]; then
+        cp -a "$PREV_INSTALL_DIR/backups/." "$BACKUP_DIR/" 2>/dev/null || true
     fi
-    # Disable legacy unit so a reboot does not start two panels.
-    if systemctl list-unit-files "$LEGACY_UNIT.service" 2>/dev/null | grep -q "$LEGACY_UNIT"; then
-        systemctl disable "$LEGACY_UNIT" 2>/dev/null || true
-        ok "disabled legacy unit ${LEGACY_UNIT}"
+    # Disable the previous unit so a reboot does not start two panels.
+    if systemctl list-unit-files "$PREV_UNIT.service" 2>/dev/null | grep -q "$PREV_UNIT"; then
+        systemctl disable "$PREV_UNIT" 2>/dev/null || true
+        ok "disabled previous panel service"
     fi
 }
 
@@ -234,9 +228,14 @@ MODE="install"; OLD_VER=""
 if [[ -e "$DEST" ]]; then
     MODE="update"
     OLD_VER="$("$DEST" -v 2>/dev/null | tr -d '[:space:]')"
-elif [[ -e "$LEGACY_DIR/$LEGACY_ASSET" ]]; then
+elif [[ -e "$PREV_INSTALL_DIR/wild-panel-amd64" ]] || [[ -e "$PREV_INSTALL_DIR/vpn-ui-amd64" ]]; then
     MODE="update"
-    OLD_VER="$("$LEGACY_DIR/$LEGACY_ASSET" -v 2>/dev/null | tr -d '[:space:]')"
+    for prev_bin in "$PREV_INSTALL_DIR/wild-panel-amd64" "$PREV_INSTALL_DIR/vpn-ui-amd64"; do
+        if [[ -e "$prev_bin" ]]; then
+            OLD_VER="$("$prev_bin" -v 2>/dev/null | tr -d '[:space:]')"
+            break
+        fi
+    done
 fi
 
 if   command -v curl >/dev/null 2>&1; then DL="curl"
@@ -429,14 +428,8 @@ trap 'dl_cleanup; exit 130' INT
 trap 'dl_cleanup; exit 143' TERM
 
 msg "Downloading ${ASSET}"
-if ! fetch_asset "$DL_URL" "$tmp"; then
-    # Until a Wild Panel release publishes wild-panel-amd64, fall back to the
-    # last vpn-ui-amd64 asset so install/upgrade still succeeds. The file is still
-    # stored under the new DEST path so the rest of this script stays consistent.
-    warn "primary asset '${ASSET}' unavailable — trying legacy '${LEGACY_ASSET}'"
-    fetch_asset "$LEGACY_DL_URL" "$tmp" \
-        || die "download failed from $DL_URL and $LEGACY_DL_URL — publish a release with '${ASSET}' (or legacy '${LEGACY_ASSET}')."
-fi
+fetch_asset "$DL_URL" "$tmp" \
+    || die "download failed — check that GitHub release '${ASSET}' exists for ${REPO}"
 # Back to the plain tmp-file cleanup for the rest of the run: nothing below this
 # point owns a background job, so the download's signal handling ends here.
 trap - INT TERM
@@ -455,13 +448,11 @@ if systemctl is-active --quiet "$UNIT" 2>/dev/null; then
     act "stopping running ${UNIT} for replacement"
     systemctl stop "$UNIT" || true
 fi
-if systemctl is-active --quiet "$LEGACY_UNIT" 2>/dev/null; then
-    act "stopping running ${LEGACY_UNIT} for replacement"
-    systemctl stop "$LEGACY_UNIT" || true
+if systemctl is-active --quiet "$PREV_UNIT" 2>/dev/null; then
+    act "stopping previous panel service for replacement"
+    systemctl stop "$PREV_UNIT" || true
 fi
-# Also reap a panel launched OUTSIDE systemd (bare ./wild-panel-amd64 or ./vpn-ui):
-# the stop above only touches the unit, so a hand-launched panel would keep the
-# web + Xray ports bound and collide with the unit we (re)start below.
+# Also reap a panel launched outside systemd so ports are free for the unit below.
 if command -v pkill >/dev/null 2>&1; then
     pkill -x wild-panel-amd64 2>/dev/null || true
     pkill -x vpn-ui-amd64 2>/dev/null || true
@@ -479,8 +470,8 @@ if [[ -f "$DB" ]]; then
     db_src="$DB"
 elif [[ -f "$DEST_DIR/vpn-ui.db" ]]; then
     db_src="$DEST_DIR/vpn-ui.db"
-elif [[ -f "$LEGACY_DIR/vpn-ui.db" ]]; then
-    db_src="$LEGACY_DIR/vpn-ui.db"
+elif [[ -f "$PREV_INSTALL_DIR/vpn-ui.db" ]]; then
+    db_src="$PREV_INSTALL_DIR/vpn-ui.db"
 fi
 if [[ "$MODE" == "update" && -n "$db_src" ]]; then
     install -d -m 0755 "$BACKUP_DIR"
@@ -501,10 +492,10 @@ ok "installed -> $DEST"
 # Install/refresh the management menu on BOTH paths (fresh install and update), so
 # `wild-panel` always matches the binary that ships it. Must come before the TLS step
 # below, which sources the menu for obtain_letsencrypt_cert.
-msg "Installing the ${MENU} management menu"
-# WILDPANEL_BIN / VPNUI_BIN: the menu (and the sourced SSL function) resolve the
-# panel binary from these, so a non-default DEST_DIR carries through instead of
-# falling back to the compiled-in default. Keep VPNUI_BIN for older embedded menus.
+msg "Installing the Wild Panel management menu"
+# WILDPANEL_BIN: the menu (and the sourced SSL function) resolve the panel binary
+# from this, so a non-default DEST_DIR carries through instead of falling back to
+# the compiled-in default.
 export WILDPANEL_BIN="$DEST"
 export VPNUI_BIN="$DEST"
 if "$DEST" install-menu >/dev/null 2>&1 && [[ -r "$MENU" ]]; then
@@ -514,10 +505,6 @@ if "$DEST" install-menu >/dev/null 2>&1 && [[ -r "$MENU" ]]; then
     # behind a sourced/executed guard), so this only defines functions.
     # shellcheck source=wild-panel.sh
     source "$MENU"
-    # Compat symlink so operators who still type `vpn-ui` keep working.
-    if [[ ! -e "$LEGACY_MENU" || -L "$LEGACY_MENU" ]]; then
-        ln -sfn "$MENU" "$LEGACY_MENU" 2>/dev/null || true
-    fi
 else
     warn "could not install ${MENU}, so the 'wild-panel' menu is unavailable on this host."
     # Keep the TLS branch below honest instead of letting an undefined function
@@ -529,9 +516,9 @@ fi
 # credentials (--random); updates DO NOT, so the operator's existing port, login
 # and web path survive the upgrade.
 if [[ "$MODE" == "install" ]]; then
-    # Optional migration: import an existing 3x-ui (or vpn-ui) backup database before
-    # the panel is configured, so an operator moving over keeps their inbounds,
-    # clients, traffic and admin logins. The import preserves THIS install's own
+    # Optional migration: import an existing backup database before the panel is
+    # configured, so an operator moving over keeps their inbounds, clients,
+    # traffic and admin logins. The import preserves THIS install's own
     # port/path/TLS/secret, so only the operator's data comes across. Honour a preset
     # IMPORT_DB for non-interactive installs; otherwise ask on the controlling
     # terminal. A piped install with no IMPORT_DB set skips it and starts fresh.
@@ -539,8 +526,8 @@ if [[ "$MODE" == "install" ]]; then
     import_path="${IMPORT_DB:-}"
     if [[ -z "$import_path" && -r /dev/tty ]]; then
         {
-            printf '%s::%s %sExisting 3x-ui data%s\n' "$B$BLUE" "$R" "$WHITE" "$R"
-            printf '    Import inbounds, clients and traffic from a 3x-ui backup database?\n'
+            printf '%s::%s %sImport existing panel data%s\n' "$B$BLUE" "$R" "$WHITE" "$R"
+            printf '    Import inbounds, clients and traffic from a backup database?\n'
             printf '    Enter the path to the .db file, or leave blank to start fresh.\n'
             printf '  path: '
         } > /dev/tty
@@ -650,23 +637,13 @@ else
     "$DEST" --systemd
 fi
 
-msg "Starting ${UNIT}"
-# A fallback download of an older binary may still register as vpn-ui. Prefer the
-# new unit name, but start whichever unit file actually exists so install never
-# leaves the panel down after a successful binary replace.
-start_unit="$UNIT"
-if ! systemctl cat "${UNIT}.service" >/dev/null 2>&1; then
-    if systemctl cat "${LEGACY_UNIT}.service" >/dev/null 2>&1; then
-        start_unit="$LEGACY_UNIT"
-        warn "systemd unit is still '${LEGACY_UNIT}' (legacy binary) — will switch to '${UNIT}' once a Wild Panel build is published"
-    fi
-fi
-systemctl restart "$start_unit"
+msg "Starting Wild Panel (${UNIT})"
+systemctl restart "$UNIT"
 sleep 1
-if systemctl is-active --quiet "$start_unit"; then
-    ok "${start_unit} is running"
+if systemctl is-active --quiet "$UNIT"; then
+    ok "${UNIT} is running"
 else
-    die "${start_unit} failed to start — inspect with: journalctl -u ${start_unit} -e"
+    die "${UNIT} failed to start — inspect with: journalctl -u ${UNIT} -e"
 fi
 
 # Done
@@ -697,11 +674,8 @@ else
 fi
 if [[ -x "$MENU" ]]; then
     act "manage:  ${TEAL}wild-panel${R}  (update, login, start/stop, Xray, SSL)"
-    if [[ -L "$LEGACY_MENU" ]]; then
-        act "compat:  ${TEAL}vpn-ui${R}  →  wild-panel"
-    fi
 fi
-act "status:  ${TEAL}systemctl status ${start_unit}${R}"
-act "logs:    ${TEAL}journalctl -u ${start_unit} -f${R}"
+act "status:  ${TEAL}systemctl status ${UNIT}${R}"
+act "logs:    ${TEAL}journalctl -u ${UNIT} -f${R}"
 act "github:  ${TEAL}${GITHUB_URL}${R}"
 hr
