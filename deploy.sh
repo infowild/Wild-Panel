@@ -34,7 +34,7 @@ BACKUP_DIR="$DEST_DIR/backups"
 CERT_DIR="$DEST_DIR/cert"
 DOMAIN="${DEPLOY_DOMAIN:-}"
 EMAIL="${DEPLOY_EMAIL:-}"
-PANEL_VERSION="2.0.4"
+PANEL_VERSION="2.0.6"
 GITHUB_URL="https://github.com/$REPO"
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then

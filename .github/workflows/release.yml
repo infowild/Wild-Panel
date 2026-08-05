@@ -62,10 +62,32 @@ jobs:
           restore-keys: |
             embeds-amd64-
 
+      - name: Resolve release tag
+        id: meta
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # go:embed config/version is baked in at compile time — must match the tag or
+      # in-panel updates succeed but the UI still shows the old version (v2.0.5 bug).
+      - name: Sync embedded version with tag
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          ver="${TAG#v}"
+          printf '%s\n' "$ver" > config/version
+          echo "Embedded version -> ${ver}"
+          cat config/version
+
       - name: Build Wild Panel
         env:
           # First run builds Docker daemon bundles (slow). Cache hits skip that.
           DOCKER_BUILDKIT: "1"
+          RELEASE_VER: ${{ steps.meta.outputs.tag }}
         run: |
           set -euo pipefail
           chmod +x build.sh build/core/build.sh build/backend/build.sh || true
@@ -103,18 +125,14 @@ jobs:
             echo "error: binary missing brand design tokens" >&2
             exit 1
           fi
+          ver="${RELEASE_VER#v}"
+          if ! strings build/out/wild-panel-amd64 | grep -qF "$ver"; then
+            echo "error: binary missing embedded version ${ver} (config/version out of sync with tag?)" >&2
+            exit 1
+          fi
           cp -f build/out/wild-panel-amd64 wild-panel-amd64
           # Compat name for older deploy/update fallbacks
           cp -f wild-panel-amd64 vpn-ui-amd64
-
-      - name: Resolve release tag
-        id: meta
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Publish GitHub Release
         env:
@@ -125,6 +143,13 @@ jobs:
           set -euo pipefail
           NOTES="$(printf '%s\n' \
             '## Wild Panel' \
+            '' \
+            '### v2.0.6' \
+            '- Fix in-panel update showing the wrong version (embedded `config/version` now synced to the release tag in CI)' \
+            '' \
+            '### v2.0.5' \
+            '- Light theme refresh (cool mist ground, readable chrome, same cyan/violet brand DNA)' \
+            '- Note: shipped with embedded version still 2.0.4 — update again from v2.0.6 onward to see the correct version' \
             '' \
             '### v2.0.4' \
             '- Flagship glass Design System across the whole panel (logo-first cyan/violet)' \
