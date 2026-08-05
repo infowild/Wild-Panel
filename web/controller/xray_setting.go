@@ -400,36 +400,76 @@ func (a *XraySettingController) getEgressProfile(c *gin.Context) {
 }
 
 func (a *XraySettingController) saveEgressProfile(c *gin.Context) {
-	var profile service.EgressProfile
-	if err := c.ShouldBindJSON(&profile); err != nil {
-		if err2 := c.ShouldBind(&profile); err2 != nil {
-			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
-			return
+	profile := service.EgressProfile{
+		Enabled:     c.PostForm("enabled") == "true" || c.PostForm("enabled") == "1",
+		OutboundTag: strings.TrimSpace(c.PostForm("outboundTag")),
+		IranDirect:  c.PostForm("iranDirect") == "true" || c.PostForm("iranDirect") == "1",
+		DnsEnabled:  c.PostForm("dnsEnabled") == "true" || c.PostForm("dnsEnabled") == "1",
+	}
+	// Qs.stringify may send dnsServers as a CSV string or as dnsServers[0]/dnsServers[1].
+	if raw := strings.TrimSpace(c.PostForm("dnsServers")); raw != "" {
+		for _, part := range strings.FieldsFunc(raw, func(r rune) bool {
+			return r == ',' || r == ';' || r == ' '
+		}) {
+			if p := strings.TrimSpace(part); p != "" {
+				profile.DnsServers = append(profile.DnsServers, p)
+			}
 		}
 	}
+	if len(profile.DnsServers) == 0 {
+		for i := 0; ; i++ {
+			v := strings.TrimSpace(c.PostForm("dnsServers[" + strconv.Itoa(i) + "]"))
+			if v == "" {
+				break
+			}
+			profile.DnsServers = append(profile.DnsServers, v)
+		}
+	}
+	// Checkboxes absent from the form when off; still accept JSON body if posted that way.
+	if c.ContentType() == "application/json" {
+		var body service.EgressProfile
+		if err := c.ShouldBindJSON(&body); err == nil {
+			profile = body
+		}
+	}
+
 	if profile.Enabled && strings.TrimSpace(profile.OutboundTag) == "" {
 		jsonMsg(c, I18nWeb(c, "pages.xray.egressProfile.outboundRequired"), common.NewError("outbound tag required"))
 		return
 	}
-	if profile.Enabled {
-		template, err := a.SettingService.GetXrayConfigTemplate()
-		if err != nil {
-			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
-			return
-		}
-		cfg := &xray.Config{}
-		if err := json.Unmarshal([]byte(template), cfg); err != nil {
-			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
-			return
-		}
-		if !service.OutboundTagExists(cfg, strings.TrimSpace(profile.OutboundTag)) {
-			jsonMsg(c, I18nWeb(c, "pages.xray.egressProfile.outboundMissing"), common.NewError("outbound tag not found"))
-			return
-		}
+	if profile.Enabled && !a.egressOutboundTagKnown(strings.TrimSpace(profile.OutboundTag)) {
+		jsonMsg(c, I18nWeb(c, "pages.xray.egressProfile.outboundMissing"), common.NewError("outbound tag not found"))
+		return
 	}
 	if err := (&service.EgressProfileService{SettingService: a.SettingService}).Save(profile); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.xray.egressProfile.saved"), nil)
+}
+
+// egressOutboundTagKnown accepts tags from the Xray template or panel-managed
+// VPN/SSH client tunnels (synthesized into the live config at build time).
+func (a *XraySettingController) egressOutboundTagKnown(tag string) bool {
+	if tag == "" {
+		return false
+	}
+	template, err := a.SettingService.GetXrayConfigTemplate()
+	if err == nil {
+		cfg := &xray.Config{}
+		if json.Unmarshal([]byte(template), cfg) == nil && service.OutboundTagExists(cfg, tag) {
+			return true
+		}
+	}
+	for _, t := range a.VpnOutboundService.List() {
+		if t.Tag == tag {
+			return true
+		}
+	}
+	for _, t := range a.SshOutboundService.List() {
+		if t.Tag == tag {
+			return true
+		}
+	}
+	return false
 }

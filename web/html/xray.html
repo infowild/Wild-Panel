@@ -1498,11 +1498,11 @@
           .filter(Boolean);
         try {
           const msg = await HttpUtil.post('/panel/xray/egressprofile/save', {
-            enabled: this.egressProfile.enabled,
+            enabled: this.egressProfile.enabled ? 'true' : 'false',
             outboundTag: this.egressProfile.outboundTag || '',
-            iranDirect: this.egressProfile.iranDirect,
-            dnsEnabled: this.egressProfile.dnsEnabled,
-            dnsServers: servers.length ? servers : ['1.1.1.1', '8.8.8.8'],
+            iranDirect: this.egressProfile.iranDirect ? 'true' : 'false',
+            dnsEnabled: this.egressProfile.dnsEnabled ? 'true' : 'false',
+            dnsServers: (servers.length ? servers : ['1.1.1.1', '8.8.8.8']).join(','),
           });
           if (msg.success) {
             await this.getXraySetting();

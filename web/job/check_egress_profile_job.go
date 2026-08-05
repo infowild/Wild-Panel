@@ -48,14 +48,18 @@ func (j *CheckEgressProfileJob) Run() {
 
 func (j *CheckEgressProfileJob) egressOutboundUp(tag string) bool {
 	for _, t := range j.vpnOutboundService.List() {
-		if t.Tag != tag || !t.Enable {
+		if t.Tag != tag {
 			continue
+		}
+		if !t.Enable {
+			return false
 		}
 		running, _ := j.vpnOutboundService.Status(tag)
 		return running
 	}
+	// SshOutboundConfig has no Enable field: listed tunnels are active by definition.
 	for _, t := range j.sshOutboundService.List() {
-		if t.Tag != tag || !t.Enable {
+		if t.Tag != tag {
 			continue
 		}
 		running, _ := j.sshOutboundService.Status(tag)
