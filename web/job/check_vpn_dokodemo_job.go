@@ -32,6 +32,7 @@ func (j *CheckVpnDokodemoJob) Run() {
 	}
 
 	missing := j.coreService.MissingDokodemoPorts()
+	missing = append(missing, j.coreService.MissingRelaySocksPorts()...)
 	if len(missing) == 0 {
 		j.missStreak = 0
 		j.healAttempts = 0

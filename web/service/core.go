@@ -313,6 +313,58 @@ func (s *CoreService) MissingDokodemoPorts() []int {
 			}
 		}
 	}
+	if ins, err := s.wgcService.GetWgcInbounds(); err == nil {
+		for _, in := range ins {
+			if port := s.wgcService.GetTproxyPort(in); in.Enable && !dokodemoPortBound(port) {
+				missing = append(missing, port)
+			}
+		}
+	}
+	if ins, err := s.awgService.GetAwgInbounds(); err == nil {
+		for _, in := range ins {
+			if port := s.awgService.GetTproxyPort(in); in.Enable && !dokodemoPortBound(port) {
+				missing = append(missing, port)
+			}
+		}
+	}
+	if ins, err := s.greService.GetGreInbounds(); err == nil {
+		for _, in := range ins {
+			if port := s.greService.GetTproxyPort(in); in.Enable && !dokodemoPortBound(port) {
+				missing = append(missing, port)
+			}
+		}
+	}
+	return missing
+}
+
+// MissingRelaySocksPorts returns loopback SOCKS ports that SHOULD be bound for
+// enabled MTProto/SSH inbounds but currently are not.
+func (s *CoreService) MissingRelaySocksPorts() []int {
+	var missing []int
+	if ins, err := s.mtprotoService.GetMtprotoInbounds(); err == nil {
+		for _, in := range ins {
+			if !in.Enable {
+				continue
+			}
+			if cfg := s.mtprotoService.GetSocksConfig(in); cfg != nil {
+				if port := cfg.Port; port > 0 && !dokodemoPortBound(port) {
+					missing = append(missing, port)
+				}
+			}
+		}
+	}
+	if ins, err := s.sshService.GetSshInbounds(); err == nil {
+		for _, in := range ins {
+			if !in.Enable {
+				continue
+			}
+			if cfg := s.sshService.GetSocksConfig(in); cfg != nil {
+				if port := cfg.Port; port > 0 && !dokodemoPortBound(port) {
+					missing = append(missing, port)
+				}
+			}
+		}
+	}
 	return missing
 }
 

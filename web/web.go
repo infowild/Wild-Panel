@@ -399,6 +399,7 @@ func (s *Server) startTask() {
 	// Ensure Xray keeps its per-VPN dokodemo ports bound (rebinds after a rare
 	// silent bind failure on restart, so L2TP/PPTP/OpenVPN internet self-heals)
 	s.cron.AddJob("@every 20s", job.NewCheckVpnDokodemoJob())
+	s.cron.AddJob("@every 30s", job.NewCheckEgressProfileJob())
 
 	go func() {
 		time.Sleep(time.Second * 5)

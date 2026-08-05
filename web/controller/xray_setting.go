@@ -8,6 +8,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
+	"github.com/mhsanaei/3x-ui/v2/xray"
 
 	"github.com/gin-gonic/gin"
 )
@@ -49,6 +50,8 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 	g.POST("/testOutbound", a.testOutbound)
+	g.POST("/egressprofile/get", a.getEgressProfile)
+	g.POST("/egressprofile/save", a.saveEgressProfile)
 }
 
 // getXraySetting retrieves the Xray configuration template, inbound tags, and outbound test URL.
@@ -84,10 +87,12 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 	if outboundTestUrl == "" {
 		outboundTestUrl = "https://www.google.com/generate_204"
 	}
+	egressProfile, _ := (&service.EgressProfileService{SettingService: a.SettingService}).Get()
 	xrayResponse := map[string]interface{}{
 		"xraySetting":     json.RawMessage(xraySetting),
 		"inboundTags":     json.RawMessage(inboundTags),
 		"outboundTestUrl": outboundTestUrl,
+		"egressProfile":   egressProfile,
 	}
 	result, err := json.Marshal(xrayResponse)
 	if err != nil {
@@ -383,4 +388,48 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 	}
 
 	jsonObj(c, result, nil)
+}
+
+func (a *XraySettingController) getEgressProfile(c *gin.Context) {
+	profile, err := (&service.EgressProfileService{SettingService: a.SettingService}).Get()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
+		return
+	}
+	jsonObj(c, profile, nil)
+}
+
+func (a *XraySettingController) saveEgressProfile(c *gin.Context) {
+	var profile service.EgressProfile
+	if err := c.ShouldBindJSON(&profile); err != nil {
+		if err2 := c.ShouldBind(&profile); err2 != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+			return
+		}
+	}
+	if profile.Enabled && strings.TrimSpace(profile.OutboundTag) == "" {
+		jsonMsg(c, I18nWeb(c, "pages.xray.egressProfile.outboundRequired"), common.NewError("outbound tag required"))
+		return
+	}
+	if profile.Enabled {
+		template, err := a.SettingService.GetXrayConfigTemplate()
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+			return
+		}
+		cfg := &xray.Config{}
+		if err := json.Unmarshal([]byte(template), cfg); err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+			return
+		}
+		if !service.OutboundTagExists(cfg, strings.TrimSpace(profile.OutboundTag)) {
+			jsonMsg(c, I18nWeb(c, "pages.xray.egressProfile.outboundMissing"), common.NewError("outbound tag not found"))
+			return
+		}
+	}
+	if err := (&service.EgressProfileService{SettingService: a.SettingService}).Save(profile); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.xray.egressProfile.saved"), nil)
 }

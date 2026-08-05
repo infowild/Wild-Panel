@@ -451,6 +451,18 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// via the socks inbound's tag above.
 	s.translateVpnRoutingRules(xrayConfig)
 
+	var inboundTags []string
+	for _, inbound := range inbounds {
+		if inbound.Enable && inbound.Tag != "" {
+			inboundTags = append(inboundTags, inbound.Tag)
+		}
+	}
+	if profile, err := (&EgressProfileService{SettingService: s.settingService}).Get(); err == nil {
+		ApplyEgressProfile(xrayConfig, profile, inboundTags)
+	} else {
+		logger.Warning("egress profile: could not load settings:", err)
+	}
+
 	return xrayConfig, nil
 }
 

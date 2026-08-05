@@ -817,6 +817,25 @@
 "edit" = "Edit Rule"
 "useComma" = "Comma-separated items"
 
+[pages.xray.egressProfile]
+"title" = "International Egress Profile"
+"desc" = "Route all panel inbounds through one outbound during international outages. Does not change your saved routing template — toggle off to revert."
+"enabled" = "Enable egress profile"
+"enabledDesc" = "Inject routing rules at config build time so every inbound uses the selected outbound."
+"outboundTag" = "Egress outbound tag"
+"outboundTagDesc" = "Tag of the outbound that has international access (e.g. a VPN client tunnel or WARP)."
+"outboundPlaceholder" = "Select outbound tag"
+"iranDirect" = "Iran traffic direct"
+"iranDirectDesc" = "Keep Iranian IPs and domains on the direct outbound when possible."
+"dns" = "Public DNS override"
+"dnsDesc" = "Use public resolvers for DNS while the profile is active."
+"dnsServers" = "DNS servers"
+"apply" = "Apply egress profile"
+"active" = "Active"
+"saved" = "Egress profile saved. Xray will restart shortly."
+"outboundRequired" = "Select an outbound tag before enabling the profile."
+"outboundMissing" = "Outbound tag not found in the current Xray template."
+
 [pages.xray.outbound]
 "warpChooseDesc" = "Choose how to route through Cloudflare WARP:"
 "warpWireguard" = "WARP WireGuard"

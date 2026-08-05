@@ -273,6 +273,14 @@
       vpnOutbounds: {},
       // tag -> {up, detail} from the last status sweep.
       vpnOutboundStatus: {},
+      egressProfile: {
+        enabled: false,
+        outboundTag: '',
+        iranDirect: true,
+        dnsEnabled: true,
+        dnsServersText: '1.1.1.1, 8.8.8.8',
+        saving: false,
+      },
       // What /vpnoutbound/kinds reports: [{kind, available, why}], one per
       // registered driver, sorted. null means the question could not be asked.
       vpnOutKindList: null,
@@ -517,6 +525,16 @@
           this.oldXraySetting = xs;
           this.xraySetting = xs;
           this.inboundTags = result.inboundTags;
+          if (result.egressProfile) {
+            this.egressProfile.enabled = !!result.egressProfile.enabled;
+            this.egressProfile.outboundTag = result.egressProfile.outboundTag || '';
+            this.egressProfile.iranDirect = result.egressProfile.iranDirect !== false;
+            this.egressProfile.dnsEnabled = result.egressProfile.dnsEnabled !== false;
+            const servers = result.egressProfile.dnsServers;
+            this.egressProfile.dnsServersText = Array.isArray(servers) && servers.length
+              ? servers.join(', ')
+              : '1.1.1.1, 8.8.8.8';
+          }
           this.outboundTestUrl = result.outboundTestUrl || 'https://www.google.com/generate_204';
           this.oldOutboundTestUrl = this.outboundTestUrl;
           this.saveBtnDisable = true;
@@ -1472,6 +1490,27 @@
       },
       // The banner's own X is a session dismiss and needs no handler; this is
       // the permanent one, and it silences the banner on every page.
+      async saveEgressProfile() {
+        this.egressProfile.saving = true;
+        const servers = (this.egressProfile.dnsServersText || '')
+          .split(/[,;\s]+/)
+          .map(s => s.trim())
+          .filter(Boolean);
+        try {
+          const msg = await HttpUtil.post('/panel/xray/egressprofile/save', {
+            enabled: this.egressProfile.enabled,
+            outboundTag: this.egressProfile.outboundTag || '',
+            iranDirect: this.egressProfile.iranDirect,
+            dnsEnabled: this.egressProfile.dnsEnabled,
+            dnsServers: servers.length ? servers : ['1.1.1.1', '8.8.8.8'],
+          });
+          if (msg.success) {
+            await this.getXraySetting();
+          }
+        } finally {
+          this.egressProfile.saving = false;
+        }
+      },
       dismissSecAlert() {
         SecAlertDismissal.dismiss();
         this.showAlert = false;
@@ -1516,6 +1555,11 @@
       }
     },
     computed: {
+      outboundTags() {
+        const obs = this.templateSettings && this.templateSettings.outbounds;
+        if (!Array.isArray(obs)) return [];
+        return obs.map(o => o && o.tag).filter(t => t && t !== 'api' && t !== 'blocked');
+      },
       templateSettings: {
         get: function () {
           const parsedSettings = this.xraySetting ? JSON.parse(this.xraySetting) : null;

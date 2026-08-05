@@ -30,7 +30,7 @@ BACKUP_DIR="$DEST_DIR/backups"
 CERT_DIR="$DEST_DIR/cert"
 DOMAIN="${DEPLOY_DOMAIN:-}"
 EMAIL="${DEPLOY_EMAIL:-}"
-PANEL_VERSION="2.0.7"
+PANEL_VERSION="2.0.8"
 GITHUB_URL="https://github.com/$REPO"
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then

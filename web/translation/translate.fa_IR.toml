@@ -665,6 +665,25 @@
 "edit" = "ویرایش قانون"
 "useComma" = "موارد جدا شده با کاما"
 
+[pages.xray.egressProfile]
+"title" = "پروفایل خروج بین‌الملل"
+"desc" = "در زمان قطعی اینترنت بین‌الملل، همه inboundها را از یک outbound عبور دهید. template ذخیره‌شده عوض نمی‌شود — با خاموش کردن برمی‌گردد."
+"enabled" = "فعال‌سازی پروفایل خروج"
+"enabledDesc" = "قوانین routing هنگام ساخت config تزریق می‌شوند تا همه inboundها از outbound انتخاب‌شده استفاده کنند."
+"outboundTag" = "تگ outbound خروج"
+"outboundTagDesc" = "تگ outboundی که به اینترنت بین‌الملل دسترسی دارد (مثلاً تونل VPN Client یا WARP)."
+"outboundPlaceholder" = "تگ outbound را انتخاب کنید"
+"iranDirect" = "ترافیک ایران مستقیم"
+"iranDirectDesc" = "در صورت امکان IP و دامنه‌های ایران از outbound مستقیم بروند."
+"dns" = "DNS عمومی"
+"dnsDesc" = "هنگام فعال بودن پروفایل از resolverهای عمومی استفاده شود."
+"dnsServers" = "سرورهای DNS"
+"apply" = "اعمال پروفایل"
+"active" = "فعال"
+"saved" = "پروفایل ذخیره شد. Xray به‌زودی restart می‌شود."
+"outboundRequired" = "قبل از فعال‌سازی، تگ outbound را انتخاب کنید."
+"outboundMissing" = "تگ outbound در template فعلی Xray پیدا نشد."
+
 [pages.xray.outbound]
 "warpChooseDesc" = "Choose how to route through Cloudflare WARP:"
 "warpWireguard" = "WARP WireGuard"

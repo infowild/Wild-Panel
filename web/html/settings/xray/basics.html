@@ -351,6 +351,72 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
+    <a-collapse-panel key="egress"
+        header='{{ i18n "pages.xray.egressProfile.title" }}'>
+        <a-row :xs="24" :sm="24" :lg="12" :style="{ marginBottom: '12px' }">
+            <a-alert type="info" :style="{ textAlign: 'center' }">
+                <template slot="message">
+                    <span>{{ i18n "pages.xray.egressProfile.desc" }}</span>
+                </template>
+            </a-alert>
+        </a-row>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.egressProfile.enabled" }}</template>
+            <template #description>{{ i18n "pages.xray.egressProfile.enabledDesc" }}</template>
+            <template #control>
+                <a-switch v-model="egressProfile.enabled"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.egressProfile.outboundTag" }}</template>
+            <template #description>{{ i18n "pages.xray.egressProfile.outboundTagDesc" }}</template>
+            <template #control>
+                <a-select v-model="egressProfile.outboundTag" show-search allow-clear
+                    :disabled="!egressProfile.enabled"
+                    :dropdown-class-name="themeSwitcher.currentTheme"
+                    :style="{ width: '100%' }"
+                    :placeholder='{{ i18n "pages.xray.egressProfile.outboundPlaceholder" }}'>
+                    <a-select-option v-for="ob in outboundTags" :key="ob" :value="ob">[[ ob ]]</a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.egressProfile.iranDirect" }}</template>
+            <template #description>{{ i18n "pages.xray.egressProfile.iranDirectDesc" }}</template>
+            <template #control>
+                <a-switch v-model="egressProfile.iranDirect" :disabled="!egressProfile.enabled"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.egressProfile.dns" }}</template>
+            <template #description>{{ i18n "pages.xray.egressProfile.dnsDesc" }}</template>
+            <template #control>
+                <a-switch v-model="egressProfile.dnsEnabled" :disabled="!egressProfile.enabled"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.egressProfile.dnsServers" }}</template>
+            <template #control>
+                <a-input v-model="egressProfile.dnsServersText"
+                    :disabled="!egressProfile.enabled || !egressProfile.dnsEnabled"
+                    :placeholder="'1.1.1.1, 8.8.8.8'"
+                    :style="{ width: '100%' }"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #control>
+                <a-space>
+                    <a-button type="primary" :loading="egressProfile.saving"
+                        @click="saveEgressProfile">
+                        {{ i18n "pages.xray.egressProfile.apply" }}
+                    </a-button>
+                    <a-tag v-if="egressProfile.enabled" color="cyan">
+                        {{ i18n "pages.xray.egressProfile.active" }}
+                    </a-tag>
+                </a-space>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
     <a-collapse-panel key="6"
         header='{{ i18n "pages.settings.resetDefaultConfig"}}'>
         <a-space direction="horizontal" :style="{ padding: '0 20px' }">

@@ -125,6 +125,13 @@ var defaultValueMap = map[string]string{
 	// row, every read of an undeclared key comes back as a failure, and the reader can
 	// no longer tell "no tunnels configured" from "the settings table is unreadable".
 	"vpnOutbounds": "",
+	// International egress profile ("blackout mode"): injected at config-build time
+	// without rewriting the stored Xray template. See egress_profile.go.
+	"egressProfileEnabled":     "false",
+	"egressProfileOutboundTag": "",
+	"egressProfileIranDirect":  "true",
+	"egressProfileDns":         "true",
+	"egressProfileDnsServers":  "1.1.1.1,8.8.8.8",
 }
 
 // SettingService provides business logic for application settings management.

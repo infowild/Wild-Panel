@@ -144,6 +144,12 @@ jobs:
           NOTES="$(printf '%s\n' \
             '## Wild Panel' \
             '' \
+            '### v2.0.8' \
+            '- International Egress Profile: route all inbounds through one outbound (blackout mode)' \
+            '- Optional Iran-direct and public DNS override while profile is active' \
+            '- Stronger dokodemo/SOCKS health checks (WG-C, AWG, GRE, MTProto, SSH)' \
+            '- Egress outbound down detection in logs when profile is enabled' \
+            '' \
             '### v2.0.7' \
             '- Full-width dashboard on desktop (content uses the whole viewport beside the rail)' \
             '- Modern sidebar: horizontal nav items, active accent bar, glass ambient, logout separated' \
