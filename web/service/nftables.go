@@ -80,13 +80,17 @@ func ensureVpnHostNetworking() {
 }
 
 // EnsureTproxyPolicyRoute installs the fwmark → table 100 policy route every VPN
-// protocol's TPROXY path depends on. Without it, nftables redirects client packets
-// to dokodemo ports but they never reach the local Xray socket — "VPN connects,
-// no internet" with no error in the panel. Idempotent; safe to call on every
-// nftables regeneration and from health checks.
+// protocol's TPROXY path depends on. nftables marks redirected packets with
+// fwmark 0x1; without this rule they never loop back to Xray's local dokodemo
+// sockets, so OpenVPN/WG-C/L2TP connect but have no routed egress. Idempotent;
+// safe to call on every nftables regeneration and from health checks.
 func EnsureTproxyPolicyRoute() {
+	ensureTproxyPolicyRoute()
+}
+
+func ensureTproxyPolicyRoute() {
 	output, _ := exec.Command("ip", "rule", "show").Output()
-	if !strings.Contains(string(output), "fwmark 0x1 lookup 100") {
+	if !tproxyPolicyRouteInRuleShow(string(output)) {
 		if out, err := exec.Command("ip", "rule", "add", "fwmark", "1", "lookup", "100").CombinedOutput(); err != nil {
 			logger.Warning("TPROXY policy route: could not add fwmark rule:", err, string(out))
 			return
@@ -98,48 +102,18 @@ func EnsureTproxyPolicyRoute() {
 	}
 }
 
-// TproxyPolicyRoutePresent reports whether the fwmark policy route and table 100 exist.
-func TproxyPolicyRoutePresent() bool {
-	rules, _ := exec.Command("ip", "rule", "show").Output()
-	if !strings.Contains(string(rules), "fwmark 0x1 lookup 100") {
-		return false
-	}
-	routes, _ := exec.Command("ip", "route", "show", "table", "100").Output()
-	return strings.Contains(string(routes), "local") && strings.Contains(string(routes), "dev lo")
-}
-
-// EnsureTproxyPolicyRoute installs the fwmark → table 100 policy route every VPN
-// protocol's TPROXY path depends on. nftables marks redirected packets with
-// fwmark 0x1; without this rule they never loop back to Xray's local dokodemo
-// sockets, so OpenVPN/WG-C/L2TP connect but have no routed egress.
-func EnsureTproxyPolicyRoute() {
-	ensureTproxyPolicyRoute()
-}
-
-func ensureTproxyPolicyRoute() {
-	output, _ := exec.Command("ip", "rule", "show").Output()
-	if !strings.Contains(string(output), "fwmark 0x1 lookup 100") {
-		if err := exec.Command("ip", "rule", "add", "fwmark", "1", "lookup", "100").Run(); err != nil {
-			logger.Warning("tproxy policy route: failed to add fwmark rule:", err)
-		}
-	}
-	if err := exec.Command("ip", "route", "replace", "local", "0.0.0.0/0", "dev", "lo", "table", "100").Run(); err != nil {
-		logger.Warning("tproxy policy route: failed to install table 100 local route:", err)
-	}
-}
-
 // TproxyPolicyRoutePresent reports whether the host has the fwmark/table-100 route
 // TPROXY'd VPN traffic needs.
 func TproxyPolicyRoutePresent() bool {
-	return tproxyPolicyRoutePresent()
-}
-
-func tproxyPolicyRoutePresent() bool {
-	output, err := exec.Command("ip", "rule", "show").Output()
+	rules, err := exec.Command("ip", "rule", "show").Output()
+	if err != nil || !tproxyPolicyRouteInRuleShow(string(rules)) {
+		return false
+	}
+	routes, err := exec.Command("ip", "route", "show", "table", "100").Output()
 	if err != nil {
 		return false
 	}
-	return tproxyPolicyRouteInRuleShow(string(output))
+	return strings.Contains(string(routes), "local") && strings.Contains(string(routes), "dev lo")
 }
 
 func tproxyPolicyRouteInRuleShow(output string) bool {
@@ -285,7 +259,6 @@ func (s *NftService) ApplyNftRules() error {
 	// internet" failure). No-op on Debian/Ubuntu.
 	ensureVpnHostNetworking()
 	EnsureTproxyPolicyRoute()
-	ensureTproxyPolicyRoute()
 
 	var b strings.Builder
 
