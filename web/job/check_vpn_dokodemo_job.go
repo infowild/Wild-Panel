@@ -31,6 +31,11 @@ func (j *CheckVpnDokodemoJob) Run() {
 		return
 	}
 
+	if !service.TproxyPolicyRoutePresent() {
+		logger.Warning("VPN TPROXY policy route missing (fwmark 0x1 → table 100), reinstalling")
+		service.EnsureTproxyPolicyRoute()
+	}
+
 	missing := j.coreService.MissingDokodemoPorts()
 	missing = append(missing, j.coreService.MissingRelaySocksPorts()...)
 	if len(missing) == 0 {
