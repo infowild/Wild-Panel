@@ -144,6 +144,10 @@ jobs:
           NOTES="$(printf '%s\n' \
             '## Wild Panel' \
             '' \
+            '### v2.0.10' \
+            '- Fix VPN backstop forcing OpenVPN/WG-C/L2TP/… through `direct` during blackout' \
+            '- When Egress Profile is on, valid tunnel IPs use the international outbound' \
+            '' \
             '### v2.0.9' \
             '- Fix blank Xray Settings page (invalid Vue :placeholder binding on Egress Profile)' \
             '- Harden Iran-direct geo tags to panel IR geo files only' \

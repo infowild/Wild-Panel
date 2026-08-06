@@ -205,7 +205,8 @@ func applyEgressProfileRouting(config *xray.Config, profile EgressProfile, inbou
 
 // egressProfileInsertIndex places injected rules after the template's early
 // system rules (api, blocked) but before VPN backstop rules appended by
-// translateVpnRoutingRules.
+// translateVpnRoutingRules. The backstop itself also uses the egress outbound
+// as its defaultTag when the profile is enabled (see vpnBackstopTags).
 func egressProfileInsertIndex(rules []any) int {
 	if n := len(rules); n >= 2 {
 		if isVpnBackstopRule(rules[n-1]) {

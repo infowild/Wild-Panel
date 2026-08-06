@@ -449,7 +449,18 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// MTProto is deliberately absent from this translation: it assigns no per-client
 	// IP, so a per-CLIENT rule has nothing to match on. Its routing is per-INBOUND,
 	// via the socks inbound's tag above.
-	s.translateVpnRoutingRules(xrayConfig)
+	//
+	// When the international egress profile is on, the VPN backstop must pin valid
+	// tunnel IPs to that outbound — not the template's first outbound (usually
+	// "direct"). Otherwise OpenVPN/WG-C/L2TP/… connect but leave through Iran.
+	egressTag := ""
+	profile, profileErr := (&EgressProfileService{SettingService: s.settingService}).Get()
+	if profileErr != nil {
+		logger.Warning("egress profile: could not load settings:", profileErr)
+	} else if profile.Enabled {
+		egressTag = strings.TrimSpace(profile.OutboundTag)
+	}
+	s.translateVpnRoutingRules(xrayConfig, egressTag)
 
 	var inboundTags []string
 	for _, inbound := range inbounds {
@@ -457,10 +468,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			inboundTags = append(inboundTags, inbound.Tag)
 		}
 	}
-	if profile, err := (&EgressProfileService{SettingService: s.settingService}).Get(); err == nil {
+	if profileErr == nil {
 		ApplyEgressProfile(xrayConfig, profile, inboundTags)
-	} else {
-		logger.Warning("egress profile: could not load settings:", err)
 	}
 
 	return xrayConfig, nil
@@ -477,7 +486,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 // mtproto to BuildVpnEmailToIPMap to "complete" it: a relay has no per-client IP,
 // so it would translate the rule into a source match on an IP that never exists
 // and the rule would silently stop matching anything.
-func (s *XrayService) translateVpnRoutingRules(config *xray.Config) {
+func (s *XrayService) translateVpnRoutingRules(config *xray.Config, egressDefaultTag string) {
 	if len(config.RouterConfig) == 0 {
 		return
 	}
@@ -563,21 +572,12 @@ func (s *XrayService) translateVpnRoutingRules(config *xray.Config) {
 	// cap cosmetic. We list every legitimate device IP -> the default outbound, then
 	// blackhole the rest of the VPN space. Appended last, so operator per-account rules
 	// still take precedence for valid IPs; only unrecognized (over-limit / leaked)
-	// sources hit the blackhole. Tags are taken from the config's own outbounds so the
-	// default egress is preserved and the backstop is skipped when no blackhole exists.
-	defaultTag, blockTag := "direct", ""
-	var obs []map[string]any
-	if json.Unmarshal(config.OutboundConfigs, &obs) == nil {
-		for i, ob := range obs {
-			t, _ := ob["tag"].(string)
-			if i == 0 && t != "" {
-				defaultTag = t
-			}
-			if p, _ := ob["protocol"].(string); p == "blackhole" && t != "" {
-				blockTag = t
-			}
-		}
-	}
+	// sources hit the blackhole.
+	//
+	// Default egress: when the international egress profile is active, pin valid IPs
+	// to that outbound (OpenVPN/WG-C/L2TP/… share this path). Otherwise keep the
+	// template's first outbound so non-blackout installs still exit "direct".
+	defaultTag, blockTag := vpnBackstopTags(config.OutboundConfigs, egressDefaultTag)
 	var validIPs []any
 	seen := make(map[string]bool)
 	for _, ips := range vpnMap {
@@ -604,6 +604,35 @@ func (s *XrayService) translateVpnRoutingRules(config *xray.Config) {
 	if data, err := json.Marshal(routing); err == nil {
 		config.RouterConfig = data
 	}
+}
+
+// vpnBackstopTags picks the outbound used for legitimate VPN tunnel IPs and the
+// blackhole tag used for the rest of 10.0.0.0/12. egressDefaultTag wins when the
+// egress profile is on and that tag exists among configured outbounds.
+func vpnBackstopTags(outboundConfigs []byte, egressDefaultTag string) (defaultTag, blockTag string) {
+	defaultTag = "direct"
+	var obs []map[string]any
+	if json.Unmarshal(outboundConfigs, &obs) == nil {
+		for i, ob := range obs {
+			t, _ := ob["tag"].(string)
+			if i == 0 && t != "" {
+				defaultTag = t
+			}
+			if p, _ := ob["protocol"].(string); p == "blackhole" && t != "" {
+				blockTag = t
+			}
+		}
+	}
+	egressDefaultTag = strings.TrimSpace(egressDefaultTag)
+	if egressDefaultTag != "" {
+		for _, ob := range obs {
+			if t, _ := ob["tag"].(string); t == egressDefaultTag {
+				defaultTag = egressDefaultTag
+				break
+			}
+		}
+	}
+	return defaultTag, blockTag
 }
 
 // GetXrayTraffic fetches the current traffic statistics from the running Xray process.

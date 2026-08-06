@@ -98,3 +98,34 @@ func TestOutboundTagExists(t *testing.T) {
 		t.Fatal("tag existence mismatch")
 	}
 }
+
+func TestVpnBackstopTagsUsesEgressWhenPresent(t *testing.T) {
+	outbounds := []byte(`[
+		{"tag":"direct","protocol":"freedom"},
+		{"tag":"blocked","protocol":"blackhole"},
+		{"tag":"InfoWild-Emergency-Abolfazl","protocol":"vless"}
+	]`)
+	def, block := vpnBackstopTags(outbounds, "InfoWild-Emergency-Abolfazl")
+	if def != "InfoWild-Emergency-Abolfazl" {
+		t.Fatalf("defaultTag = %q want egress outbound", def)
+	}
+	if block != "blocked" {
+		t.Fatalf("blockTag = %q want blocked", block)
+	}
+}
+
+func TestVpnBackstopTagsFallsBackToFirstOutbound(t *testing.T) {
+	outbounds := []byte(`[
+		{"tag":"direct","protocol":"freedom"},
+		{"tag":"blocked","protocol":"blackhole"}
+	]`)
+	def, block := vpnBackstopTags(outbounds, "")
+	if def != "direct" || block != "blocked" {
+		t.Fatalf("got default=%q block=%q", def, block)
+	}
+	// Unknown egress tag must not replace the first outbound.
+	def, _ = vpnBackstopTags(outbounds, "missing-exit")
+	if def != "direct" {
+		t.Fatalf("missing egress tag should keep direct, got %q", def)
+	}
+}
