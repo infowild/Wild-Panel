@@ -144,6 +144,10 @@ jobs:
           NOTES="$(printf '%s\n' \
             '## Wild Panel' \
             '' \
+            '### v2.0.11' \
+            '- Fix missing fwmark policy route (fwmark 0x1 -> table 100) that broke VPN TPROXY data plane' \
+            '- Auto-heal TPROXY policy route during nftables regeneration and VPN dokodemo health checks' \
+            '' \
             '### v2.0.10' \
             '- Fix VPN backstop forcing OpenVPN/WG-C/L2TP/… through `direct` during blackout' \
             '- When Egress Profile is on, valid tunnel IPs use the international outbound' \
