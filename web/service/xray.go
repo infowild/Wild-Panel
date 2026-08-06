@@ -615,12 +615,17 @@ func (s *XrayService) translateVpnRoutingRules(config *xray.Config, egressDefaul
 }
 
 // vpnBackstopTags picks the outbound used for legitimate VPN tunnel IPs and the
-// blackhole tag used for the rest of 10.0.0.0/12. egressDefaultTag wins when the
-// egress profile is on and that tag exists among configured outbounds.
+// blackhole tag used for the rest of 10.0.0.0/12. When the egress profile passes
+// a non-empty tag, that tag always wins — same trust model as ApplyEgressProfile
+// (which injects the tag without re-checking the outbound list). Matching against
+// OutboundConfigs alone used to silently fall back to "direct" whenever unmarshal
+// failed or the tag was only present after a later synthesis step, so OpenVPN/WG-C
+// backstop traffic left via Iran during blackout even though the inboundTag rule
+// pointed at the international outbound.
 func vpnBackstopTags(outboundConfigs []byte, egressDefaultTag string) (defaultTag, blockTag string) {
 	defaultTag = "direct"
 	var obs []map[string]any
-	if json.Unmarshal(outboundConfigs, &obs) == nil {
+	if err := json.Unmarshal(outboundConfigs, &obs); err == nil {
 		for i, ob := range obs {
 			t, _ := ob["tag"].(string)
 			if i == 0 && t != "" {
@@ -631,14 +636,8 @@ func vpnBackstopTags(outboundConfigs []byte, egressDefaultTag string) (defaultTa
 			}
 		}
 	}
-	egressDefaultTag = strings.TrimSpace(egressDefaultTag)
-	if egressDefaultTag != "" {
-		for _, ob := range obs {
-			if t, _ := ob["tag"].(string); t == egressDefaultTag {
-				defaultTag = egressDefaultTag
-				break
-			}
-		}
+	if tag := strings.TrimSpace(egressDefaultTag); tag != "" {
+		defaultTag = tag
 	}
 	return defaultTag, blockTag
 }

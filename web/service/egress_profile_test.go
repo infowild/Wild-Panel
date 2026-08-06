@@ -123,9 +123,17 @@ func TestVpnBackstopTagsFallsBackToFirstOutbound(t *testing.T) {
 	if def != "direct" || block != "blocked" {
 		t.Fatalf("got default=%q block=%q", def, block)
 	}
-	// Unknown egress tag must not replace the first outbound.
-	def, _ = vpnBackstopTags(outbounds, "missing-exit")
-	if def != "direct" {
-		t.Fatalf("missing egress tag should keep direct, got %q", def)
+}
+
+func TestVpnBackstopTagsEgressWinsEvenIfMissingFromList(t *testing.T) {
+	// Profile tag must win even when outbounds JSON is empty/unreadable — mirrors
+	// ApplyEgressProfile, which injects the tag without requiring a list match.
+	def, _ := vpnBackstopTags(nil, "InfoWild-Emergency-Abolfazl")
+	if def != "InfoWild-Emergency-Abolfazl" {
+		t.Fatalf("got %q want egress tag", def)
+	}
+	def, _ = vpnBackstopTags([]byte(`not-json`), "intl-exit")
+	if def != "intl-exit" {
+		t.Fatalf("got %q want intl-exit", def)
 	}
 }
