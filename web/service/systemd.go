@@ -79,6 +79,11 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=%s
+# VPN TPROXY needs these before the panel's first ApplyNftRules; '-' makes
+# duplicate adds on restart harmless.
+ExecStartPre=-/sbin/modprobe nf_tproxy_ipv4
+ExecStartPre=-/usr/sbin/ip rule add fwmark 1 lookup 100
+ExecStartPre=-/usr/sbin/ip route replace local 0.0.0.0/0 dev lo table 100
 ExecStart=%s
 Restart=on-failure
 RestartSec=5

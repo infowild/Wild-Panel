@@ -38,22 +38,30 @@ func firewalldRunning() bool {
 	return strings.TrimSpace(string(out)) == "running"
 }
 
-// ensureVpnHostNetworking relaxes the two host-level packet-filtering defaults
-// that silently break VPN routing on Fedora/RHEL but not on Debian/Ubuntu — the
-// reason "the VPN connects but has no internet" there:
+// ufwActive reports whether ufw is installed and enabled.
+func ufwActive() bool {
+	if !commandExists("ufw") {
+		return false
+	}
+	out, _ := exec.Command("ufw", "status").Output()
+	return strings.Contains(string(out), "Status: active")
+}
+
+// ensureVpnHostNetworking relaxes host-level packet-filtering defaults that
+// silently break VPN routing — the classic "connects but no internet" failure:
 //
-//   - rp_filter: Fedora ships net.ipv4.conf.all.rp_filter=1 (strict), which drops
-//     the policy-routed (fwmark → table 100) TPROXY packets on their way to the
-//     Xray socket. Ubuntu defaults to loose (2); we set loose here too.
-//   - firewalld: active by default on Fedora with an INPUT policy that rejects
-//     everything but the explicitly opened service ports. TPROXY delivers each
-//     client packet to a LOCAL socket while it still carries the client's
-//     ORIGINAL destination port (e.g. 443), so firewalld's filter_INPUT drops it
-//     before Xray ever sees it — control-plane auth (over the opened L2TP/PPTP/
-//     OpenVPN ports) succeeds, but no data flows. Trusting the VPN source space
-//     makes firewalld accept the TPROXY'd data plane.
+//   - rp_filter: Fedora ships strict (1), which drops fwmark→table-100 TPROXY
+//     packets on their way to the Xray dokodemo socket. Set loose (2) everywhere.
+//   - nf_tproxy_ipv4: required for nft TPROXY rules; wg-c-only hosts never hit
+//     OpenVPN/L2TP SetupRouting which used to load it.
+//   - firewalld (Fedora/RHEL): TPROXY delivers client packets to a LOCAL socket
+//     while they still carry the original destination port, so the default INPUT
+//     policy drops them unless the VPN source space is trusted.
+//   - ufw (Ubuntu): same INPUT failure mode — VPN auth ports are open, but the
+//     redirected dokodemo data plane is not, so only the panel web port and VPN
+//     source space are opened here (idempotent).
 //
-// Idempotent and cheap; a no-op on hosts without an active firewalld.
+// Idempotent and cheap; no-ops when the relevant firewall is absent/inactive.
 func ensureVpnHostNetworking() {
 	// rp_filter → loose. `all` is the effective-max override; set `default` too so
 	// PPP/tun interfaces created later inherit loose rather than strict.
@@ -61,9 +69,21 @@ func ensureVpnHostNetworking() {
 		_ = exec.Command("sysctl", "-w", key+"=2").Run()
 	}
 
-	if !firewalldRunning() {
-		return
+	_ = exec.Command("modprobe", "nf_tproxy_ipv4").Run()
+
+	if firewalldRunning() {
+		ensureFirewalldVpnTrust()
 	}
+	if ufwActive() {
+		panelPort := 0
+		if port, err := (&SettingService{}).GetPort(); err == nil {
+			panelPort = port
+		}
+		ensureUfwVpnDataPlane(panelPort)
+	}
+}
+
+func ensureFirewalldVpnTrust() {
 	// Only add the trusted source when it isn't already there. Add it to both the
 	// runtime and permanent configs so no `firewall-cmd --reload` (which would drop
 	// other runtime-only state) is needed.
@@ -77,6 +97,48 @@ func ensureVpnHostNetworking() {
 	}
 	_ = exec.Command("firewall-cmd", "--permanent", "--zone=trusted", "--add-source="+vpnAddrSpace).Run()
 	logger.Infof("firewalld: trusted VPN space %s so the TPROXY data plane reaches Xray", vpnAddrSpace)
+}
+
+// ensureUfwVpnDataPlane opens the holes ufw's default-deny INPUT policy leaves
+// in the TPROXY path: the panel web port and inbound traffic sourced from the
+// VPN address space (which TPROXY redirects to local dokodemo ports).
+func ensureUfwVpnDataPlane(panelPort int) {
+	status, _ := exec.Command("ufw", "status").Output()
+	statusStr := string(status)
+
+	if panelPort > 0 {
+		portRule := fmt.Sprintf("%d/tcp", panelPort)
+		if !strings.Contains(statusStr, portRule) {
+			args := []string{"allow", portRule, "comment", "wild-panel-web"}
+			if out, err := exec.Command("ufw", args...).CombinedOutput(); err != nil {
+				logger.Warning("ufw: could not allow panel port:", err, string(out))
+			} else {
+				logger.Infof("ufw: allowed panel web port %s", portRule)
+			}
+		}
+	}
+
+	if !ufwStatusAllowsSource(statusStr, vpnAddrSpace) {
+		args := []string{"allow", "from", vpnAddrSpace, "comment", "wild-panel-vpn-tproxy"}
+		if out, err := exec.Command("ufw", args...).CombinedOutput(); err != nil {
+			logger.Warning("ufw: could not trust VPN source space:", err, string(out))
+		} else {
+			logger.Infof("ufw: trusted VPN source space %s for TPROXY data plane", vpnAddrSpace)
+		}
+	}
+}
+
+func ufwStatusAllowsSource(status, cidr string) bool {
+	for _, line := range strings.Split(status, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "ALLOW") && !strings.Contains(line, "ALLOW") {
+			continue
+		}
+		if strings.Contains(line, cidr) {
+			return true
+		}
+	}
+	return false
 }
 
 // EnsureTproxyPolicyRoute installs the fwmark → table 100 policy route every VPN
@@ -117,7 +179,12 @@ func TproxyPolicyRoutePresent() bool {
 }
 
 func tproxyPolicyRouteInRuleShow(output string) bool {
-	return strings.Contains(output, "fwmark 0x1 lookup 100")
+	if !strings.Contains(output, "lookup 100") {
+		return false
+	}
+	// `ip rule add fwmark 1` shows as `fwmark 0x1 lookup 100` or, on some
+	// iproute2 builds, `fwmark 0x1/0xffffffff lookup 100`.
+	return strings.Contains(output, "fwmark 0x1")
 }
 
 // writeClientToClientRules emits the inter-client (client-to-client) rules for a

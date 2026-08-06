@@ -1554,7 +1554,10 @@ func firewallStepMsg() string {
 	if firewalldRunning() {
 		return "firewalld active — trusted " + vpnAddrSpace
 	}
-	return "rp_filter set loose; no active firewalld"
+	if ufwActive() {
+		return "ufw active — panel port + VPN source " + vpnAddrSpace + " allowed"
+	}
+	return "rp_filter set loose; no active host firewall"
 }
 
 func msgOrOK(err error) string {

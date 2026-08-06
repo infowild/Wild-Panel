@@ -144,6 +144,11 @@ jobs:
           NOTES="$(printf '%s\n' \
             '## Wild Panel' \
             '' \
+            '### v2.0.12' \
+            '- Fix UFW blocking VPN TPROXY data plane on Ubuntu (trust VPN source space + auto-open panel port)' \
+            '- Load nf_tproxy_ipv4 on every VPN host; persist fwmark/table-100 route in systemd ExecStartPre' \
+            '- Warn in logs when VPN inbounds are on but Egress Profile is off (blackout installs)' \
+            '' \
             '### v2.0.11' \
             '- Fix missing fwmark policy route (fwmark 0x1 -> table 100) that broke VPN TPROXY data plane' \
             '- Auto-heal TPROXY policy route during nftables regeneration and VPN dokodemo health checks' \

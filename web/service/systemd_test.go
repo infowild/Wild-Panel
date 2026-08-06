@@ -32,7 +32,7 @@ func TestSanitizeServiceName(t *testing.T) {
 
 func TestDefaultUnitShape(t *testing.T) {
 	u := DefaultUnit("wild-panel")
-	for _, must := range []string{"[Unit]", "[Service]", "ExecStart=", "WantedBy=multi-user.target", "Description=wild-panel"} {
+	for _, must := range []string{"[Unit]", "[Service]", "ExecStart=", "ExecStartPre=", "WantedBy=multi-user.target", "Description=wild-panel"} {
 		if !strings.Contains(u, must) {
 			t.Errorf("DefaultUnit missing %q", must)
 		}

@@ -470,6 +470,14 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	}
 	if profileErr == nil {
 		ApplyEgressProfile(xrayConfig, profile, inboundTags)
+		if !profile.Enabled {
+			for _, inbound := range inbounds {
+				if inbound.Enable && isVpnProtocol(inbound.Protocol) {
+					logger.Warning("egress profile: VPN inbounds are active but the profile is off — tunnel traffic follows the routing template/backstop (usually direct). Enable Egress Profile for blackout/international egress.")
+					break
+				}
+			}
+		}
 	}
 
 	return xrayConfig, nil

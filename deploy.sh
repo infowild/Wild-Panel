@@ -33,7 +33,7 @@ BACKUP_DIR="$DEST_DIR/backups"
 CERT_DIR="$DEST_DIR/cert"
 DOMAIN="${DEPLOY_DOMAIN:-}"
 EMAIL="${DEPLOY_EMAIL:-}"
-PANEL_VERSION="2.0.11"
+PANEL_VERSION="2.0.12"
 GITHUB_URL="https://github.com/$REPO"
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -666,6 +666,33 @@ else
     msg "Refreshing systemd unit (existing credentials preserved)"
     "$DEST" --systemd
 fi
+
+# When ufw is active, open the panel web port and trust the VPN source space so
+# TPROXY'd client traffic can reach Xray's dokodemo sockets (same failure mode as
+# firewalld on Fedora). Idempotent — skips rules that already exist.
+ensure_ufw_panel_access() {
+    command -v ufw >/dev/null 2>&1 || return 0
+    ufw status 2>/dev/null | grep -q 'Status: active' || return 0
+
+    local port=""
+    if [[ -f "$DB" ]] && command -v sqlite3 >/dev/null 2>&1; then
+        port="$(sqlite3 "$DB" "SELECT value FROM settings WHERE key='webPort' LIMIT 1;" 2>/dev/null || true)"
+    fi
+    [[ -z "$port" ]] && port=2053
+
+    if ! ufw status 2>/dev/null | grep -q "${port}/tcp"; then
+        act "ufw: allowing panel web port ${port}/tcp"
+        ufw allow "${port}/tcp" comment 'wild-panel-web' >/dev/null 2>&1 || \
+            warn "ufw allow ${port}/tcp failed (open the port manually if the panel is unreachable)"
+    fi
+    if ! ufw status 2>/dev/null | grep -q '10.0.0.0/12'; then
+        act "ufw: trusting VPN source space 10.0.0.0/12 for TPROXY data plane"
+        ufw allow from 10.0.0.0/12 comment 'wild-panel-vpn-tproxy' >/dev/null 2>&1 || \
+            warn "ufw allow from 10.0.0.0/12 failed (VPN may connect but have no routed egress)"
+    fi
+}
+
+ensure_ufw_panel_access
 
 msg "Starting Wild Panel (${UNIT})"
 systemctl restart "$UNIT"
