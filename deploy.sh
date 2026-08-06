@@ -10,6 +10,9 @@ DEST="$DEST_DIR/$ASSET"
 UNIT="wild-panel"
 PREV_UNIT="vpn-ui"                   # silent: stop/disable during migration only
 DL_URL="https://github.com/$REPO/releases/latest/download/$ASSET"
+# Offline / flaky-network install: point at a pre-downloaded binary and skip GitHub.
+#   sudo LOCAL_BIN=/path/to/wild-panel-amd64 bash deploy.sh
+LOCAL_BIN="${LOCAL_BIN:-}"
 # The management menu (`wild-panel`). Installed from INSIDE the binary we just placed
 # ($DEST install-menu), never curled from the repo's default branch: that would pin
 # a menu from a different release than the binary it drives.
@@ -238,26 +241,36 @@ elif [[ -e "$PREV_INSTALL_DIR/wild-panel-amd64" ]] || [[ -e "$PREV_INSTALL_DIR/v
     done
 fi
 
-if   command -v curl >/dev/null 2>&1; then DL="curl"
-elif command -v wget >/dev/null 2>&1; then DL="wget"
-else die "need 'curl' or 'wget' to download the release."; fi
-
-# Resolve + download the latest release asset
-msg "Fetching latest release of $REPO"
-
-# Best-effort: read the release tag from the /releases/latest redirect (display only).
-ver=""
-if [[ "$DL" == "curl" ]]; then
-    ver="$(curl -sILo /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest" 2>/dev/null \
-           | grep -oE 'tag/[^/[:space:]]+$' | sed 's#tag/##' || true)"
-fi
-[[ -n "$ver" ]] && act "latest release: ${GREEN}${ver}${R}" || act "asset: ${GREEN}${ASSET}${R}"
-if [[ "$MODE" == "update" ]]; then
-    act "mode:   ${YELLOW}update${R} (${OLD_VER:-unknown} -> ${ver:-latest})"
+if [[ -n "$LOCAL_BIN" ]]; then
+    msg "Offline / local install"
+    act "asset: ${GREEN}${ASSET}${R} (LOCAL_BIN)"
+    if [[ "$MODE" == "update" ]]; then
+        act "mode:   ${YELLOW}update${R} (${OLD_VER:-unknown} -> local file)"
+    else
+        act "mode:   ${GREEN}fresh install${R}"
+    fi
+    DL=""
 else
-    act "mode:   ${GREEN}fresh install${R}"
-fi
+    if   command -v curl >/dev/null 2>&1; then DL="curl"
+    elif command -v wget >/dev/null 2>&1; then DL="wget"
+    else die "need 'curl' or 'wget' to download the release (or set LOCAL_BIN=...)."; fi
 
+    # Resolve + download the latest release asset
+    msg "Fetching latest release of $REPO"
+
+    # Best-effort: read the release tag from the /releases/latest redirect (display only).
+    ver=""
+    if [[ "$DL" == "curl" ]]; then
+        ver="$(curl -sILo /dev/null --http1.1 -w '%{url_effective}' "https://github.com/$REPO/releases/latest" 2>/dev/null \
+               | grep -oE 'tag/[^/[:space:]]+$' | sed 's#tag/##' || true)"
+    fi
+    [[ -n "$ver" ]] && act "latest release: ${GREEN}${ver}${R}" || act "asset: ${GREEN}${ASSET}${R}"
+    if [[ "$MODE" == "update" ]]; then
+        act "mode:   ${YELLOW}update${R} (${OLD_VER:-unknown} -> ${ver:-latest})"
+    else
+        act "mode:   ${GREEN}fresh install${R}"
+    fi
+fi
 # Millisecond clock for the transfer rates below. GNU date has %3N; a date
 # without it (busybox) falls back to whole seconds, which only coarsens the rate.
 now_ms() {
@@ -356,9 +369,12 @@ fetch_asset() {
     # replayed only if the transfer fails.
     DL_ERR="$(mktemp)"
     if [[ "$DL" == "curl" ]]; then
-        curl -fL --retry 3 -sS -o "$out" "$url" 2>"$DL_ERR" &
+        # HTTP/2 to GitHub CDNs often dies mid-transfer on flaky/censored links
+        # (curl 92 PROTOCOL_ERROR). Force HTTP/1.1 and retry transient failures.
+        curl -fL --http1.1 --retry 5 --retry-all-errors --retry-delay 2 \
+            -sS -o "$out" "$url" 2>"$DL_ERR" &
     else
-        wget --tries=3 -nv -O "$out" "$url" 2>"$DL_ERR" &
+        wget --tries=5 -nv -O "$out" "$url" 2>"$DL_ERR" &
     fi
     DL_PID=$!
 
@@ -427,9 +443,22 @@ trap 'dl_cleanup' EXIT
 trap 'dl_cleanup; exit 130' INT
 trap 'dl_cleanup; exit 143' TERM
 
-msg "Downloading ${ASSET}"
-fetch_asset "$DL_URL" "$tmp" \
-    || die "download failed — check that GitHub release '${ASSET}' exists for ${REPO}"
+if [[ -n "$LOCAL_BIN" ]]; then
+    # Offline path: operator already has the release asset (USB, scp, mirror).
+    [[ -f "$LOCAL_BIN" ]] || die "LOCAL_BIN does not exist: $LOCAL_BIN"
+    [[ -s "$LOCAL_BIN" ]] || die "LOCAL_BIN is empty: $LOCAL_BIN"
+    msg "Using local binary (skip download)"
+    act "source: $LOCAL_BIN"
+    cp -f "$LOCAL_BIN" "$tmp" || die "failed to copy LOCAL_BIN -> temp"
+    DL_BYTES="$(stat -c %s "$tmp" 2>/dev/null || echo 0)"
+    DL_SECS=0
+    DL_RATE=0
+    ok "copied $(fmt_bytes "$DL_BYTES") from LOCAL_BIN"
+else
+    msg "Downloading ${ASSET}"
+    fetch_asset "$DL_URL" "$tmp" \
+        || die "download failed — retry with: curl -fL --http1.1 -o wild-panel-amd64 '$DL_URL' && sudo LOCAL_BIN=\$PWD/wild-panel-amd64 bash deploy.sh"
+fi
 # Back to the plain tmp-file cleanup for the rest of the run: nothing below this
 # point owns a background job, so the download's signal handling ends here.
 trap - INT TERM
@@ -441,8 +470,9 @@ if command -v file >/dev/null 2>&1; then
 else
     [[ "$(head -c4 "$tmp")" == $'\x7fELF' ]] || die "downloaded file is not an ELF binary."
 fi
-ok "downloaded $(fmt_bytes "$DL_BYTES") in $(fmt_time "$DL_SECS")  (avg $(fmt_bytes "$DL_RATE")/s)"
-
+if [[ -z "$LOCAL_BIN" ]]; then
+    ok "downloaded $(fmt_bytes "$DL_BYTES") in $(fmt_time "$DL_SECS")  (avg $(fmt_bytes "$DL_RATE")/s)"
+fi
 # Install the binary (stop the unit first if we're upgrading in place)
 if systemctl is-active --quiet "$UNIT" 2>/dev/null; then
     act "stopping running ${UNIT} for replacement"
