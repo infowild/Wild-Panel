@@ -2,6 +2,8 @@ package service
 
 import (
 	"encoding/json"
+	"net"
+	"sort"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v2/logger"
@@ -105,13 +107,26 @@ func ApplyEgressProfile(config *xray.Config, profile EgressProfile, inboundTags 
 		logger.Warning("egress profile: enabled but outbound tag is empty, skipping")
 		return
 	}
+	// The egress outbound's own endpoint has to stay reachable WITHOUT the tunnel it
+	// is supposed to build, so both the DNS override and the routing injection below
+	// are given its hostnames to carve out.
+	egressDomains, egressIPs := egressOutboundHosts(config.OutboundConfigs, tag)
+
 	if profile.DnsEnabled {
-		applyEgressProfileDNS(config, profile.DnsServers)
+		applyEgressProfileDNS(config, profile.DnsServers, egressDomains)
 	}
-	applyEgressProfileRouting(config, profile, inboundTags)
+	applyEgressProfileRouting(config, profile, inboundTags, egressDomains, egressIPs)
 }
 
-func applyEgressProfileDNS(config *xray.Config, servers []string) {
+// applyEgressProfileDNS points Xray at the public resolvers, but resolves the egress
+// outbound's OWN hostname with the host resolver first.
+//
+// Without that carve-out the profile deadlocks during a blackout: every name (including
+// the outbound's server address) is queried against 1.1.1.1/8.8.8.8, those queries are
+// generated internally so they carry no inboundTag, and the tunnel that would carry them
+// cannot come up until its own hostname resolves. The panel then looks healthy — Xray
+// running, TPROXY correct, inbounds bound — while every protocol has no internet.
+func applyEgressProfileDNS(config *xray.Config, servers []string, egressDomains []string) {
 	if len(servers) == 0 {
 		return
 	}
@@ -123,7 +138,17 @@ func applyEgressProfileDNS(config *xray.Config, servers []string) {
 	} else {
 		dns = map[string]any{}
 	}
-	serverList := make([]any, 0, len(servers))
+	serverList := make([]any, 0, len(servers)+1)
+	if len(egressDomains) > 0 {
+		domains := make([]any, 0, len(egressDomains))
+		for _, d := range egressDomains {
+			domains = append(domains, "full:"+d)
+		}
+		serverList = append(serverList, map[string]any{
+			"address": "localhost",
+			"domains": domains,
+		})
+	}
 	for _, s := range servers {
 		s = strings.TrimSpace(s)
 		if s != "" {
@@ -143,7 +168,73 @@ func applyEgressProfileDNS(config *xray.Config, servers []string) {
 	config.DNSConfig = data
 }
 
-func applyEgressProfileRouting(config *xray.Config, profile EgressProfile, inboundTags []string) {
+// egressOutboundHosts returns the hostnames and literal IPs the outbound tagged tag
+// dials, split so callers can build domain rules and ip rules separately. Walks the
+// outbound's JSON for the address-carrying keys every protocol shape uses (vnext /
+// servers "address", wireguard peer "endpoint") rather than special-casing protocols.
+func egressOutboundHosts(outboundConfigs []byte, tag string) (domains, ips []string) {
+	if len(outboundConfigs) == 0 || tag == "" {
+		return nil, nil
+	}
+	var obs []map[string]any
+	if err := json.Unmarshal(outboundConfigs, &obs); err != nil {
+		return nil, nil
+	}
+	seen := map[string]bool{}
+	for _, ob := range obs {
+		if t, _ := ob["tag"].(string); t != tag {
+			continue
+		}
+		for _, host := range collectHostValues(ob["settings"]) {
+			if host == "" || seen[host] {
+				continue
+			}
+			seen[host] = true
+			if net.ParseIP(host) != nil {
+				ips = append(ips, host)
+			} else {
+				domains = append(domains, host)
+			}
+		}
+	}
+	// Map iteration order is random, and an unsorted list would make the generated
+	// config differ byte-for-byte on every build — which RestartXray reads as a real
+	// change and acts on, dropping every live connection each time.
+	sort.Strings(domains)
+	sort.Strings(ips)
+	return domains, ips
+}
+
+func collectHostValues(node any) []string {
+	var out []string
+	switch v := node.(type) {
+	case map[string]any:
+		for key, val := range v {
+			if s, ok := val.(string); ok && (key == "address" || key == "endpoint") {
+				out = append(out, stripHostPort(s))
+				continue
+			}
+			out = append(out, collectHostValues(val)...)
+		}
+	case []any:
+		for _, item := range v {
+			out = append(out, collectHostValues(item)...)
+		}
+	}
+	return out
+}
+
+// stripHostPort trims a trailing ":port" from a wireguard-style endpoint while leaving
+// bare IPv6 literals (which contain colons of their own) intact.
+func stripHostPort(s string) string {
+	s = strings.TrimSpace(s)
+	if host, _, err := net.SplitHostPort(s); err == nil {
+		return host
+	}
+	return strings.Trim(s, "[]")
+}
+
+func applyEgressProfileRouting(config *xray.Config, profile EgressProfile, inboundTags, egressDomains, egressIPs []string) {
 	if len(config.RouterConfig) == 0 {
 		return
 	}
@@ -157,6 +248,45 @@ func applyEgressProfileRouting(config *xray.Config, profile EgressProfile, inbou
 	}
 
 	var inject []any
+
+	// Reaching the egress outbound must never depend on the egress outbound. These go
+	// first so the bootstrap DNS lookup for its hostname — and any client that happens
+	// to address the server directly — leave via "direct" instead of the tunnel.
+	if len(egressDomains) > 0 {
+		list := make([]any, len(egressDomains))
+		for i, d := range egressDomains {
+			list[i] = "full:" + d
+		}
+		inject = append(inject, map[string]any{
+			"type": "field", "outboundTag": "direct", "domain": list,
+		})
+	}
+	if len(egressIPs) > 0 {
+		list := make([]any, len(egressIPs))
+		for i, ip := range egressIPs {
+			list[i] = ip
+		}
+		inject = append(inject, map[string]any{
+			"type": "field", "outboundTag": "direct", "ip": list,
+		})
+	}
+
+	// Public DNS must ride the tunnel. Xray generates these queries itself, so they
+	// carry NO inboundTag and the per-inbound rule below cannot match them; left alone
+	// they fall through to the template's first outbound ("direct") and, during a
+	// blackout, simply time out — which reads as "connects, no internet" on every
+	// protocol at once.
+	if profile.DnsEnabled {
+		if dnsIPs := dnsServerIPs(profile.DnsServers); len(dnsIPs) > 0 {
+			inject = append(inject, map[string]any{
+				"type":        "field",
+				"outboundTag": profile.OutboundTag,
+				"port":        "53",
+				"ip":          dnsIPs,
+			})
+		}
+	}
+
 	if profile.IranDirect {
 		inject = append(inject,
 			map[string]any{
@@ -267,6 +397,20 @@ func filterEgressInboundTags(tags []string) []string {
 		}
 		seen[t] = true
 		out = append(out, t)
+	}
+	return out
+}
+
+// dnsServerIPs keeps only the plain IP entries of a resolver list: a routing rule
+// matches DNS traffic by destination IP, so DoH/DoT URLs and "localhost" have no
+// address to pin and are skipped rather than emitted as an unmatchable rule.
+func dnsServerIPs(servers []string) []any {
+	var out []any
+	for _, s := range servers {
+		s = strings.TrimSpace(s)
+		if s != "" && net.ParseIP(s) != nil {
+			out = append(out, s)
+		}
 	}
 	return out
 }

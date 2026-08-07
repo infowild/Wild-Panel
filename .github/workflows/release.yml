@@ -145,6 +145,8 @@ jobs:
             '## Wild Panel' \
             '' \
             '### v2.0.12' \
+            '- Fix Egress Profile DNS deadlock: public resolvers leave via the egress outbound; the outbound hostname resolves locally first' \
+            '- Fix VPN backstop still using `direct` when the Egress Profile outbound is set' \
             '- Fix UFW blocking VPN TPROXY data plane on Ubuntu (trust VPN source space + auto-open panel port)' \
             '- Load nf_tproxy_ipv4 on every VPN host; persist fwmark/table-100 route in systemd ExecStartPre' \
             '- Warn in logs when VPN inbounds are on but Egress Profile is off (blackout installs)' \
