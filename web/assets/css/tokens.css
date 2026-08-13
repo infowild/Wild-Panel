@@ -1,13 +1,15 @@
 /*
  * tokens.css — Wild Panel Design System
  *
- * Brand extracted from the wolf logo:
- *   Eyes / primary   #00E8F0  electric cyan
- *   Aura / secondary #A855F7  neon violet
- *   Ground           #06070D  obsidian
+ * Visual language: premium network-operations / infrastructure control center.
+ * Hierarchy: Deep Navy → Navy Surface → Electric Blue → Cyan → Status.
  *
- * Glass language: blur 22px, ~58% opacity surfaces, thin luminous borders.
- * Glow is reserved for focus, primary actions, active nav, health, charts.
+ * Brand contracts (names must not change; values remapped to the blue family):
+ *   --brand-cyan      supporting / realtime electric cyan
+ *   --brand-violet    deeper electric blue (legacy name; no longer purple)
+ *   --brand-obsidian  deepest navy ground
+ *
+ * Glow is reserved and restrained. Do not wash every surface in illumination.
  */
 
 :root {
@@ -27,12 +29,12 @@
   --gap-md:16px;
   --gap-lg:20px;
 
-  /* —— radius —— */
-  --radius-sm:8px;
-  --radius-md:12px;
-  --radius-lg:16px;
-  --radius-xl:20px;
-  --radius-2xl:24px;
+  /* —— radius (technical, not consumer-soft) —— */
+  --radius-sm:6px;
+  --radius-md:10px;
+  --radius-lg:12px;
+  --radius-xl:16px;
+  --radius-2xl:20px;
   --radius-pill:999px;
 
   /* —— type (Inter EN + Vazirmatn FA) —— */
@@ -55,154 +57,166 @@
   --fw-bold:700;
 
   --lh-tight:1.2;
-  --lh-base:1.5;
+  --lh-base:1.45;
 
-  /* —— motion (180–250ms) —— */
+  /* —— motion (restrained; no bounce) —— */
   --dur-fast:.18s;
   --dur-med:.22s;
   --dur-slow:.28s;
   --ease:cubic-bezier(.22,1,.36,1);
-  --ease-spring:cubic-bezier(.34,1.4,.64,1);
+  --ease-spring:cubic-bezier(.22,1,.36,1);
 
   /* —— brand raw —— */
-  --brand-cyan:#00E8F0;
-  --brand-violet:#A855F7;
-  --brand-obsidian:#06070D;
+  --brand-cyan:#35D8FF;
+  --brand-violet:#1B7AE0;
+  --brand-obsidian:#060A10;
 }
 
-/* —— LIGHT (flagship daylight) ——
- * Same brand DNA as dark: cyan eyes + violet aura + glass.
- * Ground is a cool mist with soft cyan/violet ambient — never flat white,
- * never purple-on-white template, never warm cream newspaper.
+/* —— LIGHT ——
+ * Cool mist operations surface. Readable blue chrome, not a white clone of dark.
+ * Brand cyan/blue remain on marks, glows, and primary CTAs.
  */
 :root {
-  --bg:#eef3f8;
-  --surface:rgba(255,255,255,.72);
-  --surface-2:rgba(244,248,252,.88);
-  --border:rgba(15,40,70,.08);
-  --border-strong:rgba(0,180,190,.32);
+  --bg:#e8eef4;
+  --surface:rgba(255,255,255,.78);
+  --surface-2:rgba(241,246,251,.92);
+  --surface-hover:rgba(21,120,199,.06);
+  --surface-active:rgba(21,120,199,.12);
+  --border:rgba(20,60,100,.10);
+  --border-hover:rgba(21,120,199,.22);
+  --border-strong:rgba(21,120,199,.32);
 
-  --text:#0b1220;
-  --text-2:#3d5168;
-  --text-3:#6b8098;
+  --text:#0c1520;
+  --text-2:#3d5268;
+  --text-3:#6a7f94;
 
-  /* Accent stays readable on light glass; brand cyan reserved for glow/CTA */
-  --accent:#0a9eab;
-  --accent-strong:#088892;
-  --accent-weak:rgba(0,200,210,.12);
+  /* Readable UI chrome; brand cyan reserved for glow / CTA / marks */
+  --accent:#1578c7;
+  --accent-strong:#0e64a8;
+  --accent-weak:rgba(21,120,199,.10);
   --on-accent:#ffffff;
-  --glow:#9333ea;
-  --glow-weak:rgba(147,51,234,.10);
+  --glow:#1a9ee8;
+  --glow-weak:rgba(36,168,255,.10);
 
   --ok:#15803d;
-  --info:#0a9eab;
+  --info:#0e8a9a;
   --warn:#b45309;
   --error:#be123c;
   --off:#6b8098;
 
   --ok-weak:rgba(21,128,61,.10);
-  --info-weak:rgba(10,158,171,.10);
+  --info-weak:rgba(14,138,154,.10);
   --warn-weak:rgba(180,83,9,.10);
   --error-weak:rgba(190,18,60,.10);
   --off-weak:rgba(107,128,152,.10);
 
-  --shadow-sm:0 1px 2px rgba(15,40,70,.04), 0 0 0 1px rgba(15,40,70,.03);
+  --shadow-sm:0 1px 2px rgba(12,30,55,.05), 0 0 0 1px rgba(20,60,100,.04);
   --shadow-md:
-    0 12px 32px -16px rgba(15,40,70,.14),
-    0 0 28px -14px rgba(0,200,210,.10),
-    0 0 24px -16px rgba(147,51,234,.08);
+    0 10px 28px -18px rgba(12,30,55,.16),
+    0 0 22px -16px rgba(36,168,255,.08);
   --shadow-lg:
-    0 28px 56px -24px rgba(15,40,70,.18),
-    0 0 40px -18px rgba(0,200,210,.12),
-    0 0 36px -16px rgba(147,51,234,.10);
+    0 22px 48px -24px rgba(12,30,55,.18),
+    0 0 32px -18px rgba(36,168,255,.10);
 
-  --glass-bg:rgba(255,255,255,.58);
-  --glass-border:rgba(15,40,70,.10);
-  --glass-blur:22px;
-  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.85), rgba(255,255,255,.28) 38%, transparent 68%);
+  --glass-bg:rgba(255,255,255,.72);
+  --glass-border:rgba(20,60,100,.10);
+  --glass-blur:16px;
+  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.70), rgba(255,255,255,.22) 38%, transparent 68%);
 
-  --glow-cyan:0 0 22px -6px rgba(0,200,210,.35);
-  --glow-violet:0 0 22px -6px rgba(147,51,234,.28);
-  --ambient-cyan:rgba(0,210,220,.14);
-  --ambient-violet:rgba(147,51,234,.10);
+  --glow-cyan:0 0 16px -8px rgba(36,168,255,.22);
+  --glow-violet:0 0 14px -8px rgba(21,120,199,.16);
+  --ambient-cyan:rgba(36,168,255,.08);
+  --ambient-violet:rgba(21,120,199,.06);
 
   color-scheme:light;
 }
 
 /* —— DARK (flagship) —— */
 body.dark {
-  --bg:#06070D;
-  --surface:rgba(14,18,32,.58);
-  --surface-2:rgba(22,28,48,.72);
-  --border:rgba(255,255,255,.08);
-  --border-strong:rgba(0,232,240,.22);
+  --bg:#08111C;
+  --surface:#0A1522;
+  --surface-2:#0D1D2D;
+  --surface-hover:rgba(36,168,255,.08);
+  --surface-active:rgba(36,168,255,.14);
+  --border:rgba(80,170,255,.12);
+  --border-hover:rgba(80,170,255,.18);
+  --border-strong:rgba(80,170,255,.26);
 
-  --text:rgba(255,255,255,.94);
-  --text-2:rgba(186,205,230,.72);
-  --text-3:rgba(148,170,200,.52);
+  --text:#F3F7FB;
+  --text-2:#8EA2B7;
+  --text-3:#6B8299;
 
-  --accent:#00E8F0;
-  --accent-strong:#00C4D4;
-  --accent-weak:rgba(0,232,240,.12);
-  --on-accent:#031016;
-  --glow:#A855F7;
-  --glow-weak:rgba(168,85,247,.16);
+  --accent:#24A8FF;
+  --accent-strong:#1B94E6;
+  --accent-weak:rgba(36,168,255,.12);
+  --on-accent:#041018;
+  --glow:#35D8FF;
+  --glow-weak:rgba(36,168,255,.12);
 
-  --ok:#4ade80;
-  --info:#38bdf8;
-  --warn:#fbbf24;
-  --error:#fb7185;
-  --off:#7c8aa0;
+  --ok:#36D399;
+  --info:#35D8FF;
+  --warn:#F5B942;
+  --error:#FF5D6C;
+  --off:#7A8FA3;
 
-  --ok-weak:rgba(74,222,128,.12);
-  --info-weak:rgba(56,189,248,.12);
-  --warn-weak:rgba(251,191,36,.14);
-  --error-weak:rgba(251,113,133,.12);
-  --off-weak:rgba(124,138,160,.14);
+  --ok-weak:rgba(54,211,153,.12);
+  --info-weak:rgba(53,216,255,.12);
+  --warn-weak:rgba(245,185,66,.14);
+  --error-weak:rgba(255,93,108,.12);
+  --off-weak:rgba(122,143,163,.14);
 
-  --shadow-sm:0 0 0 1px rgba(255,255,255,.04);
-  --shadow-md:0 16px 40px -18px rgba(0,0,0,.65), 0 0 28px -14px rgba(0,232,240,.12);
-  --shadow-lg:0 28px 64px -24px rgba(0,0,0,.72), 0 0 40px -16px rgba(168,85,247,.16);
+  --shadow-sm:0 1px 2px rgba(0,8,20,.28), 0 0 0 1px rgba(80,170,255,.06);
+  --shadow-md:0 10px 28px -18px rgba(0,10,24,.55), 0 0 20px -16px rgba(36,168,255,.08);
+  --shadow-lg:0 20px 48px -24px rgba(0,10,24,.62), 0 0 28px -18px rgba(36,168,255,.10);
 
-  --glass-bg:rgba(14,18,32,.58);
-  --glass-border:rgba(255,255,255,.10);
-  --glass-blur:22px;
-  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.02) 38%, transparent 68%);
+  --glass-bg:rgba(11,23,36,.86);
+  --glass-border:rgba(80,170,255,.12);
+  --glass-blur:16px;
+  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.015) 38%, transparent 68%);
 
-  --glow-cyan:0 0 28px -6px rgba(0,232,240,.55);
-  --glow-violet:0 0 28px -6px rgba(168,85,247,.48);
-  --ambient-cyan:rgba(0,232,240,.14);
-  --ambient-violet:rgba(168,85,247,.12);
+  --glow-cyan:0 0 18px -8px rgba(53,216,255,.28);
+  --glow-violet:0 0 16px -8px rgba(36,168,255,.20);
+  --ambient-cyan:rgba(53,216,255,.07);
+  --ambient-violet:rgba(36,168,255,.05);
 
   color-scheme:dark;
 }
 
 /* —— ULTRA-DARK —— */
 html[data-theme='ultra-dark'] body.dark {
-  --bg:#03040a;
-  --surface:rgba(8,10,18,.62);
-  --surface-2:rgba(14,18,30,.78);
-  --border:rgba(168,85,247,.14);
-  --border-strong:rgba(0,232,240,.26);
+  --bg:#060A10;
+  --surface:#08111C;
+  --surface-2:#0B1724;
+  --surface-hover:rgba(36,168,255,.07);
+  --surface-active:rgba(36,168,255,.12);
+  --border:rgba(80,170,255,.10);
+  --border-hover:rgba(80,170,255,.16);
+  --border-strong:rgba(80,170,255,.24);
 
-  --text:rgba(255,255,255,.92);
-  --text-2:rgba(180,200,225,.68);
-  --text-3:rgba(140,160,190,.48);
+  --text:#F3F7FB;
+  --text-2:#8A9FB4;
+  --text-3:#667C93;
 
-  --accent:#5CF0F7;
-  --accent-strong:#00E8F0;
-  --accent-weak:rgba(92,240,247,.12);
-  --on-accent:#02080c;
-  --glow:#C084FC;
-  --glow-weak:rgba(192,132,252,.18);
+  --accent:#3BB4FF;
+  --accent-strong:#24A8FF;
+  --accent-weak:rgba(59,180,255,.12);
+  --on-accent:#031018;
+  --glow:#35D8FF;
+  --glow-weak:rgba(53,216,255,.12);
 
-  --glass-bg:rgba(8,10,18,.62);
-  --glass-border:rgba(255,255,255,.08);
-  --glass-blur:24px;
-  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.08), transparent 55%);
+  --glass-bg:rgba(8,17,28,.90);
+  --glass-border:rgba(80,170,255,.10);
+  --glass-blur:18px;
+  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.045), transparent 55%);
 
-  --shadow-md:0 18px 48px -20px rgba(0,0,0,.78), 0 0 32px -12px rgba(168,85,247,.14);
-  --shadow-lg:0 32px 72px -28px rgba(0,0,0,.82), 0 0 48px -18px rgba(168,85,247,.18);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.40), 0 0 0 1px rgba(80,170,255,.05);
+  --shadow-md:0 12px 32px -20px rgba(0,0,0,.70), 0 0 20px -16px rgba(36,168,255,.07);
+  --shadow-lg:0 24px 56px -26px rgba(0,0,0,.76), 0 0 28px -18px rgba(36,168,255,.09);
+
+  --glow-cyan:0 0 16px -8px rgba(53,216,255,.22);
+  --glow-violet:0 0 14px -8px rgba(36,168,255,.16);
+  --ambient-cyan:rgba(53,216,255,.05);
+  --ambient-violet:rgba(36,168,255,.04);
 }
 
 html[data-theme-animations='off'] {

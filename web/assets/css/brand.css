@@ -10,33 +10,33 @@
   background:
     radial-gradient(ellipse 55% 45% at 18% 12%, var(--ambient-cyan), transparent 60%),
     radial-gradient(ellipse 50% 40% at 88% 88%, var(--ambient-violet), transparent 55%),
-    radial-gradient(ellipse 70% 55% at 50% 50%, rgba(0,200,210,.05), transparent 70%);
+    radial-gradient(ellipse 70% 55% at 50% 50%, rgba(36,168,255,.04), transparent 70%);
 }
 
 .wp-noise {
-  position:absolute; inset:0; pointer-events:none; opacity:.04; mix-blend-mode:multiply;
+  position:absolute; inset:0; pointer-events:none; opacity:.03; mix-blend-mode:multiply;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-body.dark .wp-noise { opacity:.035; mix-blend-mode:overlay; }
+body.dark .wp-noise { opacity:.025; mix-blend-mode:overlay; }
 
 /* Glass surface */
 .wp-glass {
   background:var(--glass-bg);
   border:1px solid var(--glass-border);
   border-radius:var(--radius-xl);
-  backdrop-filter:blur(var(--glass-blur)) saturate(1.35);
-  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.35);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.12);
   box-shadow:var(--shadow-md);
   position:relative;
   overflow:hidden;
 }
 .wp-glass::before {
   content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
-  background:var(--glass-shine); opacity:.9;
+  background:var(--glass-shine); opacity:.7;
 }
 .wp-glass > * { position:relative; z-index:1; }
 
-/* Neon ring around the wolf mark */
+/* Ring around the wolf mark — restrained, not neon */
 .wp-mark {
   display:inline-flex; align-items:center; justify-content:center;
   border-radius:50%;
@@ -52,7 +52,7 @@ body:not(.dark) .wp-mark {
 }
 
 .wp-mark__inner {
-  display:block; border-radius:50%; overflow:hidden; background:#05070e;
+  display:block; border-radius:50%; overflow:hidden; background:var(--brand-obsidian);
   line-height:0;
 }
 .wp-mark img {
@@ -78,13 +78,13 @@ body:not(.dark) .wp-mark {
 
 /* Premium primary control — also mirrored onto .ant-btn-primary via ant-bridge */
 .wp-btn-primary {
-  appearance:none; border:1px solid rgba(0,232,240,.35);
+  appearance:none; border:1px solid rgba(36,168,255,.38);
   border-radius:var(--radius-md);
-  background:linear-gradient(135deg, var(--brand-cyan) 0%, #00C4D4 45%, var(--brand-violet) 130%);
-  color:#031016;
+  background:linear-gradient(135deg, var(--brand-cyan) 0%, #24A8FF 55%, var(--brand-violet) 130%);
+  color:#041018;
   font-family:inherit; font-weight:var(--fw-semibold); font-size:var(--fs-base);
   letter-spacing:.02em;
-  box-shadow:var(--glow-cyan), 0 8px 24px -10px rgba(168,85,247,.45);
+  box-shadow:var(--glow-cyan), 0 8px 22px -12px rgba(27,122,224,.28);
   transition:filter var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
 .wp-btn-primary:hover { filter:brightness(1.05); transform:translateY(-1px); }
@@ -112,7 +112,7 @@ body:not(.dark) .wp-mark {
   height:72px !important;
   margin-bottom:14px;
   background:
-    radial-gradient(circle at 50% 50%, rgba(0,232,240,.12), transparent 62%),
+    radial-gradient(circle at 50% 50%, rgba(36,168,255,.10), transparent 62%),
     url(../img/logo.png) center / 56px 56px no-repeat;
   opacity:.95;
 }
