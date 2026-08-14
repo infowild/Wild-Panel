@@ -2113,7 +2113,7 @@ body.dark .bo-shell.inbounds-page {
   letter-spacing:.01em;
 }
 .inbounds-page .ib-grid-count {
-  font-size:11.5px; color:var(--text-3); font-variant-numeric:tabular-nums;
+  font-size:11.5px; color:var(--ib-meta); font-variant-numeric:tabular-nums;
 }
 
 /* Column widths are authoritative. Under auto layout a long remark or a wide
@@ -2532,13 +2532,13 @@ body.dark .bo-shell.inbounds-page {
   font-size:12px; color:var(--text-2);
 }
 .inbounds-page .ib-ws-stats .num { font-weight:var(--fw-semibold); color:var(--text); }
-.inbounds-page .ib-ws-stats-lab { color:var(--text-3); }
+.inbounds-page .ib-ws-stats-lab { color:var(--ib-meta); }
 .inbounds-page .ib-ws-head .ib-ops-sep { height:14px; opacity:.6; }
 .inbounds-page .ib-ws-online {
   display:inline-flex; align-items:center; gap:5px;
 }
 .inbounds-page .ib-ws-parent {
-  font-size:12px; color:var(--text-3);
+  font-size:12px; color:var(--ib-meta);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:36%;
 }
 /* Client rows are deliberately lighter than parent rows: smaller header caps,
