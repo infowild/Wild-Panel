@@ -1704,42 +1704,80 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
  * Scoped to .inbounds-page. Tokens only.
  * ================================================================== */
 
+/* Layer separation.
+ *
+ * The shared dark ground (#0B0B0D) sits only one step below --surface (#141416),
+ * so a page built almost entirely from surfaces read as a single flat black
+ * sheet. Dropping the ground for this page alone widens every step above it —
+ * rail, bar, grid, nested workspace — without touching the tokens the rest of
+ * the panel consumes.
+ *
+ * The two classes live on different elements: aThemeSwitch writes the theme onto
+ * body, while pageClass lands on #app.bo-shell (common/page.html). So the page
+ * hook has to be matched as a descendant of the theme, not alongside it.
+ * ultra-dark is excluded: its ground is already #050506 and deepening it further
+ * would only flatten it back out. */
+html:not([data-theme='ultra-dark']) body.dark .bo-shell.inbounds-page { --bg:#08090B; }
+body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
+
 .inbounds-page .bo-content {
   display:flex; flex-direction:column;
   min-height:calc(100vh - 64px);
 }
+/* Section rhythm. One gap value for every band so the page reads on a single
+   vertical grid instead of the mix of card gutters it used to inherit. */
 .inbounds-page .ib-console {
-  display:flex; flex-direction:column; gap:10px;
+  display:flex; flex-direction:column; gap:14px;
   flex:1 1 auto; min-height:0;
+  padding-block-end:4px;
+}
+@media (min-width:1600px) {
+  .inbounds-page .ib-console { gap:16px; }
 }
 
-/* ---- ops summary: compact inline metrics ---- */
+/* ---- ops summary: telemetry rail, not KPI cards ---- *
+ * Six figures on one surface with soft dividers. As separate cards they cost
+ * ~150px of vertical space to carry six numbers; as a rail they cost ~58px and
+ * still read left-to-right in importance order. */
 .inbounds-page .ib-ops {
-  display:flex; align-items:center; flex-wrap:wrap; gap:4px 0;
-  padding:8px 4px 2px;
+  display:flex; align-items:stretch; flex-wrap:wrap; gap:2px 0;
+  padding:9px 6px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
 }
 .inbounds-page .ib-ops-item {
-  display:flex; flex-direction:column; gap:1px;
-  padding:0 14px; min-width:0;
+  display:flex; flex-direction:column; justify-content:center; gap:2px;
+  padding-inline:16px; min-width:0;
 }
-.inbounds-page .ib-ops-item--live { cursor:pointer; }
-.inbounds-page .ib-ops-item--muted .ib-ops-val { color:var(--text-2); font-weight:var(--fw-medium); }
+.inbounds-page .ib-ops-item--live { cursor:pointer; border-radius:var(--radius-sm); }
+.inbounds-page .ib-ops-item--live:hover .ib-ops-val { color:var(--accent); }
+.inbounds-page .ib-ops-item--live:focus-visible {
+  outline:2px solid var(--accent); outline-offset:1px;
+}
+.inbounds-page .ib-ops-item--muted .ib-ops-val {
+  font-size:15px; color:var(--text-2); font-weight:var(--fw-medium);
+}
+/* Value carries the weight; the label is deliberately quiet so a scan lands on
+   the figures first. */
 .inbounds-page .ib-ops-val {
-  font-size:15px; font-weight:var(--fw-semibold); color:var(--text);
-  line-height:1.15; font-variant-numeric:tabular-nums;
+  font-size:18px; font-weight:var(--fw-semibold); color:var(--text);
+  line-height:1.1; font-variant-numeric:tabular-nums; letter-spacing:-.01em;
+  transition:color var(--dur-fast) var(--ease);
 }
 .inbounds-page .ib-ops-lab {
-  font-size:11px; color:var(--text-3); letter-spacing:.01em;
+  font-size:11px; color:var(--text-3); line-height:1.3;
   display:inline-flex; align-items:center; gap:5px;
+  white-space:nowrap;
 }
 .inbounds-page .ib-ops-sep {
-  width:1px; height:28px; background:var(--divider); flex:0 0 auto;
-  margin:0 2px;
+  width:1px; align-self:center; height:30px;
+  background:var(--divider); flex:0 0 auto;
 }
-.inbounds-page .ib-ops-sep--soft { opacity:.55; }
+.inbounds-page .ib-ops-sep--soft { opacity:.5; }
 .inbounds-page .ib-ops-extra {
   display:inline-flex; align-items:center; gap:6px;
-  margin-inline-start:auto; padding-inline:8px;
+  margin-inline-start:auto; padding-inline:12px;
 }
 .inbounds-page .ib-live-dot {
   width:6px; height:6px; border-radius:50%;
@@ -1766,8 +1804,14 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
 .inbounds-page .ib-chip--info { background:var(--info-weak); color:var(--info); }
 .inbounds-page .ib-chip--mini { padding:1px 6px 1px 5px; font-size:10.5px; }
 
-/* ---- command bar ---- */
+/* ---- command bar ---- *
+ * One surface, three clusters: act / find / view. Every control is normalised
+ * to --ib-ctl so the primary button, the mode switch, the search field, the
+ * density segment and the refresh pair share one baseline; before this they
+ * were four different ant sizes sitting on four different centre lines, which
+ * is what made the bar look like assorted parts rather than a toolbar. */
 .inbounds-page .ib-bar {
+  --ib-ctl:34px;
   display:flex; align-items:center; flex-wrap:wrap; gap:10px 12px;
   padding:10px 12px;
   background:var(--surface);
@@ -1779,16 +1823,44 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
 }
 .inbounds-page .ib-bar-cluster--lead { flex:0 0 auto; }
 .inbounds-page .ib-bar-cluster--find {
-  flex:1 1 280px; min-width:200px;
+  flex:1 1 260px; min-width:200px;
   display:flex; align-items:center; gap:8px;
 }
 .inbounds-page .ib-bar-cluster--util {
   flex:0 0 auto; margin-inline-start:auto;
-  display:flex; align-items:center; gap:6px;
+  display:flex; align-items:center; gap:8px;
 }
+
+/* Control baseline. Flex centring on the button box is what actually puts an
+   ant icon on the text's optical centre; line-height alone leaves icon-only
+   buttons a pixel or two high. */
+.inbounds-page .ib-bar .ant-btn {
+  height:var(--ib-ctl); padding-inline:12px;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  border-radius:var(--radius-sm);
+}
+.inbounds-page .ib-bar .ant-btn > .anticon + span { margin-inline-start:0; }
+.inbounds-page .ib-bar .ant-btn-group .ant-btn { padding-inline:10px; }
+.inbounds-page .ib-bar .ant-input,
+.inbounds-page .ib-bar .ant-input-affix-wrapper .ant-input {
+  height:var(--ib-ctl);
+}
+.inbounds-page .ib-bar .ant-radio-button-wrapper {
+  height:var(--ib-ctl); line-height:calc(var(--ib-ctl) - 2px);
+}
+.inbounds-page .ib-bar .ant-btn:focus-visible,
+.inbounds-page .ib-bar .ant-radio-button-wrapper:focus-within {
+  outline:2px solid var(--accent); outline-offset:1px;
+}
+
 .inbounds-page .ib-cta { font-weight:var(--fw-semibold); }
+/* Secondary by tone, not by size: two filled buttons side by side left the bar
+   with no single obvious action. */
 .inbounds-page .ib-btn-2nd { color:var(--text-2); }
-.inbounds-page .ib-search { flex:1 1 auto; max-width:520px; min-width:180px; }
+.inbounds-page .ib-btn-2nd:hover { color:var(--text); }
+/* Flexible but bounded. Unbounded, search ate the whole middle of a 1920 bar
+   and pushed the view controls to the far edge. */
+.inbounds-page .ib-search { flex:1 1 auto; max-width:420px; min-width:160px; }
 .inbounds-page .ib-search .ant-input-affix-wrapper,
 .inbounds-page .ib-search .ant-input {
   background:var(--surface-2) !important;
@@ -1801,21 +1873,36 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
   box-shadow:0 0 0 2px var(--accent-weak) !important;
 }
 .inbounds-page .ib-filters { display:inline-flex; flex-wrap:wrap; }
-.inbounds-page .ib-mode { flex:0 0 auto; }
+/* Search / filter toggle. Wide enough that the icon inside it is legible rather
+   than a knob with something behind it. */
+.inbounds-page .ib-mode { flex:0 0 auto; align-self:center; min-width:46px; }
 .inbounds-page .ib-tool {
   display:inline-flex; align-items:center; justify-content:center;
-  width:30px; height:30px; padding:0; border:none;
+  width:32px; height:32px; padding:0; border:none;
   background:transparent; color:var(--text-3);
   border-radius:var(--radius-sm); cursor:pointer;
   transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 .inbounds-page .ib-tool:hover { background:var(--surface-hover); color:var(--text); }
+.inbounds-page .ib-tool:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 .inbounds-page .ib-tool--on { background:var(--surface-3); color:var(--accent); }
+/* Segment: a bordered well the same height as the buttons either side of it, so
+   the view controls read as one group rather than three loose icons. */
 .inbounds-page .ib-seg {
-  display:inline-flex; align-items:center;
-  background:var(--surface-2); border-radius:var(--radius-sm); padding:2px;
+  display:inline-flex; align-items:center; height:var(--ib-ctl, 34px);
+  background:var(--surface-2); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:2px;
 }
-.inbounds-page .ib-seg .ib-tool { width:26px; height:24px; }
+.inbounds-page .ib-seg .ib-tool { width:28px; height:26px; }
+.inbounds-page .ib-bar-cluster--util > .ib-tool {
+  width:var(--ib-ctl, 34px); height:var(--ib-ctl, 34px);
+  border:1px solid var(--border); background:var(--surface-2);
+}
+.inbounds-page .ib-bar-cluster--util > .ib-tool:hover { background:var(--surface-3); color:var(--text); }
+.inbounds-page .ib-bar-cluster--util > .ib-tool.ib-tool--on {
+  background:var(--accent-weak); border-color:color-mix(in srgb, var(--accent) 32%, var(--border));
+  color:var(--accent);
+}
 
 /* ---- selection bar ---- */
 .inbounds-page .ib-selbar {
@@ -1833,9 +1920,12 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
 .inbounds-page .ib-selbar-label { font-size:var(--fs-sm); color:var(--text-2); }
 .inbounds-page .ib-selbar-acts { display:flex; flex-wrap:wrap; gap:6px; }
 
-/* ---- workspace grid ---- */
+/* ---- workspace grid ---- *
+ * Sized by its rows, not stretched to the viewport. Stretching left a tall empty
+ * panel under the last inbound on any account with only a handful of them, which
+ * is the dead space the page was carrying at the bottom. */
 .inbounds-page .ib-grid {
-  flex:1 1 auto; min-height:0;
+  flex:0 0 auto; min-height:0;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:var(--radius-md);
@@ -1844,39 +1934,126 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
 }
 .inbounds-page .ib-grid-head {
   display:flex; align-items:center; justify-content:space-between;
-  padding:10px 14px 8px;
+  padding:11px 18px 10px;
   border-bottom:1px solid var(--divider);
+  background:color-mix(in srgb, var(--surface-2) 55%, transparent);
 }
 .inbounds-page .ib-grid-head-lead { display:flex; align-items:baseline; gap:10px; }
 .inbounds-page .ib-grid-title {
   margin:0; font-size:13px; font-weight:var(--fw-semibold); color:var(--text);
+  letter-spacing:.01em;
 }
 .inbounds-page .ib-grid-count {
   font-size:11.5px; color:var(--text-3); font-variant-numeric:tabular-nums;
 }
 
-/* Row height: operational, not spreadsheet */
-.inbounds-page .ib-grid--cozy .ant-table-thead > tr > th { padding:8px 12px; }
-.inbounds-page .ib-grid--cozy .ant-table-tbody > tr > td { padding:12px 12px; vertical-align:middle; }
-.inbounds-page .ib-grid--compact .ant-table-thead > tr > th { padding:6px 10px; }
-.inbounds-page .ib-grid--compact .ant-table-tbody > tr > td { padding:8px 10px; vertical-align:middle; }
+/* Column widths are authoritative. Under auto layout a long remark or a wide
+   traffic string widened its column and pushed the table past its container,
+   which is the width pressure the page used to answer with a scrollbar. Fixed
+   layout hands the surplus to the identity column and nothing else. */
+.inbounds-page .ib-grid .ant-table table {
+  table-layout:fixed; width:100%;
+}
+
+/* Wide-screen redistribution.
+ *
+ * Only the identity column is elastic, so on a 1920 display it absorbed every
+ * spare pixel — a ~1100px name column sitting next to four zones squeezed to
+ * their minimums, with the operational data huddled against the right edge.
+ * Ant writes the column widths as inline style on <col>, so overriding them from
+ * CSS is the only way to rebalance without a per-breakpoint JS column set;
+ * !important is what it costs. Order follows the `columns` array in
+ * inbounds.html: select, identity, status, clients, traffic, operate.
+ */
+@media (min-width:1500px) {
+  .inbounds-page .ib-grid col:nth-child(3) { width:160px !important; min-width:160px !important; }
+  .inbounds-page .ib-grid col:nth-child(4) { width:150px !important; min-width:150px !important; }
+  .inbounds-page .ib-grid col:nth-child(5) { width:300px !important; min-width:300px !important; }
+  .inbounds-page .ib-grid col:nth-child(6) { width:124px !important; min-width:124px !important; }
+}
+@media (min-width:1680px) {
+  .inbounds-page .ib-grid col:nth-child(3) { width:176px !important; min-width:176px !important; }
+  .inbounds-page .ib-grid col:nth-child(4) { width:164px !important; min-width:164px !important; }
+  .inbounds-page .ib-grid col:nth-child(5) { width:348px !important; min-width:348px !important; }
+  .inbounds-page .ib-grid col:nth-child(6) { width:132px !important; min-width:132px !important; }
+}
+/* Beyond this the workspace stops growing and centres instead. A table row whose
+   name column is wider than the four data zones put together reads as stretched
+   however the surplus is shared out. */
+@media (min-width:1720px) {
+  .inbounds-page .ib-console { max-width:1680px; margin-inline:auto; width:100%; }
+}
+
+/* Row height: operational, not spreadsheet. --ib-edge keeps the first and last
+   cell off the frame so the checkbox and the action icons are not sitting on
+   the border. */
+.inbounds-page .ib-grid { --ib-edge:18px; }
+.inbounds-page .ib-grid--cozy .ant-table-thead > tr > th { padding:9px 12px; }
+.inbounds-page .ib-grid--cozy .ant-table-tbody > tr > td { padding:13px 12px; vertical-align:middle; }
+.inbounds-page .ib-grid--compact { --ib-edge:14px; }
+.inbounds-page .ib-grid--compact .ant-table-thead > tr > th { padding:7px 10px; }
+.inbounds-page .ib-grid--compact .ant-table-tbody > tr > td { padding:9px 10px; vertical-align:middle; }
+
+.inbounds-page .ib-grid .ant-table-thead > tr > th:first-child,
+.inbounds-page .ib-grid .ant-table-tbody > tr > td:first-child {
+  padding-inline-start:var(--ib-edge);
+}
+/* Expand toggle and row checkbox share this cell (expandIconColumnIndex 0). They
+   were wrapping onto two lines, which set the height of every row in the grid. */
+.inbounds-page .ib-grid .ant-table-tbody > tr > td:first-child {
+  white-space:nowrap;
+}
+.inbounds-page .ib-grid .ant-table-row-expand-icon { margin-inline-end:8px; }
+.inbounds-page .ib-grid .ant-table-row-indent { display:none; }
+.inbounds-page .ib-grid .ant-table-thead > tr > th:last-child,
+.inbounds-page .ib-grid .ant-table-tbody > tr:not(.ant-table-expanded-row) > td:last-child {
+  padding-inline-end:var(--ib-edge);
+}
+
+/* RTL cell alignment.
+ *
+ * The column definitions declare align:'left' / align:'right' and ant writes
+ * those out as an inline text-align on every th and td. Under dir="rtl" that
+ * pinned the remark and the expiry chip to the physical left while every flex
+ * zone in the same row mirrored to the right, so a Persian page read
+ * half-mirrored. Inline style is why this needs !important, and why it is
+ * confined to the RTL case — the LTR render is left untouched. */
+[dir="rtl"] .inbounds-page .ib-grid :is(th, td)[style*="left"],
+[dir="rtl"] .inbounds-page .ib-ws-table :is(th, td)[style*="left"] {
+  text-align:right !important;
+}
+[dir="rtl"] .inbounds-page .ib-grid :is(th, td)[style*="right"],
+[dir="rtl"] .inbounds-page .ib-ws-table :is(th, td)[style*="right"] {
+  text-align:left !important;
+}
 
 .inbounds-page .ib-grid .ant-table-thead > tr > th {
   background:transparent;
-  font-size:11px; font-weight:var(--fw-medium);
-  color:var(--text-3); letter-spacing:.02em; text-transform:uppercase;
-  border-bottom:1px solid var(--divider);
+  font-size:10.5px; font-weight:var(--fw-semibold);
+  color:var(--text-3); letter-spacing:.05em; text-transform:uppercase;
+  border-bottom:1px solid var(--border);
 }
 .inbounds-page .ib-grid .ant-table-tbody > tr > td {
   border-bottom:1px solid var(--divider);
   background:transparent;
+  transition:background var(--dur-fast) var(--ease);
 }
 .inbounds-page .ib-grid .ant-table-tbody > tr:hover > td,
 .inbounds-page .ib-grid .ant-table-tbody > tr.ant-table-row-hover > td {
   background:var(--surface-hover) !important;
 }
 .inbounds-page .ib-grid .ant-table-tbody > tr.ant-table-row-selected > td {
-  background:color-mix(in srgb, var(--accent) 6%, transparent) !important;
+  background:var(--accent-weak) !important;
+}
+/* Expanded parent. A 2px accent edge and a held surface tie the row to the
+   client workspace below it, so the pair reads as one unit instead of a row
+   followed by an unrelated panel. Progressive: no :has(), no marker. */
+.inbounds-page .ib-grid .ant-table-tbody > tr:has(+ tr.ant-table-expanded-row) > td {
+  background:var(--surface-2) !important;
+  border-bottom-color:transparent;
+}
+.inbounds-page .ib-grid .ant-table-tbody > tr:has(+ tr.ant-table-expanded-row) > td:first-child {
+  box-shadow:inset 2px 0 0 var(--accent);
 }
 .inbounds-page .ib-grid .ant-table-pagination.ant-pagination {
   margin:10px 14px 12px;
@@ -1891,23 +2068,33 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
 }
 .inbounds-page tr.hideExpandIcon .ant-table-row-expand-icon { display:none; }
 
-/* ---- IDENTITY ZONE ---- */
+/* ---- IDENTITY ZONE ---- *
+ * No vw ceiling here any more: a viewport-relative width inside a table cell
+ * had no relationship to the column it sat in, and at wide viewports it was the
+ * thing pushing the table past its frame. The column owns the width; the cell
+ * only has to shrink gracefully inside it. */
 .inbounds-page .ib-idz {
-  display:flex; flex-direction:column; gap:3px; min-width:0; max-width:42vw;
+  display:flex; flex-direction:column; gap:2px; min-width:0; max-width:100%;
+  overflow:hidden;
 }
 .inbounds-page .ib-idz-name {
-  font-size:13.5px; font-weight:var(--fw-semibold); color:var(--text);
-  line-height:1.25;
+  font-size:14px; font-weight:var(--fw-semibold); color:var(--text);
+  line-height:1.3; letter-spacing:-.005em;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .inbounds-page .ib-idz--off .ib-idz-name { color:var(--text-3); }
 .inbounds-page .ib-idz-meta {
-  display:flex; align-items:center; flex-wrap:wrap; gap:4px 2px;
-  font-size:11.5px; color:var(--text-3); line-height:1.3;
+  display:flex; align-items:center; flex-wrap:wrap; gap:3px 2px;
+  font-size:11.5px; color:var(--text-3); line-height:1.35;
+  min-width:0;
 }
+/* Restrained badge: a tinted well rather than a saturated pill, because every
+   row carries one and a bright pill per row is the whole page. */
 .inbounds-page .ib-idz-proto {
   font-weight:var(--fw-semibold); color:var(--text-2);
-  text-transform:uppercase; letter-spacing:.03em; font-size:11px;
+  text-transform:uppercase; letter-spacing:.04em; font-size:10.5px;
+  padding:1px 6px; border-radius:4px;
+  background:var(--surface-3); border:1px solid var(--divider);
 }
 .inbounds-page .ib-proto--xray { color:var(--accent); }
 .inbounds-page .ib-proto--vpn { color:var(--text-2); }
@@ -1946,12 +2133,16 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
   box-shadow:0 0 0 2px color-mix(in srgb, var(--ok) 20%, transparent);
 }
 .inbounds-page .ib-state-copy {
-  display:flex; flex-direction:column; gap:4px; align-items:flex-start;
+  display:flex; flex-direction:column; gap:6px; align-items:flex-start;
 }
 .inbounds-page .ib-state-lab {
-  font-size:12px; font-weight:var(--fw-medium); color:var(--text-2); line-height:1.1;
+  font-size:12px; font-weight:var(--fw-medium); color:var(--text-2);
+  line-height:1.1; white-space:nowrap;
 }
 .inbounds-page .ib-state--off .ib-state-lab { color:var(--text-3); }
+/* Switch on its own baseline under the label, so the dot, the word and the
+   control line up down the zone instead of fighting for one row. */
+.inbounds-page .ib-state .ant-switch { margin:0; }
 
 /* ---- CLIENTS ZONE ---- */
 .inbounds-page .ib-cz {
@@ -1961,8 +2152,8 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
   display:flex; align-items:baseline; gap:5px;
 }
 .inbounds-page .ib-cz-n {
-  font-size:14px; font-weight:var(--fw-semibold); color:var(--text);
-  font-variant-numeric:tabular-nums;
+  font-size:14.5px; font-weight:var(--fw-semibold); color:var(--text);
+  font-variant-numeric:tabular-nums; letter-spacing:-.01em;
 }
 .inbounds-page .ib-cz-lab {
   font-size:11px; color:var(--text-3);
@@ -1976,37 +2167,51 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
 }
 .inbounds-page .ib-cz--empty .ib-cz-n { color:var(--text-3); }
 
-/* ---- TRAFFIC ZONE ---- */
+/* ---- TRAFFIC ZONE ---- *
+ * Used value leads, quota is subdued, percentage sits with the rail. Same
+ * three-part shape in the parent row and in the client workspace so traffic is
+ * read the same way at both levels. */
 .inbounds-page .ib-traffic {
-  display:flex; flex-direction:column; gap:3px; min-width:0;
-  max-width:220px;
+  display:flex; flex-direction:column; gap:4px; min-width:0;
+  max-width:100%; overflow:hidden;
 }
 .inbounds-page .ib-traffic-line {
-  display:flex; align-items:baseline; gap:3px; min-width:0;
-  white-space:nowrap;
+  display:flex; align-items:baseline; gap:4px; min-width:0;
+  white-space:nowrap; overflow:hidden;
 }
 .inbounds-page .ib-traffic-used {
-  font-size:13px; font-weight:var(--fw-semibold); color:var(--text);
-  font-variant-numeric:tabular-nums;
+  font-size:13.5px; font-weight:var(--fw-semibold); color:var(--text);
+  font-variant-numeric:tabular-nums; letter-spacing:-.01em;
 }
 .inbounds-page .ib-traffic-cap {
   font-size:11.5px; color:var(--text-3); font-variant-numeric:tabular-nums;
 }
+/* Sits with the figures, not pushed to the cell edge: once the traffic column
+   widens on a large display an edge-aligned percentage loses its connection to
+   the numbers it describes. */
 .inbounds-page .ib-traffic-pct {
   font-size:11px; color:var(--text-3); font-variant-numeric:tabular-nums;
-  line-height:1;
+  line-height:1; flex:0 0 auto; margin-inline-start:4px;
+  padding-inline-start:6px; border-inline-start:1px solid var(--divider);
 }
 .inbounds-page .ib-inf { display:inline-flex; align-items:center; }
+/* 5px rail. At 4px against a low-contrast track the fill was a hairline and the
+   fill colour — the one piece of semantic state here — was unreadable. */
 .inbounds-page .ib-meter {
-  height:4px; border-radius:999px; overflow:hidden;
-  background:var(--divider); width:100%; margin-block-start:1px;
+  height:5px; border-radius:999px; overflow:hidden;
+  background:var(--surface-4); width:100%;
 }
 .inbounds-page .ib-meter-fill {
   display:block; height:100%; border-radius:inherit;
   background:var(--accent);
   transition:width var(--dur-med) var(--ease);
 }
-.inbounds-page .ib-traffic--neutral .ib-meter-fill { background:var(--accent); }
+/* "ok" and "inf" reach the meter through the recurring-expiry cell. Neither is a
+   health signal — an account inside its cycle is simply normal — so both take
+   the neutral accent rather than green. */
+.inbounds-page .ib-traffic--neutral .ib-meter-fill,
+.inbounds-page .ib-traffic--ok .ib-meter-fill,
+.inbounds-page .ib-traffic--inf .ib-meter-fill { background:var(--accent); }
 .inbounds-page .ib-traffic--warn .ib-meter-fill { background:var(--warn); }
 .inbounds-page .ib-traffic--warn .ib-traffic-pct { color:var(--warn); }
 .inbounds-page .ib-traffic--over .ib-meter-fill { background:var(--error); }
@@ -2026,20 +2231,31 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
   opacity:.55;
 }
 
-/* ---- ACTIONS ---- */
+/* ---- ACTIONS ---- *
+ * Right-aligned but held off the frame by the cell's --ib-edge inset. The icons
+ * used to end flush against the grid border, which read as clipped. */
 .inbounds-page .bo-row-actions,
 .inbounds-page .ib-c-acts {
-  display:inline-flex; align-items:center; gap:2px; white-space:nowrap;
+  display:inline-flex; align-items:center; justify-content:flex-end;
+  gap:2px; white-space:nowrap;
 }
 .inbounds-page .ib-rowbtn {
   display:inline-flex; align-items:center; justify-content:center;
-  width:28px; height:28px; padding:0; border:none;
+  width:30px; height:30px; padding:0; border:none;
   background:transparent; color:var(--text-3);
   border-radius:var(--radius-sm); cursor:pointer;
   transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 .inbounds-page .ib-rowbtn:hover {
-  background:var(--surface-3); color:var(--text);
+  background:var(--surface-4); color:var(--text);
+}
+.inbounds-page .ib-rowbtn:focus-visible {
+  outline:2px solid var(--accent); outline-offset:-1px;
+}
+/* Destructive entries stay restrained: tinted on hover, never a red button in
+   the resting row. */
+.inbounds-page .ib-rowbtn--danger:hover {
+  background:var(--error-weak); color:var(--error);
 }
 .inbounds-page .ib-rowbtn .anticon { font-size:15px; }
 .inbounds-page .sortable-icon {
@@ -2048,28 +2264,33 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
 }
 .inbounds-page .sortable-icon:hover { color:var(--text); background:var(--surface-3); }
 
-/* ---- CLIENT WORKSPACE (expanded) ---- */
+/* ---- CLIENT WORKSPACE (expanded) ---- *
+ * A recessed well holding a lighter panel: the expanded cell drops to the page
+ * ground and the workspace sits on --surface-2 above it, one step off the parent
+ * row. Two surface steps plus the accent edge on the parent are what make the
+ * pair read as parent + child rather than two unrelated rows. */
 .inbounds-page .ant-table-expanded-row > td {
-  background:var(--surface-2) !important;
+  background:var(--bg) !important;
   padding:0 !important;
-  border-bottom:1px solid var(--divider);
+  border-bottom:1px solid var(--border);
+  box-shadow:inset 2px 0 0 var(--accent);
 }
 .inbounds-page .ant-table-expanded-row:hover > td {
-  background:var(--surface-2) !important;
+  background:var(--bg) !important;
 }
 .inbounds-page .ib-ws {
-  margin:0 12px 14px;
-  background:var(--surface);
+  margin:12px var(--ib-edge, 18px) 14px;
+  background:var(--surface-2);
   border:1px solid var(--border);
   border-radius:var(--radius-md);
   overflow:hidden;
-  box-shadow:inset 0 1px 0 color-mix(in srgb, var(--text) 3%, transparent);
+  box-shadow:var(--shadow-sm);
 }
 .inbounds-page .ib-ws-head {
   display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:10px 14px;
-  border-bottom:1px solid var(--divider);
-  background:color-mix(in srgb, var(--surface-2) 80%, transparent);
+  padding:9px 14px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
 }
 .inbounds-page .ib-ws-head-lead {
   display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-width:0;
@@ -2090,17 +2311,30 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
   font-size:12px; color:var(--text-3);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:36%;
 }
+/* Client rows are deliberately lighter than parent rows: smaller header caps,
+   one step less padding, no surface of their own. Dozens of them have to stay
+   scannable, so the workspace does not turn them into cards. */
+.inbounds-page .ib-ws-table table { table-layout:fixed; width:100%; }
 .inbounds-page .ib-ws-table .ant-table-thead > tr > th {
   background:transparent;
   padding:7px 12px;
-  font-size:10.5px; color:var(--text-3);
-  text-transform:uppercase; letter-spacing:.03em;
+  font-size:10px; font-weight:var(--fw-semibold); color:var(--text-3);
+  text-transform:uppercase; letter-spacing:.05em;
   border-bottom:1px solid var(--divider);
 }
 .inbounds-page .ib-ws-table .ant-table-tbody > tr > td {
   padding:11px 12px;
   border-bottom:1px solid var(--divider);
   vertical-align:middle;
+  transition:background var(--dur-fast) var(--ease);
+}
+.inbounds-page .ib-ws-table .ant-table-thead > tr > th:first-child,
+.inbounds-page .ib-ws-table .ant-table-tbody > tr > td:first-child {
+  padding-inline-start:14px;
+}
+.inbounds-page .ib-ws-table .ant-table-thead > tr > th:last-child,
+.inbounds-page .ib-ws-table .ant-table-tbody > tr > td:last-child {
+  padding-inline-end:14px;
 }
 .inbounds-page .ib-ws-table .ant-table-tbody > tr:last-child > td {
   border-bottom:none;
@@ -2108,9 +2342,17 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
 .inbounds-page .ib-ws-table .ant-table-tbody > tr:hover > td {
   background:var(--surface-hover) !important;
 }
-.inbounds-page .ib-ws-table .ant-table-pagination {
-  margin:8px 12px 10px;
+.inbounds-page .ib-ws-table .ant-table-tbody > tr.ant-table-row-selected > td {
+  background:var(--accent-weak) !important;
 }
+.inbounds-page .ib-ws-table .ant-table-pagination {
+  margin:8px 14px 10px;
+}
+/* Traffic inside the workspace: one step tighter than the parent row, same
+   grammar. */
+.inbounds-page .ib-ws-table .ib-traffic { gap:3px; }
+.inbounds-page .ib-ws-table .ib-traffic-used { font-size:12.5px; }
+.inbounds-page .ib-ws-table .ib-meter { height:4px; }
 
 /* Client identity / status inside workspace */
 .inbounds-page .ib-client {
@@ -2127,10 +2369,44 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
   font-size:11.5px; color:var(--text-3);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+/* Duration chip. A one-shot account has no cycle to meter, so it reads as a
+   single figure — but it has to sit on the same optical line as the metered
+   version in the row above it, hence the fixed height and the tabular figures.
+   These classes were emitted by the client table with no rules behind them,
+   which is why the expiry column looked like loose unstyled text. */
+.inbounds-page .ib-tag {
+  display:inline-flex; align-items:center; gap:4px;
+  height:22px; padding-inline:8px;
+  border-radius:var(--radius-sm);
+  font-size:12px; font-weight:var(--fw-medium);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+  background:var(--surface-3); border:1px solid var(--divider);
+  color:var(--text-2);
+}
+.inbounds-page .ib-tag--time { color:var(--text-2); }
+.inbounds-page .ib-tag--ok { color:var(--text); }
+.inbounds-page .ib-tag--warn {
+  color:var(--warn); background:var(--warn-weak);
+  border-color:color-mix(in srgb, var(--warn) 22%, transparent);
+}
+.inbounds-page .ib-tag--over {
+  color:var(--error); background:var(--error-weak);
+  border-color:color-mix(in srgb, var(--error) 22%, transparent);
+}
+.inbounds-page .ib-tag--off,
+.inbounds-page .ib-tag--quiet { color:var(--text-3); }
+.inbounds-page .ib-tag--quiet svg,
+.inbounds-page .ib-tag--off svg { opacity:.75; }
+/* Inline badge riding inside the client name, not a row-level chip: it must not
+   inherit the chip's height or it changes the name's line box. */
+.inbounds-page .ib-tag--secure { height:auto; border:none; }
 .inbounds-page .ib-tag--frozen {
-  margin-inline-start:4px; font-size:10px; padding:0 5px;
+  margin-inline-start:4px; font-size:10px; padding-inline:5px;
   background:var(--info-weak); color:var(--info);
-  border-radius:var(--radius-pill);
+  border-radius:var(--radius-pill); border:none;
+}
+.inbounds-page .ib-num {
+  font-size:12.5px; color:var(--text-2); font-variant-numeric:tabular-nums;
 }
 
 .inbounds-page .ib-c-status {
@@ -2170,22 +2446,62 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
   display:flex; align-items:center; gap:10px; margin:5px 0;
 }
 
-/* Responsive: identity stays primary; secondary meta can wrap */
+/* ---- responsive / overflow ---- *
+ * The page frame never scrolls sideways: .bo-main already clips overflow-x and
+ * the grid's fixed layout keeps the table inside its frame. Below ~1120px the
+ * six zones genuinely stop fitting, so horizontal scrolling is granted to the
+ * data region alone — .ant-table-content, inside the grid's rounded frame —
+ * rather than to the page. Above that width nothing scrolls at all. */
+@media (max-width:1120px) {
+  /* Ant already scrolls .ant-table-body; the reason it could not was .ant-table
+     above it. As a flex item of .ib-grid with visible overflow its min-width
+     resolves to the table's min-content width, so it grew to 900 and .ib-grid's
+     overflow:hidden clipped the action column rather than anything offering a
+     scrollbar. A non-visible overflow-x drops that minimum to 0, .ant-table
+     stays at the frame width, and .ant-table-body scrolls inside it as intended.
+     overflow-y has to be stated or the browser promotes it to auto and adds a
+     spurious vertical scrollbar; popovers and dropdowns portal to body, so
+     nothing that needs to escape the box lives in here. */
+  .inbounds-page .ib-grid > .ant-table-wrapper .ant-table,
+  .inbounds-page .ib-ws-table .ant-table {
+    overflow-x:auto; overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+  }
+  .inbounds-page .ib-grid .ant-table table { min-width:900px; }
+  .inbounds-page .ib-ws-table table { min-width:740px; }
+}
+
+/* Identity stays primary; the quietest metadata line is the first thing to go */
 @media (max-width:1280px) {
-  .inbounds-page .ib-idz { max-width:36vw; }
+  .inbounds-page .ib-grid { --ib-edge:14px; }
   .inbounds-page .ib-idz-sub { display:none; }
+  .inbounds-page .ib-ops-item { padding-inline:13px; }
 }
 @media (max-width:900px) {
-  .inbounds-page .ib-ops-item { padding:0 10px; }
-  .inbounds-page .ib-ops-val { font-size:14px; }
+  .inbounds-page .ib-console { gap:12px; }
+  .inbounds-page .ib-ops { padding:8px 4px; }
+  .inbounds-page .ib-ops-item { padding-inline:11px; }
+  .inbounds-page .ib-ops-val { font-size:16px; }
+  .inbounds-page .ib-ops-item--muted .ib-ops-val { font-size:14px; }
   .inbounds-page .ib-search { max-width:none; }
 }
 @media (max-width:768px) {
-  .inbounds-page .ib-bar { padding:10px; gap:8px; }
+  .inbounds-page .ib-bar { padding:10px; gap:8px; --ib-ctl:32px; }
   .inbounds-page .ib-bar-cluster--util { margin-inline-start:0; }
   .inbounds-page .ib-search { max-width:none; flex:1 1 100%; }
-  .inbounds-page .ib-ws { margin:0 6px 8px; }
+  .inbounds-page .ib-grid { --ib-edge:12px; }
+  .inbounds-page .ib-ws { margin:8px 8px 10px; }
   .inbounds-page .ib-ws-parent { display:none; }
-  .inbounds-page .ib-grid-head { padding:8px 10px; }
+  .inbounds-page .ib-grid-head { padding:9px 12px; }
   .inbounds-page .ib-ops-extra { margin-inline-start:0; width:100%; padding-block-start:4px; }
+  /* Mobile columns are a different, narrower set, so the region does fit. */
+  .inbounds-page .ib-grid .ant-table table { min-width:0; }
+  .inbounds-page .ib-grid .ant-table-content { overflow-x:visible; }
+}
+
+/* Motion budget: state changes only, at the short end of the scale. */
+@media (prefers-reduced-motion: reduce) {
+  .inbounds-page .ib-meter-fill,
+  .inbounds-page .ib-grid .ant-table-tbody > tr > td,
+  .inbounds-page .ib-ops-val { transition:none; }
 }
