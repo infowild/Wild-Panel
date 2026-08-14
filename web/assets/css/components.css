@@ -144,10 +144,35 @@
   --rail-item-pad:calc(var(--rail-w-collapsed) / 2 - var(--rail-pad) - var(--rail-ico) / 2);
   --rail-brand-pad:calc(var(--rail-w-collapsed) / 2 - var(--rail-pad) - 16px);
   /* Offset and ink are separate so direction and theme can each be set without
-     either selector restating the whole shadow. */
+     either selector restating the whole shadow. --rail-peek-x2 is the near,
+     edge-defining offset; --rail-peek-x the wide ambient one. */
   --rail-peek-x:22px;
+  --rail-peek-x2:2px;
   --rail-peek-ink:rgba(15,23,42,.18);
+  --rail-peek-ink-near:rgba(15,23,42,.10);
   --rail-reveal-x:-6px;
+
+  /* Open state is a distinct surface, not the same panel made wider. In dark the
+     overlay lifts (elevation reads as light); in light the ground is already
+     white, so separation has to come from the edge and the falloff instead. */
+  --rail-peek-bg:var(--sidebar-bg);
+  --rail-peek-edge:var(--border-hover);
+
+  /* The falloff behind the open rail. Anchored past the 240px panel so every
+     visible stop is real: ~11-30% at the edge, gone by 920px. This is a light
+     falloff from a floating layer, not a modal scrim — the page stays readable
+     and stays interactive (the layer never takes the pointer). */
+  --rail-scrim-dir:right;
+  --rail-scrim:linear-gradient(to var(--rail-scrim-dir),
+    rgba(15,23,42,.11) 240px,
+    rgba(15,23,42,.055) 440px,
+    rgba(15,23,42,.018) 680px,
+    rgba(15,23,42,0) 920px);
+
+  /* Arriving decelerates, leaving accelerates and gets out of the way sooner.
+     One symmetric curve for both directions is what made the close feel like the
+     panel was being dragged shut rather than dismissed. */
+  --rail-ease-exit:cubic-bezier(.4,0,1,1);
 
   position:relative; z-index:30;
   flex:0 0 var(--rail-w-collapsed); inline-size:var(--rail-w-collapsed);
@@ -160,8 +185,30 @@
 .bo-rail-slot.is-pinned {
   flex-basis:var(--rail-w); inline-size:var(--rail-w);
 }
-[dir="rtl"] .bo-rail-slot { --rail-peek-x:-22px; --rail-reveal-x:6px; }
-body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
+[dir="rtl"] .bo-rail-slot {
+  --rail-peek-x:-22px; --rail-peek-x2:-2px; --rail-reveal-x:6px;
+  --rail-scrim-dir:left;
+}
+body.dark .bo-rail-slot {
+  --rail-peek-ink:rgba(0,0,0,.58);
+  --rail-peek-ink-near:rgba(0,0,0,.34);
+  /* One step off #0D0D0F: enough to read as elevated against the page, not
+     enough to read as a different component. */
+  --rail-peek-bg:#121216;
+  --rail-scrim:linear-gradient(to var(--rail-scrim-dir),
+    rgba(0,0,0,.30) 240px,
+    rgba(0,0,0,.14) 440px,
+    rgba(0,0,0,.045) 680px,
+    rgba(0,0,0,0) 920px);
+}
+html[data-theme='ultra-dark'] body.dark .bo-rail-slot {
+  --rail-peek-bg:#0D0D10;
+  --rail-scrim:linear-gradient(to var(--rail-scrim-dir),
+    rgba(0,0,0,.34) 240px,
+    rgba(0,0,0,.16) 440px,
+    rgba(0,0,0,.05) 680px,
+    rgba(0,0,0,0) 920px);
+}
 
 /* The hover region. Instant by contract - see the note above. */
 .bo-rail-hit {
@@ -180,6 +227,40 @@ body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
   .bo-rail-hit:hover { inline-size:var(--rail-w); }
 }
 
+/* ---- the falloff behind the open panel ----------------------------------- *
+ * Without this the open rail reads as a panel that happens to be sitting on top
+ * of the page: the heading and cards behind it stay at full strength, so the eye
+ * gives them equal billing and the overlap looks like a mistake. Dropping the
+ * area behind the panel a few percent is what makes it read as one layer in
+ * front of another.
+ *
+ * It hangs off the hit region because that is where peek state lives (:hover
+ * cannot be read from an ancestor). Fixed, so it does not scroll with .bo-main;
+ * z-index:-1 keeps it under the panel while staying inside the slot's z-30
+ * stacking context, which puts it over the page without inventing a new global
+ * layer. pointer-events:none is load-bearing, not hygiene — this thing covers
+ * the whole viewport, and without it the page would stop taking clicks.
+ */
+.bo-rail-hit::before {
+  content:""; position:fixed; inset:0; z-index:-1;
+  background:var(--rail-scrim);
+  opacity:0; pointer-events:none;
+  transition:opacity 150ms var(--rail-ease-exit);
+}
+/* Pinned is a real column that the page has made room for, so there is nothing
+   to separate it from and no falloff. */
+.bo-rail-slot:not(.is-pinned).is-overlay .bo-rail-hit::before,
+.bo-rail-slot:not(.is-pinned) .bo-rail-hit:focus-within::before {
+  opacity:1;
+  transition:opacity var(--dur-med) var(--ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .bo-rail-slot:not(.is-pinned) .bo-rail-hit:hover::before {
+    opacity:1;
+    transition:opacity var(--dur-med) var(--ease);
+  }
+}
+
 .bo-rail {
   inline-size:var(--rail-w-collapsed); block-size:100%;
   background:var(--sidebar-bg);
@@ -191,23 +272,51 @@ body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
      scrollport below. */
   overflow:visible;
   box-shadow:none;
-  transition:inline-size 200ms var(--ease), box-shadow 200ms var(--ease);
+  /* Exit curve and duration: the state rules below install the entry pair, and
+     returning to this rule is what plays the close. */
+  transition:inline-size 170ms var(--rail-ease-exit),
+             box-shadow 170ms var(--rail-ease-exit),
+             background-color 170ms var(--rail-ease-exit),
+             border-color 170ms var(--rail-ease-exit);
 }
 /* Peek floats over the page, so it needs the elevation a pinned rail does not:
    without a boundary the overlay and the content behind it read as one surface.
+   Three things do that job together and none of them alone is enough — a lifted
+   surface, a firmer content-facing edge, and a two-part shadow: a tight one that
+   draws the edge and a wide one that carries the ambient falloff into the page.
    Pinned stays flat because it is a real column. */
 .bo-rail-slot.is-overlay .bo-rail,
 .bo-rail-hit:focus-within .bo-rail {
   inline-size:var(--rail-w);
-  box-shadow:var(--rail-peek-x) 0 44px -26px var(--rail-peek-ink);
+  background:var(--rail-peek-bg);
+  border-inline-end-color:var(--rail-peek-edge);
+  box-shadow:var(--rail-peek-x2) 0 8px -4px var(--rail-peek-ink-near),
+             var(--rail-peek-x) 0 48px -28px var(--rail-peek-ink);
+  transition:inline-size var(--dur-med) var(--ease),
+             box-shadow var(--dur-med) var(--ease),
+             background-color var(--dur-med) var(--ease),
+             border-color var(--dur-med) var(--ease);
 }
 @media (hover: hover) and (pointer: fine) {
   .bo-rail-hit:hover .bo-rail {
     inline-size:var(--rail-w);
-    box-shadow:var(--rail-peek-x) 0 44px -26px var(--rail-peek-ink);
+    background:var(--rail-peek-bg);
+    border-inline-end-color:var(--rail-peek-edge);
+    box-shadow:var(--rail-peek-x2) 0 8px -4px var(--rail-peek-ink-near),
+               var(--rail-peek-x) 0 48px -28px var(--rail-peek-ink);
+    transition:inline-size var(--dur-med) var(--ease),
+               box-shadow var(--dur-med) var(--ease),
+               background-color var(--dur-med) var(--ease),
+               border-color var(--dur-med) var(--ease);
   }
 }
-.bo-rail-slot.is-pinned .bo-rail { inline-size:var(--rail-w); box-shadow:none; }
+/* Pinned: a column, so it keeps the flat rail surface and the quiet border. */
+.bo-rail-slot.is-pinned .bo-rail {
+  inline-size:var(--rail-w);
+  background:var(--sidebar-bg);
+  border-inline-end-color:var(--border);
+  box-shadow:none;
+}
 
 /* ---- reveal: the only thing that moves when the rail opens ---------------
    Collapsed labels are squeezed to zero used width, not display:none-d, so the
@@ -222,8 +331,12 @@ body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
   margin:0; padding:0;
   white-space:nowrap; overflow:hidden;
   pointer-events:none;
-  transition:opacity 160ms var(--ease), transform 160ms var(--ease);
+  /* Labels leave first and quickly, so they are gone before the panel edge
+     reaches them rather than sliding out under it. */
+  transition:opacity 110ms var(--rail-ease-exit), transform 110ms var(--rail-ease-exit);
 }
+/* Entry: held back ~60ms so the text arrives into space the panel has already
+   opened, then 150ms to settle — 210ms end to end. */
 .bo-rail-slot.is-pinned .bo-rail-reveal,
 .bo-rail-slot.is-overlay .bo-rail-reveal,
 .bo-rail-hit:focus-within .bo-rail-reveal {
@@ -231,7 +344,7 @@ body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
   max-inline-size:none; flex:1 1 auto;
   margin-inline-start:var(--rail-gap);
   pointer-events:auto;
-  transition-delay:70ms;
+  transition:opacity 150ms var(--ease) 60ms, transform 150ms var(--ease) 60ms;
 }
 @media (hover: hover) and (pointer: fine) {
   .bo-rail-hit:hover .bo-rail-reveal {
@@ -239,7 +352,7 @@ body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
     max-inline-size:none; flex:1 1 auto;
     margin-inline-start:var(--rail-gap);
     pointer-events:auto;
-    transition-delay:70ms;
+    transition:opacity 150ms var(--ease) 60ms, transform 150ms var(--ease) 60ms;
   }
 }
 
@@ -272,10 +385,13 @@ body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
 /* ---- main nav ----------------------------------------------------------- */
 /* The nav scrolls, not the rail: a scrollbar on a 72px rail is ugly and, worse,
    its gutter would shift every icon off the midline. */
+/* 4px gap on a 40px row. At 2px the rows read as one banded block and the active
+   item's surface looked like it was touching its neighbours; the nav tops out at
+   seven entries, so the extra 14px never costs a scrollbar. */
 .bo-rail-nav {
-  display:flex; flex-direction:column; gap:2px;
+  display:flex; flex-direction:column; gap:4px;
   inline-size:100%; flex:1 1 auto; min-block-size:0;
-  padding-block:2px;
+  padding-block:4px;
   overflow-y:auto; overflow-x:hidden;
   scrollbar-width:thin; scrollbar-color:var(--border) transparent;
 }
@@ -332,10 +448,12 @@ body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
 /* ---- foot: logout, theme, pin ------------------------------------------- */
 /* One group on the same grid as the nav, set apart by space and a divider
    rather than by looking like a different species of control. */
+/* margin-block-start:auto is what pins this group to the bottom — internal
+   breathing room has to come from padding, not a second margin. */
 .bo-rail-foot {
-  display:flex; flex-direction:column; gap:2px;
+  display:flex; flex-direction:column; gap:4px;
   inline-size:100%; margin-block-start:auto;
-  padding-block-start:10px;
+  padding-block-start:12px;
   border-block-start:1px solid var(--divider);
 }
 .bo-rail-item--logout:hover { color:var(--error); background:var(--error-weak); }
@@ -354,12 +472,18 @@ body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
   display:block; inline-size:100%;
 }
 .bo-rail-foot .ant-popover-wrap > span { display:block; inline-size:100%; }
+/* text-align:start is not cosmetic here. A <button> centres its text, and the
+   label carries flex:1 1 auto, so "Theme" was centring itself in the leftover
+   row width and starting ~76px further in than "Log Out" and "Expand sidebar"
+   above and below it. .bo-rail-item sets this already; the toggle has to match
+   or the foot group reads as one row bolted on out of alignment. */
 .bo-rail-foot .bo-theme-toggle {
   inline-size:100%; block-size:auto; min-block-size:40px;
   border:none; border-radius:var(--radius-md); background:transparent;
   color:var(--text-2);
   display:flex; align-items:center; justify-content:flex-start;
   padding:8px var(--rail-item-pad);
+  text-align:start;
   cursor:pointer;
   transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
@@ -382,6 +506,7 @@ body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
 @media (prefers-reduced-motion: reduce) {
   .bo-rail-slot,
   .bo-rail,
+  .bo-rail-hit::before,
   .bo-rail-reveal,
   .bo-rail-item,
   .bo-rail-item-ico { transition-duration:1ms !important; transition-delay:0ms !important; }
