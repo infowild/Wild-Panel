@@ -12,8 +12,8 @@
  *     stamp data-theme on <html>; the panel puts the theme class on <body>
  *     (aThemeSwitch.html:50) and reserves html[data-theme] for ultra-dark.
  *   - The rail is 248px expanded (80px collapsed), not 84px. Menu labels do not fit at 84px in every
- *     locale: "Администраторы", "Настройки Xray", "Panel Settings" and
- *     "پیکربندی ایکس‌ری" all overrun. Labels wrap to two lines here.
+ *     locale: "ÐÐ´Ð¼Ð¸Ð½Ð¸ÑÑÑÐ°ÑÐ¾ÑÑ", "ÐÐ°ÑÑÑÐ¾Ð¹ÐºÐ¸ Xray", "Panel Settings" and
+ *     "Ù¾ÛÚ©Ø±Ø¨ÙØ¯Û Ø§ÛÚ©Ø³âØ±Û" all overrun. Labels wrap to two lines here.
  *   - Physical direction properties are logical throughout, for fa_IR/ar_EG.
  *     Charts and numeric strings are explicitly pinned LTR: a mirrored time
  *     axis is wrong, and bidi reordering mangles IPs and version numbers.
@@ -106,7 +106,7 @@
 
    .bo-rail-slot is the flex child: it owns the width the page yields to the
    navigation. .bo-rail is painted absolutely inside it and is the thing that
-   actually widens. Keeping those separate is what makes hover-to-peek usable —
+   actually widens. Keeping those separate is what makes hover-to-peek usable â
    the slot stays at the collapsed width, so the rail floats OVER the content
    and nothing beside it reflows. A rail that pushed the page on every mouse
    pass would resize the bento grid and re-render every sparkline mid-motion.
@@ -154,7 +154,7 @@
 .bo-rail-slot.is-collapsed .bo-rail { width:var(--rail-w-collapsed); }
 /* Peek is an overlay, so it needs the elevation the pinned rail does not:
    without a shadow the floating panel and the page behind it read as one
-   surface. Source order matters — .is-peek only ever coexists with
+   surface. Source order matters â .is-peek only ever coexists with
    .is-collapsed, and must win. */
 .bo-rail-slot.is-peek .bo-rail {
   width:var(--rail-w);
@@ -383,8 +383,8 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
  *
  * One strip carrying what used to be four cards: server identity, the panel
  * updater, the Manage actions and Xray. None of them had enough content to
- * justify a card — between them roughly two dozen short strings and fifteen
- * buttons — so each was mostly empty height, and together they pushed the
+ * justify a card â between them roughly two dozen short strings and fifteen
+ * buttons â so each was mostly empty height, and together they pushed the
  * analytical tiles below the fold.
  *
  * Two bands: a bar (who this server is, what you can do to the panel) and a
@@ -424,7 +424,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
   display:flex; align-items:center; flex-wrap:wrap; gap:0 7px;
   margin:2px 0 0; font-size:12.5px; color:var(--text-3); line-height:1.4;
 }
-/* A real element, not a "·" in the text: a rendered separator can be gated by
+/* A real element, not a "Â·" in the text: a rendered separator can be gated by
    v-if and can never be left stranded at the start of a wrapped line. */
 .bo-cc-sep {
   width:3px; height:3px; border-radius:50%; flex:0 0 auto;
@@ -466,8 +466,8 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-cc-mod-note--err { color:var(--error); }
 .bo-cc-mod-acts { display:flex; align-items:center; gap:3px; }
 
-/* Uniform square icon action. Every icon-only control in the strip — updater,
-   Xray, cancel — uses this one size so they share an optical line. */
+/* Uniform square icon action. Every icon-only control in the strip â updater,
+   Xray, cancel â uses this one size so they share an optical line. */
 .bo-cc-ico {
   width:28px; height:28px; padding:0; flex:0 0 auto;
   border:none; border-radius:var(--radius-sm); background:transparent;
@@ -527,7 +527,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 }
 
 /* Wrapping flex, not auto-fit grid. With a grid, a final row that does not fill
-   its tracks leaves empty cells — and since the separators are drawn by the
+   its tracks leaves empty cells â and since the separators are drawn by the
    container's background showing through 1px gaps, those empty cells render as a
    block of divider colour. Flex items that grow always fill their row exactly,
    so the hairlines stay hairlines at every width. */
@@ -613,7 +613,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 
 /* Four tiles, each of which earns a card: throughput, vitals, clients,
    services. Identity, Xray, the updater and Manage moved into the control
-   center strip above — they were the four that could not fill one. */
+   center strip above â they were the four that could not fill one. */
 .bo-bento {
   display:grid; grid-template-columns:1fr; gap:var(--gap-sm);
   grid-template-areas:
@@ -687,7 +687,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
    PRIMARY   (flow, vit)   elevated surface, shadow, accent marker
    SECONDARY (users)       flat surface, plain heading
    TERTIARY  (svc)         recessed, tighter, quietest heading
-   Weight is carried by surface depth, padding and heading scale — not colour. */
+   Weight is carried by surface depth, padding and heading scale â not colour. */
 .bo-t-flow, .bo-t-vit {
   padding:16px 18px;
   box-shadow:var(--shadow-sm);
@@ -698,7 +698,7 @@ body:not(.dark) .bo-t-flow,
 body:not(.dark) .bo-t-vit { background:var(--surface); box-shadow:var(--shadow-md); }
 body.dark .bo-t-flow,
 body.dark .bo-t-vit { background:var(--surface-3); }
-/* :first-child — only the card's own heading is promoted. System Status also
+/* :first-child â only the card's own heading is promoted. System Status also
    contains a nested "IP addresses" heading, which must stay a quiet sub-head. */
 .bo-t-flow > .bo-tile-head:first-child .bo-tile-title,
 .bo-t-vit > .bo-tile-head:first-child .bo-tile-title { font-size:var(--fs-base); color:var(--text); }
@@ -785,7 +785,7 @@ body.dark .bo-t-svc { background:var(--surface); }
 .bo-unit { font-size:12px; font-weight:var(--fw-medium); color:var(--text-3); margin-inline-start:3px; white-space:nowrap; }
 
 /* Time flows left-to-right in every locale. Never mirror a chart.
-   The two hairlines are the chart's reference grid — drawn by the container so
+   The two hairlines are the chart's reference grid â drawn by the container so
    the shared sparkline component needs no change. */
 .bo-flow-chart {
   width:100%; height:84px; flex:0 0 84px; margin-top:6px; direction:ltr;
@@ -818,7 +818,7 @@ body.dark .bo-t-svc { background:var(--surface); }
 
 /* Analytical metric matrix: label, large figure with its absolute reading on the
    same baseline, micro-meter, trend line. Deliberately NOT a stack of
-   full-width bars — the figure leads and the meter is a 3px reference, not the
+   full-width bars â the figure leads and the meter is a 3px reference, not the
    subject.
 
    The four cells are divided by hairlines rather than by gaps, so the block
@@ -880,7 +880,7 @@ body.dark .bo-t-svc { background:var(--surface); }
   margin-inline-start:1px;
 }
 /* Threshold tint on the figure as well as the meter: at a glance a hot metric
-   should not require comparing bar lengths. Never the only signal — the number
+   should not require comparing bar lengths. Never the only signal â the number
    and the meter both still carry it. */
 .bo-vit-pct.bo-ring-progress--warn { color:var(--warn); }
 .bo-vit-pct.bo-ring-progress--error { color:var(--error); }
@@ -958,7 +958,7 @@ body.dark .bo-t-svc { background:var(--surface); }
   white-space:nowrap; flex:0 0 auto;
 }
 
-/* Dots only — no halo rings. Running is the only state that also strengthens
+/* Dots only â no halo rings. Running is the only state that also strengthens
    the service name, so a healthy matrix reads at a glance. */
 .bo-svc-chip[data-state="running"] .bo-svc-led { background:var(--ok); }
 .bo-svc-chip[data-state="running"] .bo-svc-name { color:var(--text); }
@@ -1073,7 +1073,7 @@ body.dark .bo-t-svc { background:var(--surface); }
    is the payload, so it gets the monospace face and the room: the chain label
    is fixed-width and the button is intrinsic, leaving the middle column to
    absorb whatever is left. Addresses are long and unbreakable, hence the
-   explicit wrap rather than an ellipsis — a truncated address invites copying
+   explicit wrap rather than an ellipsis â a truncated address invites copying
    half of one by hand. */
 .bo-donate-intro { margin:0 0 var(--sp-3); font-size:13px; color:var(--text-3); }
 .bo-donate-list { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
@@ -1096,7 +1096,7 @@ body.dark .bo-t-svc { background:var(--surface); }
 
 /* Under ~560px the three columns cannot all hold their minimum, so the row
    becomes two lines: chain and button on the first, the address spanning the
-   second. Every cell is placed explicitly — grid auto-placement only moves
+   second. Every cell is placed explicitly â grid auto-placement only moves
    forward, so once the full-width address claims row 2 the button would land
    on a row 3 of its own instead of back beside the chain. */
 @media (max-width:560px) {
@@ -1608,4 +1608,515 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
 .cfg-sub-qr canvas {
   width:172px; height:172px; cursor:pointer;
   background:#fff; border-radius:var(--radius-sm); padding:6px;
+}
+
+/* ================================================================== *
+ * Inbounds operations console (.inbounds-page)
+ *
+ * Five bands in reading order: KPIs, command bar, selection, grid,
+ * expanded client detail. Scoped to .inbounds-page so Overview and
+ * Settings keep their own card/table language. Tokens only â no
+ * hex that would need a second light-theme pass.
+ * ================================================================== */
+
+.inbounds-page .bo-content {
+  display:flex; flex-direction:column; gap:0;
+  min-height:calc(100vh - 64px);
+}
+.inbounds-page .ib-console {
+  display:flex; flex-direction:column; gap:12px;
+  flex:1 1 auto; min-height:0;
+}
+
+/* -- 1. KPI strip -- */
+
+.inbounds-page .ib-kpis {
+  display:grid;
+  grid-template-columns:repeat(6, minmax(0, 1fr));
+  gap:1px;
+  background:var(--border);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+}
+.inbounds-page .ib-kpi {
+  background:var(--surface);
+  padding:12px 14px;
+  display:flex; flex-direction:column; gap:6px;
+  min-width:0;
+}
+.inbounds-page .ib-kpi--wide { grid-column:span 2; }
+.inbounds-page .ib-kpi-head {
+  display:flex; align-items:center; gap:6px; min-width:0;
+}
+.inbounds-page .ib-kpi-ico { color:var(--text-3); }
+.inbounds-page .ib-kpi-label {
+  font-size:var(--fs-xs); font-weight:var(--fw-semibold);
+  letter-spacing:.04em; text-transform:uppercase; color:var(--text-3);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.inbounds-page .ib-kpi-value {
+  font-size:18px; font-weight:var(--fw-semibold); color:var(--text);
+  line-height:1.15; letter-spacing:-.02em;
+}
+.inbounds-page .ib-kpi-row {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.inbounds-page .ib-kpi-flows {
+  display:flex; flex-direction:column; gap:3px;
+}
+.inbounds-page .ib-flow {
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:13px; font-weight:var(--fw-semibold); color:var(--text);
+}
+.inbounds-page .ib-flow .bo-icon { color:var(--text-3); }
+.inbounds-page .ib-flow--up .bo-icon { color:var(--accent); }
+.inbounds-page .ib-flow--down .bo-icon { color:var(--info); }
+.inbounds-page .ib-chips {
+  display:flex; flex-wrap:wrap; gap:5px; align-items:center;
+}
+
+@media (max-width:1180px) {
+  .inbounds-page .ib-kpis { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  .inbounds-page .ib-kpi--wide { grid-column:span 3; }
+}
+@media (max-width:720px) {
+  .inbounds-page .ib-kpis { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .inbounds-page .ib-kpi--wide { grid-column:span 2; }
+}
+@media (max-width:480px) {
+  .inbounds-page .ib-kpis { grid-template-columns:1fr; }
+  .inbounds-page .ib-kpi--wide { grid-column:span 1; }
+}
+
+/* -- chips (shared by KPIs + client counts) -- */
+
+.inbounds-page .ib-chip {
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:11px; font-weight:var(--fw-medium);
+  padding:2px 8px 2px 7px;
+  border-radius:var(--radius-pill);
+  background:var(--off-weak); color:var(--off);
+  cursor:default; line-height:1.4;
+  white-space:nowrap;
+}
+.inbounds-page .ib-chip-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:currentColor; flex:0 0 auto;
+}
+.inbounds-page .ib-chip-txt { opacity:.85; }
+.inbounds-page .ib-chip--ok { background:var(--ok-weak); color:var(--ok); }
+.inbounds-page .ib-chip--info { background:var(--info-weak); color:var(--info); }
+.inbounds-page .ib-chip--warn { background:var(--warn-weak); color:var(--warn); }
+.inbounds-page .ib-chip--error { background:var(--error-weak); color:var(--error); }
+.inbounds-page .ib-chip--off { background:var(--off-weak); color:var(--off); }
+.inbounds-page .ib-chip--mini { padding:1px 6px 1px 5px; font-size:10.5px; }
+
+/* -- 2. command bar -- */
+
+.inbounds-page .ib-bar {
+  display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap;
+  padding:10px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+}
+.inbounds-page .ib-bar-cluster {
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0;
+}
+.inbounds-page .ib-bar-cluster--lead { flex:0 0 auto; }
+.inbounds-page .ib-bar-cluster--find {
+  flex:1 1 280px; justify-content:flex-start;
+}
+.inbounds-page .ib-bar-cluster--util {
+  flex:0 0 auto; margin-inline-start:auto;
+}
+.inbounds-page .ib-cta { font-weight:var(--fw-semibold); }
+.inbounds-page .ib-btn-2nd { color:var(--text-2); }
+.inbounds-page .ib-search { flex:1 1 220px; max-width:360px; min-width:160px; }
+.inbounds-page .ib-search .ant-input-affix-wrapper,
+.inbounds-page .ib-search .ant-input {
+  border-radius:var(--radius-md);
+}
+.inbounds-page .ib-filters { display:inline-flex; flex-wrap:wrap; }
+.inbounds-page .ib-mode { flex:0 0 auto; }
+
+/* -- 3. selection bar -- */
+
+.inbounds-page .ib-selbar {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; flex-wrap:wrap;
+  padding:8px 12px;
+  background:var(--accent-weak);
+  border:1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius:var(--radius-md);
+}
+.inbounds-page .ib-selbar-lead {
+  display:flex; align-items:baseline; gap:8px; min-width:0;
+}
+.inbounds-page .ib-selbar-count {
+  font-size:16px; font-weight:var(--fw-semibold); color:var(--accent);
+}
+.inbounds-page .ib-selbar-label { font-size:var(--fs-sm); color:var(--text-2); }
+.inbounds-page .ib-selbar-acts {
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+}
+
+/* -- 4. data grid shell -- */
+
+.inbounds-page .ib-grid {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  display:flex; flex-direction:column;
+  flex:1 1 auto; min-height:0;
+}
+.inbounds-page .ib-grid-head {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; flex-wrap:wrap;
+  padding:10px 14px;
+  border-bottom:1px solid var(--divider);
+  background:var(--surface-2);
+}
+.inbounds-page .ib-grid-head-lead {
+  display:flex; align-items:baseline; gap:10px; min-width:0;
+}
+.inbounds-page .ib-grid-title {
+  margin:0; font-size:13px; font-weight:var(--fw-semibold);
+  color:var(--text); letter-spacing:0;
+}
+.inbounds-page .ib-grid-count {
+  font-size:var(--fs-xs); color:var(--text-3);
+  padding:1px 7px; border-radius:var(--radius-pill);
+  background:var(--surface-3);
+}
+.inbounds-page .ib-grid-head-acts {
+  display:flex; align-items:center; gap:6px;
+}
+.inbounds-page .ib-seg {
+  display:inline-flex; align-items:center;
+  background:var(--surface-3); border-radius:var(--radius-sm);
+  padding:2px;
+}
+.inbounds-page .ib-tool {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; padding:0; border:none;
+  background:transparent; color:var(--text-3);
+  border-radius:var(--radius-sm); cursor:pointer;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.inbounds-page .ib-tool:hover { background:var(--surface-hover); color:var(--text); }
+.inbounds-page .ib-tool--on { background:var(--surface); color:var(--accent); box-shadow:var(--shadow-sm); }
+.inbounds-page .ib-seg .ib-tool { width:26px; height:24px; }
+
+/* Density presets: only the cell padding changes. Compact is for operators
+   who live in this page all day; cozy is the default. */
+.inbounds-page .ib-grid--cozy .ant-table-thead > tr > th { padding:10px 12px; }
+.inbounds-page .ib-grid--cozy .ant-table-tbody > tr > td { padding:11px 12px; }
+.inbounds-page .ib-grid--compact .ant-table-thead > tr > th { padding:7px 10px; }
+.inbounds-page .ib-grid--compact .ant-table-tbody > tr > td { padding:7px 10px; }
+
+/* Soften the global table chrome for this page: quieter hover, hairline
+   separators, no accent wash on every row. */
+.inbounds-page .ib-grid .ant-table-thead > tr > th {
+  background:transparent;
+  color:var(--text-3);
+  font-size:11px; font-weight:var(--fw-semibold);
+  letter-spacing:.02em;
+  border-bottom:1px solid var(--divider);
+}
+.inbounds-page .ib-grid .ant-table-tbody > tr > td {
+  border-bottom:1px solid var(--divider);
+  vertical-align:middle;
+}
+.inbounds-page .ib-grid .ant-table-tbody > tr:hover > td,
+.inbounds-page .ib-grid .ant-table-tbody > tr.ant-table-row-hover > td {
+  background:var(--surface-hover);
+}
+.inbounds-page .ib-grid .ant-table-tbody > tr.ant-table-row-selected > td {
+  background:var(--accent-weak);
+}
+.inbounds-page .ib-grid .ant-table-pagination.ant-pagination {
+  margin:12px 14px;
+}
+
+/* Expand control: a calm square rather than the default ant chevron pill. */
+.inbounds-page .ib-grid .ant-table-row-expand-icon {
+  width:18px; height:18px; line-height:16px;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+  background:var(--surface-2);
+  color:var(--text-2);
+}
+.inbounds-page .ib-grid .ant-table-row-expand-icon:hover {
+  border-color:var(--accent); color:var(--accent);
+}
+.inbounds-page tr.hideExpandIcon .ant-table-row-expand-icon { display:none; }
+
+/* -- row cells -- */
+
+.inbounds-page .ib-name {
+  display:flex; flex-direction:column; gap:2px; min-width:0;
+}
+.inbounds-page .ib-name-main {
+  font-size:13.5px; font-weight:var(--fw-semibold); color:var(--text);
+  line-height:1.25;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.inbounds-page .ib-name-main--off { color:var(--text-3); }
+.inbounds-page .ib-name-id {
+  font-size:11px; color:var(--text-3); letter-spacing:.02em;
+}
+
+.inbounds-page .ib-ports {
+  display:flex; flex-direction:column; gap:2px;
+}
+.inbounds-page .ib-port {
+  display:inline-flex; align-items:baseline; gap:5px;
+  font-size:13px; font-weight:var(--fw-medium); color:var(--text);
+  font-variant-numeric:tabular-nums;
+}
+.inbounds-page .ib-port-proto {
+  font-size:10px; font-weight:var(--fw-semibold);
+  letter-spacing:.04em; text-transform:uppercase; color:var(--text-3);
+}
+.inbounds-page .ib-port--na { color:var(--text-3); font-weight:var(--fw-normal); }
+
+.inbounds-page .ib-protos {
+  display:flex; flex-wrap:wrap; gap:4px; align-items:center;
+}
+.inbounds-page .ib-tag {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:11px; font-weight:var(--fw-medium);
+  padding:1px 7px; border-radius:var(--radius-sm);
+  background:var(--surface-3); color:var(--text-2);
+  border:1px solid transparent;
+  line-height:1.55; white-space:nowrap;
+}
+.inbounds-page .ib-tag--proto { font-weight:var(--fw-semibold); }
+.inbounds-page .ib-proto--xray {
+  background:var(--info-weak); color:var(--info);
+  border-color:color-mix(in srgb, var(--info) 22%, transparent);
+}
+.inbounds-page .ib-proto--vpn {
+  background:var(--ok-weak); color:var(--ok);
+  border-color:color-mix(in srgb, var(--ok) 22%, transparent);
+}
+.inbounds-page .ib-tag--quiet {
+  background:var(--surface-3); color:var(--text-3);
+}
+.inbounds-page .ib-tag--secure {
+  background:var(--accent-weak); color:var(--accent);
+}
+.inbounds-page .ib-tag--time { min-width:52px; justify-content:center; }
+.inbounds-page .ib-tag--ok { background:var(--ok-weak); color:var(--ok); }
+.inbounds-page .ib-tag--warn { background:var(--warn-weak); color:var(--warn); }
+.inbounds-page .ib-tag--over { background:var(--error-weak); color:var(--error); }
+.inbounds-page .ib-tag--off { background:var(--off-weak); color:var(--off); }
+.inbounds-page .ib-tag--frozen { margin-inline-start:4px; font-size:10px; padding:0 5px; }
+
+.inbounds-page .ib-minibtn {
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:10.5px; font-weight:var(--fw-medium);
+  padding:1px 6px; border-radius:var(--radius-sm);
+  background:var(--surface-3); color:var(--text-2);
+  border:1px solid var(--border); cursor:pointer;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.inbounds-page .ib-minibtn:hover { background:var(--surface-4); color:var(--text); }
+.inbounds-page .ib-minibtn .anticon { font-size:11px; }
+
+.inbounds-page .ib-clients {
+  display:flex; align-items:center; gap:5px; flex-wrap:wrap;
+}
+.inbounds-page .ib-clients-total {
+  font-size:13.5px; font-weight:var(--fw-semibold); color:var(--text);
+  min-width:1.2em;
+}
+
+.inbounds-page .ib-num {
+  font-size:12.5px; font-weight:var(--fw-medium); color:var(--text-2);
+}
+
+/* Traffic / duration meter: figure on top, 3px rail below. */
+.inbounds-page .ib-traffic {
+  display:flex; flex-direction:column; gap:4px; min-width:0;
+  max-width:190px;
+}
+.inbounds-page .ib-traffic-line {
+  display:flex; align-items:baseline; gap:3px; min-width:0;
+  white-space:nowrap;
+}
+.inbounds-page .ib-traffic-used {
+  font-size:12.5px; font-weight:var(--fw-semibold); color:var(--text);
+}
+.inbounds-page .ib-traffic-cap {
+  font-size:11.5px; color:var(--text-3);
+}
+.inbounds-page .ib-inf { display:inline-flex; align-items:center; }
+.inbounds-page .ib-meter {
+  height:3px; border-radius:999px; overflow:hidden;
+  background:var(--divider); width:100%;
+}
+.inbounds-page .ib-meter-fill {
+  display:block; height:100%; border-radius:inherit;
+  background:var(--ok);
+  transition:width var(--dur-med) var(--ease);
+}
+.inbounds-page .ib-traffic--ok .ib-meter-fill { background:var(--ok); }
+.inbounds-page .ib-traffic--warn .ib-meter-fill { background:var(--warn); }
+.inbounds-page .ib-traffic--over .ib-meter-fill { background:var(--error); }
+.inbounds-page .ib-traffic--off .ib-meter-fill { background:var(--off); }
+.inbounds-page .ib-traffic--off .ib-traffic-used { color:var(--text-3); }
+.inbounds-page .ib-meter--inf {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 3px,
+      color-mix(in srgb, var(--text-3) 22%, transparent) 3px,
+      color-mix(in srgb, var(--text-3) 22%, transparent) 5px
+    );
+  opacity:.55;
+}
+
+/* Row action buttons (edit + more). Quiet by default, surface on hover. */
+.inbounds-page .bo-row-actions {
+  display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
+}
+.inbounds-page .ib-rowbtn {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; padding:0; border:none;
+  background:transparent; color:var(--text-3);
+  border-radius:var(--radius-sm); cursor:pointer;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.inbounds-page .ib-rowbtn:hover {
+  background:var(--surface-3); color:var(--text);
+}
+.inbounds-page .ib-rowbtn .anticon { font-size:15px; }
+.inbounds-page .sortable-icon {
+  color:var(--text-3); font-size:14px;
+  padding:4px; border-radius:var(--radius-sm);
+}
+.inbounds-page .sortable-icon:hover { color:var(--text); background:var(--surface-3); }
+
+/* -- 5. expanded client detail panel -- */
+
+.inbounds-page .ant-table-expanded-row > td {
+  background:var(--surface-2) !important;
+  padding:0 !important;
+  border-bottom:1px solid var(--divider);
+}
+.inbounds-page .ant-table-expanded-row:hover > td {
+  background:var(--surface-2) !important;
+}
+.inbounds-page .ib-sub {
+  margin:0 12px 12px;
+  padding:0;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  overflow:hidden;
+}
+.inbounds-page .ib-sub-head {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 12px;
+  border-bottom:1px solid var(--divider);
+  background:var(--surface-2);
+}
+.inbounds-page .ib-sub-title {
+  font-size:11.5px; font-weight:var(--fw-semibold);
+  letter-spacing:.03em; text-transform:uppercase; color:var(--text-3);
+}
+.inbounds-page .ib-sub-count {
+  font-size:11px; font-weight:var(--fw-medium); color:var(--text-2);
+  padding:0 6px; border-radius:var(--radius-pill);
+  background:var(--surface-3);
+}
+.inbounds-page .ib-sub-spacer { flex:1 1 auto; }
+.inbounds-page .ib-sub-meta {
+  font-size:11.5px; color:var(--text-3);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  max-width:40%;
+}
+.inbounds-page .ib-sub .ant-table-thead > tr > th {
+  background:transparent;
+  padding:8px 10px;
+  font-size:11px; color:var(--text-3);
+  border-bottom:1px solid var(--divider);
+}
+.inbounds-page .ib-sub .ant-table-tbody > tr > td {
+  padding:9px 10px;
+  border-bottom:1px solid var(--divider);
+}
+.inbounds-page .ib-sub .ant-table-tbody > tr:last-child > td { border-bottom:none; }
+.inbounds-page .ib-sub .ant-table-pagination.ant-pagination {
+  margin:10px 12px;
+}
+
+/* Client identity cell inside the sub-table. */
+.inbounds-page .ib-client {
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:2px 8px; align-items:start;
+  min-width:0;
+}
+.inbounds-page .ib-client-dot { grid-row:1; align-self:center; }
+.inbounds-page .ib-client-body {
+  display:flex; flex-direction:column; gap:1px; min-width:0;
+}
+.inbounds-page .client-email {
+  font-weight:var(--fw-semibold); color:var(--text);
+  font-size:13px; line-height:1.3;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.inbounds-page .client-comment {
+  font-size:11.5px; color:var(--text-3); cursor:help;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.inbounds-page .client-popup-item {
+  display:flex; align-items:center; gap:5px;
+}
+
+/* Client action icons: quieter resting state, accent on hover. */
+.inbounds-page .bo-client-actions .normal-icon,
+.inbounds-page .bo-client-actions svg {
+  color:var(--text-3);
+  transition:color var(--dur-fast) var(--ease);
+}
+.inbounds-page .bo-client-actions .normal-icon:hover,
+.inbounds-page .bo-client-actions svg:hover { color:var(--accent); }
+.inbounds-page .bo-client-actions .delete-icon:hover { color:var(--error); }
+
+.inbounds-page .online-animation .ant-badge-status-dot {
+  animation:onlineAnimation 1.2s linear infinite;
+}
+@keyframes onlineAnimation {
+  0%, 100% { opacity:1; transform:scale(1); }
+  50% { opacity:.35; transform:scale(.85); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inbounds-page .online-animation .ant-badge-status-dot { animation:none; }
+}
+
+/* Infinite / unmetered marks (kept for popovers + mobile info). */
+.inbounds-page .infinite-tag,
+.inbounds-page ~ div .infinite-tag {
+  padding:0 5px; border-radius:var(--radius-pill);
+  min-width:50px; min-height:22px;
+}
+.inbounds-page .ant-custom-popover-title {
+  display:flex; align-items:center; gap:10px; margin:5px 0;
+}
+
+/* Mobile: command bar stacks cleanly; the grid keeps horizontal scroll. */
+@media (max-width:768px) {
+  .inbounds-page .ib-bar { padding:10px; gap:8px; }
+  .inbounds-page .ib-bar-cluster--util { margin-inline-start:0; }
+  .inbounds-page .ib-search { max-width:none; flex:1 1 100%; }
+  .inbounds-page .ib-sub { margin:0 6px 8px; }
+  .inbounds-page .ib-sub-meta { display:none; }
+  .inbounds-page .ib-grid-head { padding:8px 10px; }
 }

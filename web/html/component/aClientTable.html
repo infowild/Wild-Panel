@@ -85,39 +85,43 @@
   </div>
 </template>
 <template slot="enable" slot-scope="text, client, index">
-  <a-switch v-model="client.enable" @change="switchEnableClient(record.id, client, $event)"></a-switch>
+  <a-switch v-model="client.enable" size="small" @change="switchEnableClient(record.id, client, $event)"></a-switch>
 </template>
 <template slot="online" slot-scope="text, client, index">
   <a-popover :overlay-class-name="themeSwitcher.currentTheme">
     <template slot="content" >
       {{ i18n "lastOnline" }}: [[ formatLastOnline(client.email) ]]
     </template>
-    <template v-if="client.enable && isClientOnline(client.email)">
-      <a-tag color="green">{{ i18n "online" }}</a-tag>
-    </template>
-    <template v-else>
-      <a-tag>{{ i18n "offline" }}</a-tag>
-    </template>
+    <!-- Online is the exception, so it gets the colour; offline is the resting
+         state of most accounts and stays neutral rather than shouting in red. -->
+    <span class="ib-chip ib-chip--info" v-if="client.enable && isClientOnline(client.email)">
+      <i class="ib-chip-dot"></i>{{ i18n "online" }}
+    </span>
+    <span class="ib-chip ib-chip--off" v-else>
+      <i class="ib-chip-dot"></i>{{ i18n "offline" }}
+    </span>
   </a-popover>
 </template>
+<!-- Status dot, then name, then comment underneath. A grid rather than nested
+     a-space so the dot stays on the name's first baseline and a wrapped comment
+     indents under the name instead of under the dot. -->
 <template slot="client" slot-scope="text, client">
-  <a-space direction="horizontal" :size="2">
-    <a-tooltip>
+  <div class="ib-client">
+    <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
       <template slot="title">
         <template v-if="isFrozen(client)">{{ i18n "pages.client.frozen" }}</template>
         <template v-else-if="isClientDepleted(record, client.email)">{{ i18n "depleted" }}</template>
         <template v-else-if="!client.enable">{{ i18n "disabled" }}</template>
         <template v-else-if="client.enable && isClientOnline(client.email)">{{ i18n "online" }}</template>
       </template>
-      <a-badge :class="isClientOnline(client.email)? 'online-animation' : ''" :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'"></a-badge>
+      <a-badge class="ib-client-dot" :class="isClientOnline(client.email)? 'online-animation' : ''" :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'"></a-badge>
     </a-tooltip>
-    <a-space direction="vertical" :size="2">
+    <div class="ib-client-body">
       <span class="client-email">
         [[ client.email ]]
-        <a-tag v-if="isFrozen(client)" color="blue"
-          :style="{ margin: '0 0 0 4px', fontSize: '11px', lineHeight: '16px', padding: '0 5px' }">
+        <span v-if="isFrozen(client)" class="ib-tag ib-tag--secure ib-tag--frozen">
           {{ i18n "pages.client.frozen" }}
-        </a-tag>
+        </span>
       </span>
       <template v-if="client.comment && client.comment.trim()">
         <a-tooltip v-if="client.comment.length > 50" :overlay-class-name="themeSwitcher.currentTheme">
@@ -128,8 +132,8 @@
         </a-tooltip>
         <span v-else class="client-comment">[[ client.comment ]]</span>
       </template>
-    </a-space>
-  </a-space>
+    </div>
+  </div>
 </template>
 <template slot="traffic" slot-scope="text, client">
   <a-popover :overlay-class-name="themeSwitcher.currentTheme">
@@ -145,46 +149,49 @@
         </tr>
       </table>
     </template>
-    <table>
-      <tr class="tr-table-box">
-        <td class="tr-table-rt"> [[ SizeFormatter.sizeFormat(getSumStats(record, client.email)) ]] </td>
-        <td class="tr-table-bar" v-if="!client.enable">
-          <a-progress :stroke-color="themeSwitcher.isDarkTheme ? 'rgb(72 84 105)' : '#bcbcbc'" :show-info="false" :percent="statsProgress(record, client.email)" />
-        </td>
-        <td class="tr-table-bar" v-else-if="client.totalGB > 0">
-          <a-progress :stroke-color="clientStatsColor(record, client.email)" :show-info="false" :status="isClientDepleted(record, client.email)? 'exception' : ''" :percent="statsProgress(record, client.email)" />
-        </td>
-        <td v-else class="infinite-bar tr-table-bar">
-          <a-progress :show-info="false" :percent="100"></a-progress>
-        </td>
-        <td class="tr-table-lt">
-          <template v-if="client.totalGB > 0">[[ client._totalGB + "GB" ]]</template>
-          <span v-else class="tr-infinity-ch">&infin;</span>
-        </td>
-      </tr>
-    </table>
+    <!-- Same figure-over-meter shape as the parent grid's traffic cell, so the
+         two read as one instrument at two scales. Replaces a three-cell
+         <table> whose fixed 70/160/70 columns could not fit the sub-table. -->
+    <div class="ib-traffic" :class="'ib-traffic--' + clientTrafficState(record, client)">
+      <div class="ib-traffic-line">
+        <span class="ib-traffic-used num">[[ SizeFormatter.sizeFormat(getSumStats(record, client.email)) ]]</span>
+        <span class="ib-traffic-cap num" v-if="client.totalGB > 0">/ [[ client._totalGB + "GB" ]]</span>
+        <span class="ib-traffic-cap ib-inf" v-else>&infin;</span>
+      </div>
+      <div class="ib-meter" v-if="client.enable && client.totalGB > 0">
+        <span class="ib-meter-fill" :style="{ width: Math.min(100, statsProgress(record, client.email)) + '%' }"></span>
+      </div>
+      <div class="ib-meter" v-else-if="!client.enable">
+        <span class="ib-meter-fill" :style="{ width: Math.min(100, statsProgress(record, client.email)) + '%' }"></span>
+      </div>
+      <div class="ib-meter ib-meter--inf" v-else></div>
+    </div>
   </a-popover>
 </template>
 
 <template slot="allTime" slot-scope="text, client">
-  <a-tag>[[ SizeFormatter.sizeFormat(getAllTimeClient(record, client.email)) ]]</a-tag>
+  <span class="ib-num num">[[ SizeFormatter.sizeFormat(getAllTimeClient(record, client.email)) ]]</span>
 </template>
 <template slot="expiryTime" slot-scope="text, client, index">
+  <!-- A recurring account (reset > 0) shows how far through the current cycle it
+       is, so it gets the same figure-over-meter treatment as traffic. A one-shot
+       account has no cycle to show and stays a single chip. -->
   <template v-if="client.expiryTime !=0 && client.reset >0">
     <a-popover :overlay-class-name="themeSwitcher.currentTheme">
       <template slot="content">
         <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
         <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
       </template>
-      <table>
-        <tr class="tr-table-box">
-          <td class="tr-table-rt"> [[ IntlUtil.formatRelativeTime(client.expiryTime) ]] </td>
-          <td class="infinite-bar tr-table-bar">
-            <a-progress :show-info="false" :status="isClientDepleted(record, client.email)? 'exception' : ''" :percent="expireProgress(client.expiryTime, client.reset)" />
-          </td>
-          <td class="tr-table-lt">[[ client.reset + "d" ]]</td>
-        </tr>
-      </table>
+      <div class="ib-traffic" :class="'ib-traffic--' + clientExpiryState(client)">
+        <div class="ib-traffic-line">
+          <span class="ib-traffic-used">[[ IntlUtil.formatRelativeTime(client.expiryTime) ]]</span>
+          <span class="ib-traffic-cap num">/ [[ client.reset + "d" ]]</span>
+        </div>
+        <div class="ib-meter">
+          <span class="ib-meter-fill"
+            :style="{ width: Math.min(100, expireProgress(client.expiryTime, client.reset)) + '%' }"></span>
+        </div>
+      </div>
     </a-popover>
   </template>
   <template v-else>
@@ -193,13 +200,13 @@
         <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
         <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
       </template>
-      <a-tag :style="{ minWidth: '50px', border: 'none' }" :color="ColorUtils.userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)"> [[ IntlUtil.formatRelativeTime(client.expiryTime) ]] </a-tag>
+      <span class="ib-tag ib-tag--time" :class="'ib-tag--' + clientExpiryState(client)"> [[ IntlUtil.formatRelativeTime(client.expiryTime) ]] </span>
     </a-popover>
-    <a-tag v-else :color="ColorUtils.userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)" :style="{ border: 'none' }" class="infinite-tag">
+    <span v-else class="ib-tag ib-tag--time" :class="client.enable ? 'ib-tag--quiet' : 'ib-tag--off'">
       <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
         <path d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z" fill="currentColor"></path>
       </svg>
-    </a-tag>
+    </span>
   </template>
 </template>
 <template slot="actionMenu" slot-scope="text, client, index">

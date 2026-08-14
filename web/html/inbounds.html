@@ -16,92 +16,136 @@
           </a-alert>
         </transition>
         <transition name="list" appear>
-          <a-row v-if="!loadingStates.fetched">
-            <div :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
-          </a-row>
-          <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
-            <a-col>
-              <!-- Bento stat band, matching the Overview's .bo-stat-grid: a 1px
-                   gap over a --border background with opaque cells, so the
-                   dividers come from the grid rather than per-cell borders. -->
-              <div class="bo-tile" :style="{ padding: '0', overflow: 'hidden' }">
-                <div class="bo-stat-grid bo-stat-grid--5">
-                  <div class="bo-stat-cell">
-                    <span class="bo-stat-cell-label">{{ i18n "pages.inbounds.totalDownUp" }}</span>
-                    <span class="bo-stat-cell-value num">[[ SizeFormatter.sizeFormat(total.up) ]] / [[ SizeFormatter.sizeFormat(total.down) ]]</span>
-                  </div>
-                  <div class="bo-stat-cell">
-                    <span class="bo-stat-cell-label">{{ i18n "pages.inbounds.totalUsage" }}</span>
-                    <span class="bo-stat-cell-value num">[[ SizeFormatter.sizeFormat(total.up + total.down) ]]</span>
-                  </div>
-                  <div class="bo-stat-cell">
-                    <span class="bo-stat-cell-label">{{ i18n "pages.inbounds.allTimeTrafficUsage" }}</span>
-                    <span class="bo-stat-cell-value num">[[ SizeFormatter.sizeFormat(total.allTime) ]]</span>
-                  </div>
-                  <div class="bo-stat-cell">
-                    <span class="bo-stat-cell-label">{{ i18n "pages.inbounds.inboundCount" }}</span>
-                    <span class="bo-stat-cell-value num">[[ dbInbounds.length ]]</span>
-                  </div>
-                  <div class="bo-stat-cell">
-                    <span class="bo-stat-cell-label">{{ i18n "clients" }}</span>
-                    <span class="bo-stat-cell-value" :style="{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }">
-                      <a-back-top :target="() => document.querySelector('.bo-main')" visibility-height="200"></a-back-top>
-                      <span class="bo-status-pill bo-status-pill--ok num">[[ total.clients ]]</span>
-                      <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="themeSwitcher.currentTheme">
-                        <template slot="content">
-                          <div v-for="clientEmail in total.deactive"><span>[[ clientEmail ]]</span></div>
-                        </template>
-                        <span class="bo-status-pill num" v-if="total.deactive.length">[[ total.deactive.length ]]</span>
-                      </a-popover>
-                      <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="themeSwitcher.currentTheme">
-                        <template slot="content">
-                          <div v-for="clientEmail in total.depleted"><span>[[ clientEmail ]]</span></div>
-                        </template>
-                        <span class="bo-status-pill bo-status-pill--error num" v-if="total.depleted.length">[[ total.depleted.length ]]</span>
-                      </a-popover>
-                      <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="themeSwitcher.currentTheme">
-                        <template slot="content">
-                          <div v-for="clientEmail in total.expiring"><span>[[ clientEmail ]]</span></div>
-                        </template>
-                        <span class="bo-status-pill bo-status-pill--warn num" v-if="total.expiring.length">[[ total.expiring.length ]]</span>
-                      </a-popover>
-                      <a-popover title='{{ i18n "online" }}' :overlay-class-name="themeSwitcher.currentTheme">
-                        <template slot="content">
-                          <div v-for="clientEmail in onlineClients"><span>[[ clientEmail ]]</span></div>
-                        </template>
-                        <span class="bo-status-pill num" :style="{ background: 'var(--info-weak)', color: 'var(--info)' }" v-if="onlineClients.length">[[ onlineClients.length ]]</span>
-                      </a-popover>
-                    </span>
+          <div key="ib-boot" v-if="!loadingStates.fetched"
+            :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
+          <!-- Operations console: five bands, in the order an operator reads
+               them — totals, command bar, selection, then the grid. Plain
+               elements rather than a-row/a-col/a-card: the ant scaffolding
+               added a card head, a card body and a grid gutter on top of a
+               table that already draws its own frame, which is where the dead
+               vertical space around this page came from. -->
+          <div key="ib-console" class="ib-console" v-else>
+            <a-back-top :target="() => document.querySelector('.bo-main')" visibility-height="200"></a-back-top>
+
+            <!-- ============================== 1. totals ==================== -->
+            <section class="ib-kpis" aria-label='{{ i18n "pages.inbounds.title" }}'>
+              <article class="ib-kpi">
+                <div class="ib-kpi-head">
+                  <svg class="bo-icon bo-icon-14 ib-kpi-ico"><use href="#bo-i-swap"></use></svg>
+                  <span class="ib-kpi-label">{{ i18n "pages.inbounds.totalDownUp" }}</span>
+                </div>
+                <div class="ib-kpi-flows">
+                  <span class="ib-flow ib-flow--up">
+                    <svg class="bo-icon bo-icon-14"><use href="#bo-i-arrow-up"></use></svg>
+                    <span class="num">[[ SizeFormatter.sizeFormat(total.up) ]]</span>
+                  </span>
+                  <span class="ib-flow ib-flow--down">
+                    <svg class="bo-icon bo-icon-14"><use href="#bo-i-arrow-down"></use></svg>
+                    <span class="num">[[ SizeFormatter.sizeFormat(total.down) ]]</span>
+                  </span>
+                </div>
+              </article>
+              <article class="ib-kpi">
+                <div class="ib-kpi-head">
+                  <svg class="bo-icon bo-icon-14 ib-kpi-ico"><use href="#bo-i-gauge"></use></svg>
+                  <span class="ib-kpi-label">{{ i18n "pages.inbounds.totalUsage" }}</span>
+                </div>
+                <span class="ib-kpi-value num">[[ SizeFormatter.sizeFormat(total.up + total.down) ]]</span>
+              </article>
+              <article class="ib-kpi">
+                <div class="ib-kpi-head">
+                  <svg class="bo-icon bo-icon-14 ib-kpi-ico"><use href="#bo-i-disk"></use></svg>
+                  <span class="ib-kpi-label">{{ i18n "pages.inbounds.allTimeTrafficUsage" }}</span>
+                </div>
+                <span class="ib-kpi-value num">[[ SizeFormatter.sizeFormat(total.allTime) ]]</span>
+              </article>
+              <article class="ib-kpi">
+                <div class="ib-kpi-head">
+                  <svg class="bo-icon bo-icon-14 ib-kpi-ico"><use href="#bo-i-list"></use></svg>
+                  <span class="ib-kpi-label">{{ i18n "pages.inbounds.inboundCount" }}</span>
+                </div>
+                <span class="ib-kpi-value num">[[ dbInbounds.length ]]</span>
+              </article>
+              <!-- Clients spans two tracks: the headline count plus up to four
+                   breakdown chips, each of which stays a popover listing the
+                   accounts behind it. -->
+              <article class="ib-kpi ib-kpi--wide">
+                <div class="ib-kpi-head">
+                  <svg class="bo-icon bo-icon-14 ib-kpi-ico"><use href="#bo-i-user"></use></svg>
+                  <span class="ib-kpi-label">{{ i18n "clients" }}</span>
+                </div>
+                <div class="ib-kpi-row">
+                  <span class="ib-kpi-value num">[[ total.clients ]]</span>
+                  <div class="ib-chips">
+                    <a-popover title='{{ i18n "online" }}' :overlay-class-name="themeSwitcher.currentTheme">
+                      <template slot="content">
+                        <div v-for="clientEmail in onlineClients"><span>[[ clientEmail ]]</span></div>
+                      </template>
+                      <span class="ib-chip ib-chip--info" v-if="onlineClients.length">
+                        <i class="ib-chip-dot"></i><span class="num">[[ onlineClients.length ]]</span>
+                        <span class="ib-chip-txt">{{ i18n "online" }}</span>
+                      </span>
+                    </a-popover>
+                    <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="themeSwitcher.currentTheme">
+                      <template slot="content">
+                        <div v-for="clientEmail in total.expiring"><span>[[ clientEmail ]]</span></div>
+                      </template>
+                      <span class="ib-chip ib-chip--warn" v-if="total.expiring.length">
+                        <i class="ib-chip-dot"></i><span class="num">[[ total.expiring.length ]]</span>
+                        <span class="ib-chip-txt">{{ i18n "depletingSoon" }}</span>
+                      </span>
+                    </a-popover>
+                    <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="themeSwitcher.currentTheme">
+                      <template slot="content">
+                        <div v-for="clientEmail in total.depleted"><span>[[ clientEmail ]]</span></div>
+                      </template>
+                      <span class="ib-chip ib-chip--error" v-if="total.depleted.length">
+                        <i class="ib-chip-dot"></i><span class="num">[[ total.depleted.length ]]</span>
+                        <span class="ib-chip-txt">{{ i18n "depleted" }}</span>
+                      </span>
+                    </a-popover>
+                    <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="themeSwitcher.currentTheme">
+                      <template slot="content">
+                        <div v-for="clientEmail in total.deactive"><span>[[ clientEmail ]]</span></div>
+                      </template>
+                      <span class="ib-chip ib-chip--off" v-if="total.deactive.length">
+                        <i class="ib-chip-dot"></i><span class="num">[[ total.deactive.length ]]</span>
+                        <span class="ib-chip-txt">{{ i18n "disabled" }}</span>
+                      </span>
+                    </a-popover>
                   </div>
                 </div>
-              </div>
-            </a-col>
-            <a-col>
-              <a-card hoverable>
-                <template #title>
-                  <a-space direction="horizontal" :style="{ flexWrap: 'wrap' }">
-                    <!-- A reseller's remaining balance, first thing on the page.
-                         They find out what they have left before a save fails,
-                         rather than after. Resellers create no inbounds, so this
-                         sits where the Add Inbound button would be for them.
-                         The figures come from data (refreshed after each sale);
-                         only the role stays on the global, which cannot change
-                         mid-session and so cannot make the chip disappear. -->
-                    <a-tag v-if="RESELLER.isReseller" :color="resellerBalanceColor">
-                      {{ i18n "pages.resellers.available" }}: [[ resellerBalanceText ]]
-                    </a-tag>
-                    <a-button v-if="!RESELLER.isReseller" type="primary" icon="plus"
-                      @click="openAddInbound">
-                      <template v-if="!isMobile">{{ i18n
-                        "pages.inbounds.addInbound" }}</template>
-                    </a-button>
-                    <a-dropdown :trigger="['click']">
-                      <a-button type="primary" icon="menu">
-                        <template v-if="!isMobile">{{ i18n
-                          "pages.inbounds.generalActions" }}</template>
-                      </a-button>
-                      <a-menu slot="overlay" @click="a => generalActions(a)"
-                        :theme="themeSwitcher.currentTheme">
+              </article>
+            </section>
+
+            <!-- ============================== 2. command bar ================ -->
+            <section class="ib-bar">
+              <div class="ib-bar-cluster ib-bar-cluster--lead">
+                <!-- A reseller's remaining balance, first thing on the bar.
+                     They find out what they have left before a save fails,
+                     rather than after. Resellers create no inbounds, so this
+                     sits where the Add Inbound button would be for them.
+                     The figures come from data (refreshed after each sale);
+                     only the role stays on the global, which cannot change
+                     mid-session and so cannot make the chip disappear. -->
+                <a-tag v-if="RESELLER.isReseller" :color="resellerBalanceColor">
+                  {{ i18n "pages.resellers.available" }}: [[ resellerBalanceText ]]
+                </a-tag>
+                <a-button v-if="!RESELLER.isReseller" type="primary" icon="plus"
+                  class="ib-cta"
+                  @click="openAddInbound">
+                  <template v-if="!isMobile">{{ i18n
+                    "pages.inbounds.addInbound" }}</template>
+                </a-button>
+                <a-dropdown :trigger="['click']">
+                  <!-- Secondary on purpose: two filled primary buttons side by
+                       side gave the page no single obvious action. -->
+                  <a-button icon="menu" class="ib-btn-2nd">
+                    <template v-if="!isMobile">{{ i18n
+                      "pages.inbounds.generalActions" }}</template>
+                  </a-button>
+                  <a-menu slot="overlay" @click="a => generalActions(a)"
+                    :theme="themeSwitcher.currentTheme">
                         <!-- Hidden from a reseller. Importing creates an inbound,
                              which needs createInbound, a bit the role does not
                              derive, so the route already refuses them: the entry
@@ -138,94 +182,162 @@
                           <a-icon type="rest"></a-icon>
                           {{ i18n "pages.inbounds.delDepletedClients" }}
                         </a-menu-item>
-                      </a-menu>
-                    </a-dropdown>
-                    <a-alert v-if="selectedCount() > 0" type="info"
-                      :show-icon="false" :class="themeSwitcher.currentTheme"
-                      :style="{ padding: '4px 10px' }">
-                      <template slot="message">
-                        <a-space :size="8" wrap>
-                          <span><b>[[ selectedCount() ]]</b> {{ i18n
-                            "pages.inbounds.selectedAccounts" }}</span>
-                          <a-button size="small" type="primary" icon="tool"
-                            @click="openBulkOps()">{{ i18n
-                            "pages.inbounds.bulkOperations" }}</a-button>
-                          <a-button size="small" icon="file-text"
-                            @click="exportSelectedTxt()">{{ i18n
-                            "pages.inbounds.exportTxt" }}</a-button>
-                          <a-button size="small" icon="file-pdf"
-                            @click="exportSelectedPdf()">{{ i18n
-                            "pages.inbounds.exportPdf" }}</a-button>
-                          <a-button size="small" icon="close"
-                            @click="clearSelection()">{{ i18n
-                            "pages.inbounds.clearSelection" }}</a-button>
-                        </a-space>
-                      </template>
-                    </a-alert>
-                  </a-space>
-                </template>
-                <template #extra>
-                  <a-button-group>
+                  </a-menu>
+                </a-dropdown>
+              </div>
+
+              <!-- Find cluster. The switch flips the middle of the bar between a
+                   free-text search and the five saved filters; only one is ever
+                   mounted, which is what keeps the bar one line tall. -->
+              <div class="ib-bar-cluster ib-bar-cluster--find">
+                <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                  <template slot="title">
+                    <span v-if="enableFilter">{{ i18n "search" }}</span>
+                    <span v-else>{{ i18n "filter" }}</span>
+                  </template>
+                  <a-switch v-model="enableFilter" class="ib-mode"
+                    @change="toggleFilter">
+                    <a-icon slot="checkedChildren" type="search"></a-icon>
+                    <a-icon slot="unCheckedChildren" type="filter"></a-icon>
+                  </a-switch>
+                </a-tooltip>
+                <div class="ib-search" v-if="!enableFilter">
+                  <a-input v-model.lazy="searchKey"
+                    placeholder='{{ i18n "search" }}' autofocus
+                    :size="isMobile ? 'small' : ''">
+                    <a-icon slot="prefix" type="search"></a-icon>
+                  </a-input>
+                </div>
+                <a-radio-group v-if="enableFilter" v-model="filterBy"
+                  class="ib-filters"
+                  @change="filterInbounds" button-style="solid"
+                  :size="isMobile ? 'small' : ''">
+                  <a-radio-button value>{{ i18n "none" }}</a-radio-button>
+                  <a-radio-button value="online">{{ i18n "online"
+                    }}</a-radio-button>
+                  <a-radio-button value="expiring">{{ i18n "depletingSoon"
+                    }}</a-radio-button>
+                  <a-radio-button value="depleted">{{ i18n "depleted"
+                    }}</a-radio-button>
+                  <a-radio-button value="deactive">{{ i18n "disabled"
+                    }}</a-radio-button>
+                </a-radio-group>
+              </div>
+
+              <div class="ib-bar-cluster ib-bar-cluster--util">
+                <a-button-group>
+                  <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                    <template slot="title">{{ i18n "refresh" }}</template>
                     <a-button icon="sync" @click="manualRefresh"
                       :loading="refreshing"></a-button>
-                    <a-popover placement="bottomRight" trigger="click"
-                      :overlay-class-name="themeSwitcher.currentTheme">
-                      <template #title>
-                        <div class="ant-custom-popover-title">
-                          <a-switch v-model="isRefreshEnabled"
-                            @change="toggleRefresh" size="small"></a-switch>
-                          <span>{{ i18n "pages.inbounds.autoRefresh" }}</span>
-                        </div>
-                      </template>
-                      <template #content>
-                        <a-space direction="vertical">
-                          <span>{{ i18n "pages.inbounds.autoRefreshInterval"
-                            }}</span>
-                          <a-select v-model="refreshInterval"
-                            :disabled="!isRefreshEnabled"
-                            :style="{ width: '100%' }"
-                            @change="changeRefreshInterval"
-                            :dropdown-class-name="themeSwitcher.currentTheme">
-                            <a-select-option v-for="key in [5,10,30,60]"
-                              :value="key*1000">[[ key ]]s</a-select-option>
-                          </a-select>
-                        </a-space>
-                      </template>
-                      <a-button icon="down"></a-button>
-                    </a-popover>
-                  </a-button-group>
-                </template>
-                <a-space direction="vertical">
-                  <div
-                    :style="isMobile ? {} : { display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }">
-                    <a-switch v-model="enableFilter"
-                      :style="isMobile ? { marginBottom: '.5rem', display: 'flex' } : { marginRight: '.5rem' }"
-                      @change="toggleFilter">
-                      <a-icon slot="checkedChildren" type="search"></a-icon>
-                      <a-icon slot="unCheckedChildren" type="filter"></a-icon>
-                    </a-switch>
-                    <a-input v-if="!enableFilter" v-model.lazy="searchKey"
-                      placeholder='{{ i18n "search" }}' autofocus
-                      :style="{ maxWidth: '300px' }"
-                      :size="isMobile ? 'small' : ''"></a-input>
-                    <a-radio-group v-if="enableFilter" v-model="filterBy"
-                      @change="filterInbounds" button-style="solid"
-                      :size="isMobile ? 'small' : ''">
-                      <a-radio-button value>{{ i18n "none" }}</a-radio-button>
-                      <a-radio-button value="deactive">{{ i18n "disabled"
-                        }}</a-radio-button>
-                      <a-radio-button value="depleted">{{ i18n "depleted"
-                        }}</a-radio-button>
-                      <a-radio-button value="expiring">{{ i18n "depletingSoon"
-                        }}</a-radio-button>
-                      <a-radio-button value="online">{{ i18n "online"
-                        }}</a-radio-button>
-                    </a-radio-group>
+                  </a-tooltip>
+                  <a-popover placement="bottomRight" trigger="click"
+                    :overlay-class-name="themeSwitcher.currentTheme">
+                    <template #title>
+                      <div class="ant-custom-popover-title">
+                        <a-switch v-model="isRefreshEnabled"
+                          @change="toggleRefresh" size="small"></a-switch>
+                        <span>{{ i18n "pages.inbounds.autoRefresh" }}</span>
+                      </div>
+                    </template>
+                    <template #content>
+                      <a-space direction="vertical">
+                        <span>{{ i18n "pages.inbounds.autoRefreshInterval"
+                          }}</span>
+                        <a-select v-model="refreshInterval"
+                          :disabled="!isRefreshEnabled"
+                          :style="{ width: '100%' }"
+                          @change="changeRefreshInterval"
+                          :dropdown-class-name="themeSwitcher.currentTheme">
+                          <a-select-option v-for="key in [5,10,30,60]"
+                            :value="key*1000">[[ key ]]s</a-select-option>
+                        </a-select>
+                      </a-space>
+                    </template>
+                    <a-button icon="down"></a-button>
+                  </a-popover>
+                </a-button-group>
+              </div>
+            </section>
+
+            <!-- ============================== 3. selection ================== -->
+            <!-- Its own band rather than a chip wedged into the toolbar: the
+                 bulk actions only exist while something is selected, and inside
+                 the bar they pushed search onto a second line the moment they
+                 appeared. -->
+            <transition name="list">
+              <section class="ib-selbar" v-if="selectedCount() > 0">
+                <div class="ib-selbar-lead">
+                  <span class="ib-selbar-count num">[[ selectedCount() ]]</span>
+                  <span class="ib-selbar-label">{{ i18n
+                    "pages.inbounds.selectedAccounts" }}</span>
+                </div>
+                <div class="ib-selbar-acts">
+                  <a-button size="small" type="primary" icon="tool"
+                    @click="openBulkOps()">{{ i18n
+                    "pages.inbounds.bulkOperations" }}</a-button>
+                  <a-button size="small" icon="file-text"
+                    @click="exportSelectedTxt()">{{ i18n
+                    "pages.inbounds.exportTxt" }}</a-button>
+                  <a-button size="small" icon="file-pdf"
+                    @click="exportSelectedPdf()">{{ i18n
+                    "pages.inbounds.exportPdf" }}</a-button>
+                  <a-button size="small" icon="close" class="ib-selbar-clear"
+                    @click="clearSelection()">{{ i18n
+                    "pages.inbounds.clearSelection" }}</a-button>
+                </div>
+              </section>
+            </transition>
+
+            <!-- ============================== 4. data grid ================== -->
+            <section class="ib-grid" :class="'ib-grid--' + density">
+              <header class="ib-grid-head">
+                <div class="ib-grid-head-lead">
+                  <h2 class="ib-grid-title">{{ i18n "pages.inbounds.title" }}</h2>
+                  <span class="ib-grid-count num"
+                    v-if="searchedInbounds.length !== dbInbounds.length">[[
+                    searchedInbounds.length ]] / [[ dbInbounds.length ]]</span>
+                  <span class="ib-grid-count num" v-else>[[ dbInbounds.length ]]</span>
+                </div>
+                <div class="ib-grid-head-acts">
+                  <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                    <template slot="title">
+                      <span v-if="allRowsExpanded">{{ i18n
+                        "pages.inbounds.collapseAll" }}</span>
+                      <span v-else>{{ i18n "pages.inbounds.expandAll" }}</span>
+                    </template>
+                    <button type="button" class="ib-tool"
+                      :class="{ 'ib-tool--on': allRowsExpanded }"
+                      @click="toggleExpandAll">
+                      <a-icon :type="allRowsExpanded ? 'shrink' : 'arrows-alt'"></a-icon>
+                    </button>
+                  </a-tooltip>
+                  <div class="ib-seg" role="group">
+                    <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                      <template slot="title">{{ i18n
+                        "pages.inbounds.densityComfortable" }}</template>
+                      <button type="button" class="ib-tool"
+                        :class="{ 'ib-tool--on': density === 'cozy' }"
+                        @click="setDensity('cozy')">
+                        <a-icon type="menu"></a-icon>
+                      </button>
+                    </a-tooltip>
+                    <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                      <template slot="title">{{ i18n
+                        "pages.inbounds.densityCompact" }}</template>
+                      <button type="button" class="ib-tool"
+                        :class="{ 'ib-tool--on': density === 'compact' }"
+                        @click="setDensity('compact')">
+                        <a-icon type="bars"></a-icon>
+                      </button>
+                    </a-tooltip>
                   </div>
-                  <a-table-sortable :columns="isMobile ? mobileColumns : columns"
+                </div>
+              </header>
+              <a-table-sortable :columns="isMobile ? mobileColumns : columns"
                     :row-key="dbInbound => dbInbound.id"
                     :data-source="searchedInbounds"
-                    :scroll="isMobile ? {} : { x: 1000 }"
+                    :scroll="isMobile ? {} : { x: 1180 }"
                     :pagination=pagination(searchedInbounds)
                     :expanded-row-keys="expandedRowKeys"
                     v-on:onSort="moveInboundByDrag"
@@ -233,7 +345,6 @@
                     :expand-icon-as-cell="false" :expand-row-by-click="false"
                     :expand-icon-column-index="0" :indent-size="0"
                     :row-class-name="dbInbound => (dbInbound.isMultiUser() ? '' : 'hideExpandIcon')"
-                    :style="{ marginTop: '10px' }"
                     :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}`, emptyText: `{{ i18n "noData" }}` }'>
                     <template slot="selectAllHeader">
                       <a-checkbox :checked="isAllInboundsSelected()"
@@ -257,9 +368,22 @@
                              move things. -->
                         <a-table-sort-trigger v-if="canDragInbounds"
                           :item-index="index"></a-table-sort-trigger>
+                        <!-- Edit promoted out of the menu: it is the action taken on
+                             a row far more often than the other twelve put together,
+                             and it was two clicks deep. Same handler the menu's own
+                             edit entry uses, so nothing forks. -->
+                        <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                          <template slot="title">{{ i18n "edit" }}</template>
+                          <button type="button" class="ib-rowbtn"
+                            @click="openEditInbound(dbInbound.id)">
+                            <a-icon type="edit"></a-icon>
+                          </button>
+                        </a-tooltip>
                         <a-dropdown :trigger="['click']">
-                          <a-icon @click="e => e.preventDefault()" type="more"
-                            :style="{ fontSize: '20px', textDecoration: 'solid' }"></a-icon>
+                          <button type="button" class="ib-rowbtn"
+                            @click="e => e.preventDefault()">
+                            <a-icon type="more"></a-icon>
+                          </button>
                           <a-menu slot="overlay"
                             @click="a => clickAction(a, dbInbound)"
                             :theme="themeSwitcher.currentTheme">
@@ -364,72 +488,97 @@
                         </a-dropdown>
                       </span>
                     </template>
+                    <!-- Remark is the row's identity, so it is the only cell with
+                         body-weight text; the inbound id rides under it as
+                         metadata rather than occupying a column of its own. -->
+                    <template slot="remark" slot-scope="text, dbInbound">
+                      <div class="ib-name">
+                        <span class="ib-name-main" :class="{ 'ib-name-main--off': !dbInbound.enable }">[[
+                          dbInbound.remark ]]</span>
+                        <span class="ib-name-id num">#[[ dbInbound.id ]]</span>
+                      </div>
+                    </template>
                     <template slot="port" slot-scope="text, dbInbound">
                       <template v-if="dbInbound.isOpenvpn">
-                        <span v-if="dbInbound.toInbound().settings.tcpEnable"
-                          :style="{ display: 'block', whiteSpace: 'nowrap' }">TCP:
-                          [[ dbInbound.toInbound().settings.separatePorts ? (dbInbound.toInbound().settings.tcpPort || 443) : dbInbound.port ]]</span>
-                        <span v-if="dbInbound.toInbound().settings.udpEnable"
-                          :style="{ display: 'block', whiteSpace: 'nowrap' }">UDP:
-                          [[ dbInbound.port ]]</span>
+                        <div class="ib-ports">
+                          <span class="ib-port" v-if="dbInbound.toInbound().settings.tcpEnable">
+                            <span class="ib-port-proto">TCP</span>
+                            <span class="num">[[ dbInbound.toInbound().settings.separatePorts ? (dbInbound.toInbound().settings.tcpPort || 443) : dbInbound.port ]]</span>
+                          </span>
+                          <span class="ib-port" v-if="dbInbound.toInbound().settings.udpEnable">
+                            <span class="ib-port-proto">UDP</span>
+                            <span class="num">[[ dbInbound.port ]]</span>
+                          </span>
+                        </div>
                       </template>
                       <!-- GRE is IP protocol 47 and binds no port. The row still carries
                            one because the inbound tag is built from it, but the server
                            assigns it and the form has no box for it, so printing it here
                            would show a number the operator never chose and cannot change.
                            Matches what the TXT/PDF export already prints. -->
-                      <a-tooltip v-else-if="dbInbound.protocol === 'gre'">
+                      <a-tooltip v-else-if="dbInbound.protocol === 'gre'"
+                        :overlay-class-name="themeSwitcher.currentTheme">
                         <template slot="title">GRE is IP protocol 47 and has no ports</template>
-                        <span :style="{ color: '#888' }">n/a</span>
+                        <span class="ib-port ib-port--na">n/a</span>
                       </a-tooltip>
-                      <template v-else>[[ dbInbound.port ]]</template>
+                      <span v-else class="ib-port"><span class="num">[[ dbInbound.port ]]</span></span>
                     </template>
                     <template slot="protocol" slot-scope="text, dbInbound">
                       <!-- Coloured by protocol FAMILY, not per protocol. There
                            are 12+ protocols and a hue per protocol is not
                            colourblind-safe at tag text sizes (see the note in
                            ant-bridge.css). Families are few, meaningful, and
-                           the tag still spells the name. -->
-                      <a-tag :style="{ margin: '0' }" class="bo-proto"
-                        :class="'bo-proto--' + protocolFamily(dbInbound.protocol)">[[
-                        ProtocolLabels[dbInbound.protocol] || dbInbound.protocol ]]</a-tag>
-                      <template
-                        v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
-                        <a-tag :style="{ margin: '0' }" color="green">[[
-                          dbInbound.toInbound().stream.network ]]</a-tag>
-                        <a-tag :style="{ margin: '0' }"
-                          v-if="dbInbound.toInbound().stream.isTls"
-                          color="blue">TLS</a-tag>
-                        <a-tag :style="{ margin: '0' }"
-                          v-if="dbInbound.toInbound().stream.isReality"
-                          color="blue">Reality</a-tag>
-                      </template>
-                      <template v-if="dbInbound.isOpenvpn">
-                        <a-tooltip
-                          v-if="dbInbound.toInbound().settings.udpEnable"
-                          title="Export OpenVPN UDP config (.ovpn)">
-                          <a-button size="small" icon="download"
-                            :style="{ marginLeft: '4px', padding: '0 6px' }"
-                            @click="downloadOvpn(dbInbound.id, 'udp')">UDP</a-button>
-                        </a-tooltip>
-                        <a-tooltip
-                          v-if="dbInbound.toInbound().settings.tcpEnable"
-                          title="Export OpenVPN TCP config (.ovpn)">
-                          <a-button size="small" icon="download"
-                            :style="{ marginLeft: '4px', padding: '0 6px' }"
-                            @click="downloadOvpn(dbInbound.id, 'tcp')">TCP</a-button>
-                        </a-tooltip>
-                      </template>
+                           the tag still spells the name. The transport chips
+                           beside it stay neutral: they are attributes of the
+                           protocol, not statuses, so they must not compete. -->
+                      <div class="ib-protos">
+                        <span class="ib-tag ib-tag--proto"
+                          :class="'ib-proto--' + protocolFamily(dbInbound.protocol)">[[
+                          ProtocolLabels[dbInbound.protocol] || dbInbound.protocol ]]</span>
+                        <template
+                          v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+                          <span class="ib-tag ib-tag--quiet">[[
+                            dbInbound.toInbound().stream.network ]]</span>
+                          <span class="ib-tag ib-tag--secure"
+                            v-if="dbInbound.toInbound().stream.isTls">TLS</span>
+                          <span class="ib-tag ib-tag--secure"
+                            v-if="dbInbound.toInbound().stream.isReality">Reality</span>
+                        </template>
+                        <template v-if="dbInbound.isOpenvpn">
+                          <a-tooltip
+                            v-if="dbInbound.toInbound().settings.udpEnable"
+                            :overlay-class-name="themeSwitcher.currentTheme"
+                            title="Export OpenVPN UDP config (.ovpn)">
+                            <button type="button" class="ib-minibtn"
+                              @click="downloadOvpn(dbInbound.id, 'udp')">
+                              <a-icon type="download"></a-icon>UDP
+                            </button>
+                          </a-tooltip>
+                          <a-tooltip
+                            v-if="dbInbound.toInbound().settings.tcpEnable"
+                            :overlay-class-name="themeSwitcher.currentTheme"
+                            title="Export OpenVPN TCP config (.ovpn)">
+                            <button type="button" class="ib-minibtn"
+                              @click="downloadOvpn(dbInbound.id, 'tcp')">
+                              <a-icon type="download"></a-icon>TCP
+                            </button>
+                          </a-tooltip>
+                        </template>
+                      </div>
                     </template>
+                    <!-- Total leads as a plain figure; the four breakdowns are
+                         dot-chips that only appear when non-zero, so a healthy
+                         inbound shows one number and a troubled one shows why.
+                         Each chip keeps its popover listing the accounts. -->
                     <template slot="clients" slot-scope="text, dbInbound">
-                      <template v-if="clientCount[dbInbound.id]">
-                        <a-tag :style="{ margin: '0' }" color="green">[[
-                          clientCount[dbInbound.id].clients ]]</a-tag>
-                        <a-popover title='{{ i18n "disabled" }}'
+                      <div class="ib-clients" v-if="clientCount[dbInbound.id]">
+                        <span class="ib-clients-total num">[[
+                          clientCount[dbInbound.id].clients ]]</span>
+                        <a-popover title='{{ i18n "online" }}'
                           :overlay-class-name="themeSwitcher.currentTheme">
                           <template slot="content">
                             <div
-                              v-for="clientEmail in clientCount[dbInbound.id].deactive"
+                              v-for="clientEmail in clientCount[dbInbound.id].online"
                               :key="clientEmail"
                               class="client-popup-item">
                               <span>[[ clientEmail ]]</span>
@@ -445,34 +594,11 @@
                               </a-tooltip>
                             </div>
                           </template>
-                          <a-tag :style="{ margin: '0', padding: '0 2px' }"
-                            v-if="clientCount[dbInbound.id].deactive.length">[[
-                            clientCount[dbInbound.id].deactive.length ]]</a-tag>
-                        </a-popover>
-                        <a-popover title='{{ i18n "depleted" }}'
-                          :overlay-class-name="themeSwitcher.currentTheme">
-                          <template slot="content">
-                            <div
-                              v-for="clientEmail in clientCount[dbInbound.id].depleted"
-                              :key="clientEmail"
-                              class="client-popup-item">
-                              <span>[[ clientEmail ]]</span>
-                              <a-tooltip
-                                :overlay-class-name="themeSwitcher.currentTheme">
-                                <template #title>
-                                  [[
-                                  clientCount[dbInbound.id].comments.get(clientEmail)
-                                  ]]
-                                </template>
-                                <a-icon type="message"
-                                  v-if="clientCount[dbInbound.id].comments.get(clientEmail)"></a-icon>
-                              </a-tooltip>
-                            </div>
-                          </template>
-                          <a-tag :style="{ margin: '0', padding: '0 2px' }"
-                            color="red"
-                            v-if="clientCount[dbInbound.id].depleted.length">[[
-                            clientCount[dbInbound.id].depleted.length ]]</a-tag>
+                          <span class="ib-chip ib-chip--info ib-chip--mini"
+                            v-if="clientCount[dbInbound.id].online.length">
+                            <i class="ib-chip-dot"></i><span class="num">[[
+                            clientCount[dbInbound.id].online.length ]]</span>
+                          </span>
                         </a-popover>
                         <a-popover title='{{ i18n "depletingSoon" }}'
                           :overlay-class-name="themeSwitcher.currentTheme">
@@ -494,16 +620,17 @@
                               </a-tooltip>
                             </div>
                           </template>
-                          <a-tag :style="{ margin: '0', padding: '0 2px' }"
-                            color="orange"
-                            v-if="clientCount[dbInbound.id].expiring.length">[[
-                            clientCount[dbInbound.id].expiring.length ]]</a-tag>
+                          <span class="ib-chip ib-chip--warn ib-chip--mini"
+                            v-if="clientCount[dbInbound.id].expiring.length">
+                            <i class="ib-chip-dot"></i><span class="num">[[
+                            clientCount[dbInbound.id].expiring.length ]]</span>
+                          </span>
                         </a-popover>
-                        <a-popover title='{{ i18n "online" }}'
+                        <a-popover title='{{ i18n "depleted" }}'
                           :overlay-class-name="themeSwitcher.currentTheme">
                           <template slot="content">
                             <div
-                              v-for="clientEmail in clientCount[dbInbound.id].online"
+                              v-for="clientEmail in clientCount[dbInbound.id].depleted"
                               :key="clientEmail"
                               class="client-popup-item">
                               <span>[[ clientEmail ]]</span>
@@ -519,13 +646,39 @@
                               </a-tooltip>
                             </div>
                           </template>
-                          <a-tag :style="{ margin: '0', padding: '0 2px' }"
-                            color="blue"
-                            v-if="clientCount[dbInbound.id].online.length">[[
-                            clientCount[dbInbound.id].online.length
-                            ]]</a-tag>
+                          <span class="ib-chip ib-chip--error ib-chip--mini"
+                            v-if="clientCount[dbInbound.id].depleted.length">
+                            <i class="ib-chip-dot"></i><span class="num">[[
+                            clientCount[dbInbound.id].depleted.length ]]</span>
+                          </span>
                         </a-popover>
-                      </template>
+                        <a-popover title='{{ i18n "disabled" }}'
+                          :overlay-class-name="themeSwitcher.currentTheme">
+                          <template slot="content">
+                            <div
+                              v-for="clientEmail in clientCount[dbInbound.id].deactive"
+                              :key="clientEmail"
+                              class="client-popup-item">
+                              <span>[[ clientEmail ]]</span>
+                              <a-tooltip
+                                :overlay-class-name="themeSwitcher.currentTheme">
+                                <template #title>
+                                  [[
+                                  clientCount[dbInbound.id].comments.get(clientEmail)
+                                  ]]
+                                </template>
+                                <a-icon type="message"
+                                  v-if="clientCount[dbInbound.id].comments.get(clientEmail)"></a-icon>
+                              </a-tooltip>
+                            </div>
+                          </template>
+                          <span class="ib-chip ib-chip--off ib-chip--mini"
+                            v-if="clientCount[dbInbound.id].deactive.length">
+                            <i class="ib-chip-dot"></i><span class="num">[[
+                            clientCount[dbInbound.id].deactive.length ]]</span>
+                          </span>
+                        </a-popover>
+                      </div>
                     </template>
                     <template slot="traffic" slot-scope="text, dbInbound">
                       <a-popover
@@ -546,31 +699,43 @@
                             </tr>
                           </table>
                         </template>
-                        <a-tag
-                          :color="ColorUtils.usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
-                          [[ SizeFormatter.sizeFormat(dbInbound.up +
-                          dbInbound.down) ]] /
-                          <template v-if="dbInbound.total > 0">
-                            [[ SizeFormatter.sizeFormat(dbInbound.total) ]]
-                          </template>
-                          <template v-else>
-                            <svg height="10px" width="14px"
-                              viewBox="0 0 640 512" fill="currentColor">
-                              <path
-                                d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
-                                fill="currentColor"></path>
-                            </svg>
-                          </template>
-                        </a-tag>
+                        <!-- Figure above, meter below, quota to the right of the
+                             figure. A coloured pill could only say "orange-ish";
+                             a meter says how far along the quota the inbound is,
+                             which is the question actually being asked. Unmetered
+                             inbounds get a striped rail rather than a full bar, so
+                             "no limit" cannot be misread as "100% used". -->
+                        <div class="ib-traffic" :class="'ib-traffic--' + trafficState(dbInbound)">
+                          <div class="ib-traffic-line">
+                            <span class="ib-traffic-used num">[[
+                              SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]]</span>
+                            <span class="ib-traffic-cap num"
+                              v-if="dbInbound.total > 0">/ [[
+                              SizeFormatter.sizeFormat(dbInbound.total) ]]</span>
+                            <span class="ib-traffic-cap ib-inf" v-else>
+                              <svg height="10px" width="14px" viewBox="0 0 640 512"
+                                fill="currentColor">
+                                <path
+                                  d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
+                                  fill="currentColor"></path>
+                              </svg>
+                            </span>
+                          </div>
+                          <div class="ib-meter" v-if="dbInbound.total > 0">
+                            <span class="ib-meter-fill"
+                              :style="{ width: trafficPercent(dbInbound) + '%' }"></span>
+                          </div>
+                          <div class="ib-meter ib-meter--inf" v-else></div>
+                        </div>
                       </a-popover>
                     </template>
                     <template slot="allTimeInbound"
                       slot-scope="text, dbInbound">
-                      <a-tag>[[ SizeFormatter.sizeFormat(dbInbound.allTime || 0)
-                        ]]</a-tag>
+                      <span class="ib-num num">[[
+                        SizeFormatter.sizeFormat(dbInbound.allTime || 0) ]]</span>
                     </template>
                     <template slot="enable" slot-scope="text, dbInbound">
-                      <a-switch v-model="dbInbound.enable"
+                      <a-switch v-model="dbInbound.enable" size="small"
                         @change="switchEnable(dbInbound.id,dbInbound.enable)"></a-switch>
                     </template>
                     <template slot="expiryTime" slot-scope="text, dbInbound">
@@ -579,20 +744,22 @@
                         <template slot="content">
                           [[ IntlUtil.formatDate(dbInbound.expiryTime) ]]
                         </template>
-                        <a-tag :style="{ minWidth: '50px' }"
-                          :color="ColorUtils.usageColor(new Date().getTime(), app.expireDiff, dbInbound._expiryTime)">
+                        <span class="ib-tag ib-tag--time"
+                          :class="'ib-tag--' + expiryState(dbInbound)">
                           [[ IntlUtil.formatRelativeTime(dbInbound.expiryTime)
                           ]]
-                        </a-tag>
+                        </span>
                       </a-popover>
-                      <a-tag v-else color="purple" class="infinite-tag">
+                      <!-- No expiry: the same infinity mark the traffic cell uses,
+                           kept neutral so "unlimited" never reads as a warning. -->
+                      <span v-else class="ib-tag ib-tag--time ib-tag--quiet">
                         <svg height="10px" width="14px" viewBox="0 0 640 512"
                           fill="currentColor">
                           <path
                             d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
                             fill="currentColor"></path>
                         </svg>
-                      </a-tag>
+                      </span>
                     </template>
                     <template slot="info" slot-scope="text, dbInbound">
                       <a-popover placement="bottomRight"
@@ -830,20 +997,32 @@
                         </a-badge>
                       </a-popover>
                     </template>
+                    <!-- ========================= 5. client detail panel ===== -->
+                    <!-- An inline detail panel rather than a bare second row: the
+                         nested table used to be pulled outward with negative
+                         margins so it bled into the parent's cell borders, which
+                         is why the expanded state read as a rendering accident.
+                         It now sits in its own recessed surface with a caption,
+                         and the expanded <td> carries no padding of its own. -->
                     <template slot="expandedRowRender" slot-scope="record">
-                      <a-table :row-key="client => client.id"
-                        :columns="isMobile ? innerMobileColumns : innerColumns"
-                        :data-source="getInboundClients(record)"
-                        :pagination=pagination(getInboundClients(record))
-                        :style="{ margin: `-10px ${isMobile ? '2px' : '22px'} -11px` }">
-                        {{template "component/aClientTable"}}
-                      </a-table>
+                      <div class="ib-sub">
+                        <div class="ib-sub-head">
+                          <span class="ib-sub-title">{{ i18n "clients" }}</span>
+                          <span class="ib-sub-count num">[[ getInboundClients(record).length ]]</span>
+                          <span class="ib-sub-spacer"></span>
+                          <span class="ib-sub-meta">[[ record.remark ]]</span>
+                        </div>
+                        <a-table :row-key="client => client.id"
+                          :columns="isMobile ? innerMobileColumns : innerColumns"
+                          :data-source="getInboundClients(record)"
+                          :pagination=pagination(getInboundClients(record))>
+                          {{template "component/aClientTable"}}
+                        </a-table>
+                      </div>
                     </template>
                   </a-table-sortable>
-                </a-space>
-              </a-card>
-            </a-col>
-          </a-row>
+            </section>
+          </div>
         </transition>
       </a-spin>
   <a-modal id="bulk-ops-modal"
@@ -1159,111 +1338,116 @@
   });
 </script>
 <script>
+  // Column ORDER is the scan order, and it now runs identity → configuration →
+  // population → consumption → time → actions, which is the order the questions
+  // are actually asked in ("which inbound, how is it set up, who is on it, how
+  // much is left, when does it end, what do I do about it").
+  //
+  // Two deliberate moves from the previous layout:
+  //   • the row menu goes LAST. It used to sit third, one cell from the expander,
+  //     which put a destructive menu directly beside the control an operator
+  //     clicks most often.
+  //   • the standalone ID column is gone. It was declared responsive:["xs"], so
+  //     on the desktop layout it rendered nothing at all; the id now rides under
+  //     the remark, where it is legible and always present.
+  // The expander is injected into column 0 (expand-icon-column-index), which is
+  // why that first cell is wide enough for two controls.
   const columns = [{
-    align: 'center',
-    width: 25,
+    align: 'left',
+    width: 62,
     slots: { title: 'selectAllHeader' },
     scopedSlots: { customRender: 'select' },
-  }, {
-    title: "ID",
-    align: 'right',
-    dataIndex: "id",
-    width: 30,
-    responsive: ["xs"],
-  }, {
-    title: '{{ i18n "pages.inbounds.operate" }}',
-    align: 'center',
-    width: 30,
-    scopedSlots: { customRender: 'action' },
   }, {
     title: '{{ i18n "pages.inbounds.enable" }}',
     align: 'center',
-    width: 35,
+    width: 54,
     scopedSlots: { customRender: 'enable' },
   }, {
     title: '{{ i18n "pages.inbounds.remark" }}',
-    align: 'center',
-    width: 60,
-    dataIndex: "remark",
-  }, {
-    title: '{{ i18n "pages.inbounds.port" }}',
-    align: 'center',
-    width: 40,
-    scopedSlots: { customRender: 'port' },
+    align: 'left',
+    width: 190,
+    scopedSlots: { customRender: 'remark' },
   }, {
     title: '{{ i18n "pages.inbounds.protocol" }}',
     align: 'left',
-    width: 70,
+    width: 158,
     scopedSlots: { customRender: 'protocol' },
+  }, {
+    title: '{{ i18n "pages.inbounds.port" }}',
+    align: 'left',
+    width: 84,
+    scopedSlots: { customRender: 'port' },
   }, {
     title: '{{ i18n "clients" }}',
     align: 'left',
-    width: 50,
+    width: 112,
     scopedSlots: { customRender: 'clients' },
   }, {
     title: '{{ i18n "pages.inbounds.traffic" }}',
-    align: 'center',
-    width: 90,
+    align: 'left',
+    width: 176,
     scopedSlots: { customRender: 'traffic' },
   }, {
     title: '{{ i18n "pages.inbounds.allTimeTraffic" }}',
-    align: 'center',
-    width: 60,
+    align: 'right',
+    width: 96,
     scopedSlots: { customRender: 'allTimeInbound' },
   }, {
     title: '{{ i18n "pages.inbounds.expireDate" }}',
-    align: 'center',
-    width: 40,
+    align: 'left',
+    width: 104,
     scopedSlots: { customRender: 'expiryTime' },
+  }, {
+    title: '{{ i18n "pages.inbounds.operate" }}',
+    align: 'right',
+    width: 96,
+    scopedSlots: { customRender: 'action' },
   }];
 
   const mobileColumns = [{
-    align: 'center',
-    width: 20,
+    align: 'left',
+    width: 52,
     slots: { title: 'selectAllHeader' },
     scopedSlots: { customRender: 'select' },
   }, {
-    title: "ID",
-    align: 'right',
-    dataIndex: "id",
-    width: 10,
-    responsive: ["s"],
-  }, {
-    title: '{{ i18n "pages.inbounds.operate" }}',
-    align: 'center',
-    width: 25,
-    scopedSlots: { customRender: 'action' },
-  }, {
     title: '{{ i18n "pages.inbounds.remark" }}',
     align: 'left',
-    width: 70,
-    dataIndex: "remark",
+    scopedSlots: { customRender: 'remark' },
   }, {
     title: '{{ i18n "pages.inbounds.info" }}',
     align: 'center',
-    width: 10,
+    width: 44,
     scopedSlots: { customRender: 'info' },
+  }, {
+    title: '{{ i18n "pages.inbounds.operate" }}',
+    align: 'right',
+    width: 56,
+    scopedSlots: { customRender: 'action' },
   }];
 
+  // Same reading order as the parent grid, so an expanded row is a continuation
+  // of the row above it rather than a differently-shaped table. The account name
+  // leads (it is what the operator came here to find), and the action strip goes
+  // last for the same reason it does upstairs.
   const innerColumns = [
-    { width: 30, align: 'center', slots: { title: 'selectAllClientsHeader' }, scopedSlots: { customRender: 'selectClient' } },
-    // 200, not 70: the cell holds up to eight action icons on one line. At 70
+    { width: 44, align: 'left', slots: { title: 'selectAllClientsHeader' }, scopedSlots: { customRender: 'selectClient' } },
+    { title: '{{ i18n "pages.inbounds.enable" }}', width: 54, align: 'center', scopedSlots: { customRender: 'enable' } },
+    { title: '{{ i18n "pages.inbounds.client" }}', width: 220, align: 'left', scopedSlots: { customRender: 'client' } },
+    { title: '{{ i18n "online" }}', width: 92, align: 'left', scopedSlots: { customRender: 'online' } },
+    { title: '{{ i18n "pages.inbounds.traffic" }}', width: 190, align: 'left', scopedSlots: { customRender: 'traffic' } },
+    { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 96, align: 'right', scopedSlots: { customRender: 'allTime' } },
+    { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 156, align: 'left', scopedSlots: { customRender: 'expiryTime' } },
+    // 210, not 70: the cell holds up to eight action icons on one line. At 70
     // they wrapped onto three ragged rows, and with nowrap they overflowed into
-    // the Enabled column.
-    { title: '{{ i18n "pages.inbounds.operate" }}', width: 200, scopedSlots: { customRender: 'actions' } },
-    { title: '{{ i18n "pages.inbounds.enable" }}', width: 30, scopedSlots: { customRender: 'enable' } },
-    { title: '{{ i18n "online" }}', width: 32, scopedSlots: { customRender: 'online' } },
-    { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
-    { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
-    { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 60, align: 'center', scopedSlots: { customRender: 'allTime' } },
-    { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
+    // the neighbouring column.
+    { title: '{{ i18n "pages.inbounds.operate" }}', width: 210, align: 'right', scopedSlots: { customRender: 'actions' } },
   ];
 
   const innerMobileColumns = [
-    { width: 24, align: 'center', slots: { title: 'selectAllClientsHeader' }, scopedSlots: { customRender: 'selectClient' } },
-    { title: '{{ i18n "pages.inbounds.operate" }}', width: 10, align: 'center', scopedSlots: { customRender: 'actionMenu' } },
-    { title: '{{ i18n "pages.inbounds.client" }}', width: 90, align: 'left', scopedSlots: { customRender: 'client' } },
-    { title: '{{ i18n "pages.inbounds.info" }}', width: 10, align: 'center', scopedSlots: { customRender: 'info' } },
+    { width: 40, align: 'left', slots: { title: 'selectAllClientsHeader' }, scopedSlots: { customRender: 'selectClient' } },
+    { title: '{{ i18n "pages.inbounds.client" }}', align: 'left', scopedSlots: { customRender: 'client' } },
+    { title: '{{ i18n "pages.inbounds.info" }}', width: 44, align: 'center', scopedSlots: { customRender: 'info' } },
+    { title: '{{ i18n "pages.inbounds.operate" }}', width: 44, align: 'right', scopedSlots: { customRender: 'actionMenu' } },
   ];
 
   // Every bulk operation the modal can offer, in the order it lists them.
@@ -1310,6 +1494,9 @@
       // an uncontrolled table would reset expanded rows on any re-render (e.g.
       // ticking a selection checkbox). Owning the keys keeps rows open.
       expandedRowKeys: [],
+      // Row height preset, remembered per browser. Presentation only — it adds a
+      // class to the grid and touches nothing the table reads.
+      density: localStorage.getItem('inboundsDensity') === 'compact' ? 'compact' : 'cozy',
       expireDiff: 0,
       trafficDiff: 0,
       defaultCert: '',
@@ -2673,6 +2860,32 @@
         if (clientStats.total == 0) return 100;
         return 100 * (clientStats.down + clientStats.up) / clientStats.total;
       },
+      // State names for the per-client meters and chips. Same thresholds as
+      // ColorUtils.clientUsageColor / userExpiryColor, but resolved to a class so
+      // the sub-table can be tinted from the theme tokens rather than from the
+      // legacy hexes those helpers return. A disabled account reads 'off' first:
+      // whatever its quota says, it is not currently consuming anything.
+      clientTrafficState(dbInbound, client) {
+        if (!client || !client.enable) return 'off';
+        const stats = this.getClientStats(dbInbound, client.email);
+        if (!stats || !stats.total || stats.total == 0) return 'inf';
+        const used = stats.up + stats.down;
+        if (used < stats.total - this.trafficDiff) return 'ok';
+        if (used < stats.total) return 'warn';
+        return 'over';
+      },
+      clientExpiryState(client) {
+        if (!client || !client.enable) return 'off';
+        const exp = Number(client.expiryTime) || 0;
+        // 0 is "never"; a negative value is a start-after-first-use account that
+        // has not started yet. Neither is a warning.
+        if (exp === 0) return 'quiet';
+        if (exp < 0) return 'ok';
+        const now = new Date().getTime();
+        if (now >= exp) return 'over';
+        if (now >= exp - this.expireDiff) return 'warn';
+        return 'ok';
+      },
       expireProgress(expTime, reset) {
         now = new Date().getTime();
         remainedSeconds = expTime < 0 ? -expTime / 1000 : (expTime - now) / 1000;
@@ -2819,6 +3032,51 @@
           await this.getDBInbounds();
           this.loadingStates.spinning = false;
         }
+      },
+      // --- view utilities ------------------------------------------------
+      // Both of these are pure presentation. Density writes a class; expand-all
+      // writes the same expandedRowKeys array the table already owns, so it goes
+      // through exactly the path a click on one expander does.
+      setDensity(mode) {
+        this.density = mode === 'compact' ? 'compact' : 'cozy';
+        try { localStorage.setItem('inboundsDensity', this.density); } catch (e) { /* private mode */ }
+      },
+      // Only multi-user inbounds have an expander (see the hideExpandIcon row
+      // class), so a single-account inbound must not be forced open: it would
+      // render an empty detail panel under a row with no control to close it.
+      expandableRowKeys() {
+        return this.searchedInbounds
+          .filter(dbInbound => dbInbound.isMultiUser())
+          .map(dbInbound => dbInbound.id);
+      },
+      toggleExpandAll() {
+        this.expandedRowKeys = this.allRowsExpanded ? [] : this.expandableRowKeys();
+      },
+      // --- traffic / expiry presentation ---------------------------------
+      // The same three thresholds ColorUtils.usageColor applies, resolved to a
+      // state name instead of an ant tag colour, because the cell now draws a
+      // meter and needs to tint two elements from one decision.
+      trafficPercent(dbInbound) {
+        const total = Number(dbInbound.total) || 0;
+        if (total <= 0) return 100;
+        const used = (Number(dbInbound.up) || 0) + (Number(dbInbound.down) || 0);
+        return Math.max(0, Math.min(100, Math.round((used / total) * 100)));
+      },
+      trafficState(dbInbound) {
+        const total = Number(dbInbound.total) || 0;
+        if (total <= 0) return 'inf';
+        const used = (Number(dbInbound.up) || 0) + (Number(dbInbound.down) || 0);
+        if (used < total - this.trafficDiff) return 'ok';
+        if (used < total) return 'warn';
+        return 'over';
+      },
+      expiryState(dbInbound) {
+        const exp = Number(dbInbound.expiryTime) || 0;
+        if (exp <= 0) return 'quiet';
+        const now = new Date().getTime();
+        if (now >= exp) return 'over';
+        if (now >= exp - this.expireDiff) return 'warn';
+        return 'ok';
       },
       pagination(obj) {
         if (this.pageSize > 0 && obj.length > this.pageSize) {
@@ -2984,6 +3242,13 @@
           && !(this.enableFilter && !ObjectUtil.isEmpty(this.filterBy))
           && this.pagination(this.searchedInbounds) === false;
       },
+      // Drives the expand-all toggle's icon and label. False when nothing is
+      // expandable, so the control reads "expand" rather than claiming an empty
+      // list is fully open.
+      allRowsExpanded() {
+        const keys = this.expandableRowKeys();
+        return keys.length > 0 && keys.every(id => this.expandedRowKeys.includes(id));
+      },
       // The reseller's own remaining balance, read off the reactive copy in data
       // rather than the RESELLER global. The global is server-rendered with the
       // page, so it is correct on first paint and stale straight after the first
@@ -3029,12 +3294,12 @@
 </script>
 <style>
   /* Pins the page spinner to the viewport centre rather than the centre of a
-     very tall table. The offset compensates for the nav rail, which is 96px
-     wide (64px collapsed or under 560px, hence the narrow-screen override). */
+     very tall table. Offset matches the collapsed rail footprint (64px), which
+     is the default after the hover-peek redesign. */
   .bo-content > .ant-spin-nested-loading > div > .ant-spin {
     position: fixed !important;
     top: 50vh !important;
-    left: calc(50vw + 48px) !important;
+    left: calc(50vw + 32px) !important;
     transform: translate(-50%, -50%);
     z-index: 99999 !important;
   }
@@ -3042,25 +3307,6 @@
     .bo-content > .ant-spin-nested-loading > div > .ant-spin {
       left: 50vw !important;
     }
-  }
-
-  /* The drag handle shares the row's narrow action cell with the ... menu. They
-     are the same weight and colour, so they need a gap to read as two controls,
-     and the gap is what pushes them past the cell width and onto two lines
-     unless the pair is laid out rather than left as inline content. (The
-     routing-rules table gets both for free from the row number printed between
-     them, which this table has no room for.) */
-  .inbounds-page .bo-row-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    white-space: nowrap;
-  }
-  .inbounds-page .sortable-icon {
-    opacity: 0.65;
-  }
-  .inbounds-page .sortable-icon:hover {
-    opacity: 1;
   }
 </style>
 {{ template "page/body_end" .}}
