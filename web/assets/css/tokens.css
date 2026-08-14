@@ -89,6 +89,12 @@
   --border-hover:#C7CED8;
   --border-strong:#AEB6C2;
 
+  /* Internal separators: prefer these over a border on every element. */
+  --divider:rgba(15,23,42,.07);
+  --sidebar-bg:#FFFFFF;
+  --surface-3:#F1F3F6;
+  --surface-4:#E6EAF0;
+
   --text:#15171A;
   --text-2:#4E5663;
   --text-3:#747D8B;
@@ -98,6 +104,8 @@
   --accent-strong:#1D4FD7;
   --accent-weak:rgba(37,99,235,.09);
   --on-accent:#FFFFFF;
+  --accent-fill:#2563EB;
+  --accent-fill-hover:#1D4FD7;
   --glow:#2563EB;
   --glow-weak:rgba(37,99,235,.08);
 
@@ -113,9 +121,9 @@
   --error-weak:rgba(210,45,70,.10);
   --off-weak:rgba(122,132,148,.10);
 
-  --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 0 0 1px rgba(15,23,42,.03);
-  --shadow-md:0 8px 24px -18px rgba(15,23,42,.18);
-  --shadow-lg:0 20px 44px -26px rgba(15,23,42,.20);
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05);
+  --shadow-md:0 1px 2px rgba(15,23,42,.04), 0 8px 22px -12px rgba(15,23,42,.13);
+  --shadow-lg:0 2px 4px rgba(15,23,42,.04), 0 24px 48px -20px rgba(15,23,42,.18);
 
   --glass-bg:rgba(255,255,255,.80);
   --glass-border:#DDE2E9;
@@ -142,6 +150,11 @@ body.dark {
   --border-hover:#33333B;
   --border-strong:#3D3D46;
 
+  --divider:rgba(255,255,255,.055);
+  --sidebar-bg:#0D0D0F;
+  --surface-3:#1D1D21;
+  --surface-4:#26262B;
+
   --text:#F2F3F5;
   --text-2:#B0B3BA;
   --text-3:#7B808A;
@@ -150,6 +163,10 @@ body.dark {
   --accent-strong:#5A9BFF;
   --accent-weak:rgba(59,130,246,.14);
   --on-accent:#FFFFFF;
+  /* Filled controls need a deeper tone than the on-dark text accent so white
+     label text clears 4.5:1. */
+  --accent-fill:#2F6FE0;
+  --accent-fill-hover:#3B82F6;
   --glow:#3B82F6;
   --glow-weak:rgba(59,130,246,.12);
 
@@ -194,6 +211,11 @@ html[data-theme='ultra-dark'] body.dark {
   --border-hover:#2E2E34;
   --border-strong:#38383F;
 
+  --divider:rgba(255,255,255,.05);
+  --sidebar-bg:#08080A;
+  --surface-3:#18181B;
+  --surface-4:#222226;
+
   --text:#F2F3F5;
   --text-2:#A9ACB4;
   --text-3:#71767F;
@@ -201,7 +223,9 @@ html[data-theme='ultra-dark'] body.dark {
   --accent:#4C8DF7;
   --accent-strong:#6BA4FF;
   --accent-weak:rgba(76,141,247,.14);
-  --on-accent:#04070C;
+  --on-accent:#FFFFFF;
+  --accent-fill:#2F6FE0;
+  --accent-fill-hover:#3B82F6;
   --glow:#4C8DF7;
   --glow-weak:rgba(76,141,247,.12);
 

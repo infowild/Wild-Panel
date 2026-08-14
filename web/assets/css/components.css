@@ -48,21 +48,8 @@
   -moz-osx-font-smoothing:grayscale;
   position:relative;
 }
-.bo-shell::before {
-  content:"";
-  position:absolute; inset:0; z-index:0; pointer-events:none;
-  background:
-    radial-gradient(ellipse 55% 40% at 6% 0%, var(--ambient-cyan), transparent 58%),
-    radial-gradient(ellipse 45% 35% at 100% 100%, var(--ambient-violet), transparent 52%);
-}
-.bo-shell::after {
-  content:"";
-  position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.045; mix-blend-mode:multiply;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-body.dark .bo-shell::after {
-  opacity:.03; mix-blend-mode:overlay;
-}
+/* No ambient colour wash and no film grain: the enterprise ground is a flat
+   neutral surface, and every gradient here read as decoration. */
 .bo-shell > * { position:relative; z-index:1; }
 
 .bo-shell svg { display:block; }
@@ -99,21 +86,11 @@ body.dark .bo-shell::after {
 .bo-icon-fill { fill:currentColor; stroke:none; }
 
 .bo-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; background:var(--off); }
-.bo-dot--ok {
-  background:var(--ok);
-  box-shadow:0 0 8px color-mix(in srgb, var(--ok) 55%, transparent);
-  animation:bo-dot-pulse 2.2s ease-in-out infinite;
-}
-.bo-dot--info { background:var(--info); box-shadow:0 0 8px color-mix(in srgb, var(--info) 45%, transparent); }
+.bo-dot { width:7px; height:7px; }
+.bo-dot--ok { background:var(--ok); }
+.bo-dot--info { background:var(--info); }
 .bo-dot--warn { background:var(--warn); }
-.bo-dot--error { background:var(--error); box-shadow:0 0 8px color-mix(in srgb, var(--error) 45%, transparent); }
-@keyframes bo-dot-pulse {
-  0%,100% { transform:scale(1); opacity:1; }
-  50% { transform:scale(1.25); opacity:.75; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .bo-dot--ok { animation:none; }
-}
+.bo-dot--error { background:var(--error); }
 
 /* ================================================================== *
  * shell: rail nav
@@ -124,64 +101,48 @@ body.dark .bo-shell::after {
    full-height flex child that scrolls its own overflow. */
 .bo-rail {
   position:relative;
-  flex:0 0 248px; width:248px;
+  flex:0 0 244px; width:244px;
   height:100%;
-  background:var(--glass-bg);
-  border-inline-end:1px solid var(--glass-border);
-  backdrop-filter:blur(var(--glass-blur)) saturate(1.35);
-  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.35);
+  background:var(--sidebar-bg);
+  border-inline-end:1px solid var(--border);
   display:flex; flex-direction:column; align-items:stretch;
-  padding:18px 14px 16px; gap:0;
+  padding:16px 12px 14px; gap:0;
   overflow-y:auto; overflow-x:hidden;
   z-index:20;
-  box-shadow:
-    inset -1px 0 0 rgba(255,255,255,.55),
-    4px 0 32px -18px rgba(15,40,70,.12);
+  box-shadow:none;
   transition:flex-basis var(--dur-med) var(--ease), width var(--dur-med) var(--ease);
 }
-.bo-rail::before {
-  content:""; position:absolute; inset:0; pointer-events:none;
-  background:
-    linear-gradient(180deg, var(--ambient-cyan), transparent 28%),
-    linear-gradient(0deg, var(--ambient-violet), transparent 22%);
-  opacity:.35;
-}
 .bo-rail > * { position:relative; z-index:1; }
-body.dark .bo-rail {
-  box-shadow:inset -1px 0 0 rgba(255,255,255,.04), 8px 0 40px -24px rgba(0,0,0,.55);
-}
-body.dark .bo-rail::before { opacity:.22; }
 
 .bo-rail-brand {
-  display:flex; flex-direction:row; align-items:center; gap:12px;
-  color:var(--accent); width:100%;
-  padding:6px 10px 18px; margin-bottom:6px;
-  border-bottom:1px solid var(--glass-border);
+  display:flex; flex-direction:row; align-items:center; gap:10px;
+  color:var(--text); width:100%;
+  padding:4px 8px 14px; margin-bottom:8px;
+  border-bottom:1px solid var(--divider);
 }
 .bo-rail-brand .wp-wordmark {
-  font-size:10px; letter-spacing:.16em; text-align:start; line-height:1.2;
+  font-size:10.5px; letter-spacing:.15em; text-align:start; line-height:1.2;
   flex:1; min-width:0;
 }
 .bo-rail-brand-link { display:block; line-height:0; flex:0 0 auto; }
 .bo-rail-brand-link .wp-mark {
-  transition:box-shadow var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
+  transition:box-shadow var(--dur-med) var(--ease);
 }
 .bo-rail-brand-link:hover .wp-mark {
-  transform:translateY(-1px);
-  box-shadow:var(--glow-cyan), var(--glow-violet);
+  box-shadow:inset 0 0 0 1px var(--border-hover);
 }
 
 .bo-rail-nav {
-  display:flex; flex-direction:column; gap:4px;
+  display:flex; flex-direction:column; gap:2px;
   width:100%; flex:1 1 auto;
-  padding:8px 0;
+  padding:2px 0;
 }
 
 /* Theme switch and collapse control, pinned to the bottom of the rail. */
 .bo-rail-foot {
   display:flex; flex-direction:row; align-items:center; justify-content:space-between;
   gap:10px; width:100%; margin-top:auto;
-  padding:14px 8px 0; border-top:1px solid var(--glass-border);
+  padding:12px 6px 0; border-top:1px solid var(--divider);
 }
 
 .bo-rail-collapse {
@@ -195,8 +156,7 @@ body.dark .bo-rail::before { opacity:.22; }
              box-shadow var(--dur-fast) var(--ease);
 }
 .bo-rail-collapse:hover {
-  background:var(--accent-weak); color:var(--accent); border-color:var(--accent);
-  box-shadow:var(--glow-cyan);
+  background:var(--surface-4); color:var(--text); border-color:var(--border-hover);
 }
 /* The chevron points inward/outward, so it must mirror in RTL. */
 [dir="rtl"] .bo-rail-collapse { transform:scaleX(-1); }
@@ -222,10 +182,10 @@ body.dark .bo-rail::before { opacity:.22; }
 
 .bo-rail-item {
   position:relative;
-  display:flex; flex-direction:row; align-items:center; gap:12px;
-  width:100%; padding:10px 14px;
+  display:flex; flex-direction:row; align-items:center; gap:11px;
+  width:100%; padding:9px 12px;
   border-radius:var(--radius-md); border:none; background:transparent;
-  color:var(--text-3); cursor:pointer; text-decoration:none;
+  color:var(--text-2); cursor:pointer; text-decoration:none;
   transition:background var(--dur-fast) var(--ease),
              color var(--dur-fast) var(--ease),
              transform var(--dur-fast) var(--ease),
@@ -243,25 +203,21 @@ body.dark .bo-rail::before { opacity:.22; }
   width:22px; display:flex; align-items:center; justify-content:center;
 }
 .bo-rail-item:hover {
-  color:var(--text); background:var(--accent-weak);
-  transform:translateX(2px);
+  color:var(--text); background:var(--surface-hover);
 }
-[dir="rtl"] .bo-rail-item:hover { transform:translateX(-2px); }
+/* Elegant, quiet selection: an elevated neutral surface, stronger label, and a
+   single 2px accent indicator. No fill, no glow, no border. */
 .bo-rail-item.is-active {
-  color:var(--accent);
-  background:linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--accent) 14%, transparent),
-    color-mix(in srgb, var(--accent) 4%, transparent)
-  );
-  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+  color:var(--text); background:var(--surface-3);
+  box-shadow:none;
 }
+.bo-rail-item.is-active span { font-weight:var(--fw-semibold); }
+.bo-rail-item.is-active .anticon { color:var(--accent); }
 .bo-rail-item.is-active::before {
   content:""; position:absolute;
   inset-inline-start:0; top:50%; transform:translateY(-50%);
-  width:3px; height:58%; border-radius:0 4px 4px 0;
-  background:linear-gradient(180deg, var(--brand-cyan), var(--brand-violet));
-  box-shadow:var(--glow-cyan);
+  width:2px; height:46%; border-radius:0 2px 2px 0;
+  background:var(--accent);
 }
 [dir="rtl"] .bo-rail-item.is-active::before {
   border-radius:4px 0 0 4px;
@@ -291,10 +247,8 @@ body.dark .bo-rail::before { opacity:.22; }
 }
 
 .bo-topbar {
-  background:var(--glass-bg);
-  border-bottom:1px solid var(--glass-border);
-  backdrop-filter:blur(var(--glass-blur)) saturate(1.3);
-  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.3);
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
   position:sticky; top:0; z-index:10;
 }
 .bo-topbar-inner {
@@ -404,7 +358,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-bento {
   display:grid; grid-template-columns:1fr; gap:var(--gap-sm);
   grid-template-areas:
-    "flow" "vit" "users" "xray" "ident" "panel" "manage" "svc";
+    "flow" "vit" "users" "svc" "xray" "ident" "panel" "manage";
 }
 .bo-bento > .bo-tile {
   animation:bo-tile-in .55s cubic-bezier(.22,1,.36,1) both;
@@ -429,29 +383,31 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
     grid-template-columns:repeat(4,1fr); gap:var(--gap-md);
     grid-template-areas:
       "flow flow flow flow"
-      "users users users users"
       "vit vit vit vit"
-      "xray xray xray xray"
+      "users users users users"
+      "svc svc svc svc"
       "ident ident ident ident"
-      "panel panel manage manage"
-      "svc svc svc svc";
+      "xray xray panel panel"
+      "manage manage manage manage";
   }
 }
 @media (min-width:1180px) {
   .bo-bento {
     grid-template-columns:repeat(12,1fr); gap:var(--gap-lg);
+    /* Network (8 cols) leads with Server Health as a two-row rail beside it, so
+       the two primary cards' heights land close and neither reserves slack.
+       Clients then run the full 8-col width as one instrument row. Gated tiles
+       (svc, manage) sit on rows whose track collapses to 0 when absent. */
     grid-template-areas:
       "flow flow flow flow flow flow flow flow vit vit vit vit"
-      "users users users users xray xray xray xray vit vit vit vit"
-      "ident ident ident ident ident ident panel panel panel manage manage manage"
-      "svc svc svc svc svc svc svc svc svc svc svc svc";
-    /* Tiles STRETCH to fill their row (grid's default) rather than sizing to
-       content. align-items:start was tried and is worse: it removes the dead
-       space inside a card but dumps it between the cards instead, leaving
-       ragged holes under Identity, Clients and System Status. The three
-       columns carry near-equal total content (roughly 700 / 725 / 730px), so
-       stretching lands them flush. .bo-tile distributes its own content, see
-       the justify-content rule there. */
+      "users users users users users users users users vit vit vit vit"
+      "svc svc svc svc svc svc svc svc svc svc svc svc"
+      "ident ident ident ident ident ident xray xray xray xray xray xray"
+      "panel panel panel panel panel panel manage manage manage manage manage manage";
+    /* Only the two primary cards stretch to their tracks. Secondary and
+       tertiary cards are align-self:start (see the tile section), because a
+       short card padded out to a neighbour's height reads as dead space —
+       which is worse here than a ragged bottom edge. */
   }
 }
 
@@ -471,7 +427,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-tile {
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:var(--radius-lg); padding:16px 18px;
+  border-radius:var(--radius-lg); padding:14px 16px;
   box-shadow:none; min-width:0;
   display:flex; flex-direction:column;
   position:relative; overflow:hidden;
@@ -479,22 +435,46 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
              border-color var(--dur-fast) var(--ease);
 }
 .bo-tile > * { position:relative; z-index:1; }
-.bo-tile:hover {
-  border-color:var(--border-hover);
-}
-/* Primary analytical cards carry more weight: Network Activity + Server Health
-   sit on a subtly elevated surface with a restrained shadow and an accent title
-   marker, so the operator's eye lands on realtime data first. Secondary
-   metadata / action cards stay flat and quiet. */
+.bo-tile:hover { border-color:var(--border-hover); }
+
+/* ---- three levels of card weight -------------------------------------
+   PRIMARY   (flow, vit)            elevated surface, shadow, accent marker
+   SECONDARY (users, ident)         flat surface, plain heading
+   TERTIARY  (xray, manage, panel,
+              svc)                  recessed, tighter, quietest heading
+   Weight is carried by surface depth, padding and heading scale — not colour. */
 .bo-t-flow, .bo-t-vit {
-  background:var(--surface-2);
+  padding:16px 18px;
   box-shadow:var(--shadow-sm);
 }
-body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
-.bo-t-flow > .bo-tile-head .bo-tile-title::before,
-.bo-t-vit > .bo-tile-head .bo-tile-title::before {
-  content:""; width:3px; height:13px; border-radius:2px;
-  background:var(--accent); flex:0 0 auto; margin-inline-end:2px;
+/* Light gets its elevation from a softer, wider shadow on white; dark gets it
+   from a genuinely lighter surface. Same hierarchy, different mechanism. */
+body:not(.dark) .bo-t-flow,
+body:not(.dark) .bo-t-vit { background:var(--surface); box-shadow:var(--shadow-md); }
+body.dark .bo-t-flow,
+body.dark .bo-t-vit { background:var(--surface-3); }
+/* :first-child — only the card's own heading is promoted. System Status also
+   contains a nested "IP addresses" heading, which must stay a quiet sub-head. */
+.bo-t-flow > .bo-tile-head:first-child .bo-tile-title,
+.bo-t-vit > .bo-tile-head:first-child .bo-tile-title { font-size:var(--fs-base); color:var(--text); }
+.bo-t-flow > .bo-tile-head:first-child .bo-tile-title::before,
+.bo-t-vit > .bo-tile-head:first-child .bo-tile-title::before {
+  content:""; width:2px; height:14px; border-radius:2px;
+  background:var(--accent); flex:0 0 auto;
+}
+
+.bo-t-xray, .bo-t-manage, .bo-t-panel, .bo-t-svc {
+  padding:12px 14px;
+  background:var(--surface-2);
+}
+body.dark :is(.bo-t-xray,.bo-t-manage,.bo-t-panel,.bo-t-svc) { background:var(--surface); }
+:is(.bo-t-xray,.bo-t-manage,.bo-t-panel,.bo-t-svc) .bo-tile-title { color:var(--text-3); }
+
+/* Cards size to their content instead of stretching to the tallest sibling, so
+   no card reserves an empty dark area it has not earned. The two primary cards
+   still fill their rows. */
+.bo-t-users, .bo-t-ident, .bo-t-xray, .bo-t-manage, .bo-t-panel, .bo-t-svc {
+  align-self:start;
 }
 /* Content sits at the top of a stretched tile. space-between was tried and
    looks worse: it strands the heading at the top and the body at the very
@@ -502,24 +482,17 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
    For the tiles whose body is a grid of cells, that body grows to absorb the
    slack instead, so the card is filled rather than padded. */
 .bo-tile > :last-child { margin-bottom:0; }
-.bo-t-users .bo-people,
-.bo-t-users .bo-person { flex:1 1 auto; }
 .bo-t-users .bo-person { justify-content:center; }
-.bo-t-xray .bo-btn-row,
-.bo-t-manage .bo-btn-row { margin-top:auto; }
-/* System Status spans three rows. Its own content is shorter, so the vitals
-   list takes the slack. Capped growth (space-around, not space-between) keeps
-   the four rows from being flung to the card edges. */
-.bo-t-vit .bo-vit-list { flex:1 1 auto; justify-content:space-around; }
-
 .bo-tile-head {
   display:flex; align-items:center; justify-content:space-between;
   gap:10px; margin-bottom:10px;
 }
+/* Sentence case, not shouted uppercase: headings read as product chrome
+   rather than as labels on a settings form. */
 .bo-tile-title {
-  font-size:var(--fs-sm); font-weight:var(--fw-bold);
-  text-transform:uppercase; letter-spacing:.05em; color:var(--text-2);
-  display:flex; align-items:center; gap:7px;
+  font-size:13px; font-weight:var(--fw-semibold);
+  letter-spacing:0; color:var(--text-2);
+  display:flex; align-items:center; gap:8px;
 }
 .bo-tile-meta { font-size:var(--fs-xs); color:var(--text-3); white-space:nowrap; }
 /* Section heading inside a tile. Carries its own top spacing instead of a
@@ -527,17 +500,20 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
    read as a duplicate. */
 .bo-tile-head--sub { margin-top:12px; }
 .bo-tile-caption { font-size:var(--fs-sm); color:var(--text-3); line-height:var(--lh-base); }
-.bo-divider { height:1px; background:var(--border); margin:9px 0; }
+.bo-divider { height:1px; background:var(--divider); margin:12px 0; }
 
 /* ================================================================== *
  * identity tile
  * ================================================================== */
 
 .bo-t-ident { justify-content:flex-start; }
-.bo-ident-top { display:flex; align-items:center; gap:var(--gap-sm); }
-.bo-ident-logo { width:58px; height:58px; flex:0 0 auto; }
+.bo-ident-top { display:flex; align-items:center; gap:12px; }
+.bo-ident-logo { width:38px; height:38px; flex:0 0 auto; opacity:.9; }
 .bo-ident-name { min-width:0; }
-.bo-ident-os { font-size:24px; font-weight:var(--fw-bold); color:var(--text); line-height:1.15; }
+.bo-ident-os {
+  font-size:17px; font-weight:var(--fw-semibold); color:var(--text);
+  line-height:1.2; letter-spacing:-.015em;
+}
 .bo-ident-kernel { font-size:var(--fs-sm); color:var(--text-3); margin-top:5px; }
 .bo-ident-chips { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-top:var(--sp-5); }
 
@@ -556,13 +532,19 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
  * throughput
  * ================================================================== */
 
-.bo-flow-cols { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.bo-flow-cols { display:grid; grid-template-columns:1fr 1fr; gap:14px 24px; }
 @media (max-width:479px) { .bo-flow-cols { grid-template-columns:1fr; } }
 
+/* Readout sits directly on top of its own trace, so the figure and the graph
+   that produced it are one unit rather than two stacked blocks. */
+.bo-flow-top {
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:10px; padding-bottom:2px;
+}
 .bo-flow-label {
-  display:flex; align-items:center; gap:6px;
-  font-size:11.5px; font-weight:var(--fw-bold);
-  text-transform:uppercase; letter-spacing:.04em; color:var(--text-3);
+  display:flex; align-items:center; gap:5px;
+  font-size:11.5px; font-weight:var(--fw-medium);
+  letter-spacing:.01em; color:var(--text-3);
 }
 .bo-flow-col--up .bo-flow-label .bo-icon { color:var(--accent); }
 .bo-flow-col--down .bo-flow-label .bo-icon { color:var(--info); }
@@ -570,68 +552,103 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
    grows a digit ("38.07 KB" -> "382.40 KB"), which resized the whole card on
    every 2-second poll. clamp() shrinks the type instead of wrapping. */
 .bo-flow-value {
-  font-size:clamp(18px,1.7vw,24px); font-weight:var(--fw-bold);
-  letter-spacing:-.01em; margin-top:6px;
-  white-space:nowrap; line-height:1.2; min-height:1.2em;
+  font-size:clamp(19px,1.6vw,23px); font-weight:var(--fw-semibold);
+  letter-spacing:-.025em; margin-top:0;
+  white-space:nowrap; line-height:1.1; min-height:1.1em;
+  color:var(--text);
 }
-.bo-flow-col--up .bo-flow-value { color:var(--accent); }
-.bo-flow-col--down .bo-flow-value { color:var(--info); }
-.bo-unit { font-size:13px; font-weight:var(--fw-semibold); color:var(--text-3); margin-inline-start:3px; white-space:nowrap; }
+/* Direction is carried by the arrow and the label; the figures stay neutral so
+   the card is not two competing colours. Only the traces are tinted. */
+.bo-flow-col--up .bo-flow-label .bo-icon { color:var(--accent); }
+.bo-flow-col--down .bo-flow-label .bo-icon { color:var(--info); }
+.bo-unit { font-size:12px; font-weight:var(--fw-medium); color:var(--text-3); margin-inline-start:3px; white-space:nowrap; }
 
-/* Time flows left-to-right in every locale. Never mirror a chart. */
-.bo-flow-chart { width:100%; height:96px; flex:0 0 96px; margin-top:10px; direction:ltr; }
-.bo-flow-chart svg { display:block; width:100%; height:100%; overflow:visible; }
+/* Time flows left-to-right in every locale. Never mirror a chart.
+   The two hairlines are the chart's reference grid — drawn by the container so
+   the shared sparkline component needs no change. */
+.bo-flow-chart {
+  width:100%; height:84px; flex:0 0 84px; margin-top:6px; direction:ltr;
+  position:relative;
+  background-image:
+    linear-gradient(to top, var(--divider) 1px, transparent 1px),
+    linear-gradient(to top, var(--divider) 1px, transparent 1px);
+  background-position:0 100%, 0 50%;
+  background-size:100% 100%, 100% 50%;
+  background-repeat:no-repeat;
+}
+.bo-flow-chart svg { display:block; width:100%; height:100%; overflow:visible; position:relative; }
 
-/* One total centred beneath each chart. The column template mirrors
-   .bo-flow-cols exactly so each figure lines up under its own graph. */
-.bo-flow-footer { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+/* Totals as a quiet footer pair, aligned to each trace above. */
+.bo-flow-footer { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
 @media (max-width:479px) { .bo-flow-footer { grid-template-columns:1fr; } }
-.bo-mini-stat { align-items:center; text-align:center; }
-.bo-mini-stat--end { align-items:center; text-align:center; }
-.bo-mini-stat { display:flex; flex-direction:column; gap:3px; }
-.bo-mini-stat-label {
-  font-size:var(--fs-xs); color:var(--text-3); font-weight:var(--fw-bold);
-  text-transform:uppercase; letter-spacing:.04em;
+.bo-mini-stat {
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:10px; text-align:start;
 }
-.bo-mini-stat-value { font-size:18px; font-weight:var(--fw-bold); color:var(--text); }
+.bo-mini-stat-label {
+  font-size:11px; color:var(--text-3); font-weight:var(--fw-medium);
+  letter-spacing:.01em;
+}
+.bo-mini-stat-value { font-size:13px; font-weight:var(--fw-semibold); color:var(--text-2); }
 
 /* ================================================================== *
  * vitals
  * ================================================================== */
 
-.bo-vit-list { display:flex; flex-direction:column; gap:var(--gap-sm); }
-@media (max-width:1179px) {
-  .bo-vit-list { display:grid; grid-template-columns:repeat(2,1fr); gap:16px 22px; }
+/* Analytical metric matrix: label, large figure, micro-meter, secondary text
+   and a trend line per cell. Deliberately NOT a stack of full-width bars —
+   the figure leads and the meter is a 3px reference, not the subject. */
+/* Negative inline margin lets each cell's hover surface bleed into the card
+   padding while the text stays flush with the card heading above it. */
+.bo-vit-list {
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:2px; margin-inline:-10px;
 }
-@media (max-width:479px) { .bo-vit-list { grid-template-columns:1fr; } }
+@media (max-width:379px) { .bo-vit-list { grid-template-columns:1fr; } }
 
-.bo-vit-item { display:flex; flex-direction:column; gap:6px; }
-.bo-vit-row { display:flex; align-items:center; gap:12px; }
-
-.bo-ring-wrap { position:relative; width:44px; height:44px; flex:0 0 auto; }
-.bo-ring-wrap svg { width:100%; height:100%; transform:rotate(-90deg); }
-.bo-ring-track { fill:none; stroke:var(--border); stroke-width:4; }
-/* The circumference below is 2*pi*r for r=16. Any JS that animates
-   stroke-dashoffset MUST derive it from the same radius, not re-hardcode it. */
-.bo-ring-progress {
-  fill:none; stroke:var(--accent); stroke-width:4; stroke-linecap:round;
-  stroke-dasharray:100.53; stroke-dashoffset:100.53;
-  transition:stroke-dashoffset .8s cubic-bezier(.22,1,.36,1);
+.bo-vit-item {
+  display:flex; flex-direction:column; gap:5px;
+  padding:10px 10px 11px; border-radius:var(--radius-md);
+  transition:background var(--dur-fast) var(--ease);
 }
-.bo-ring-progress--warn { stroke:var(--warn); }
-.bo-ring-progress--error { stroke:var(--error); }
-.bo-ring-icon {
-  position:absolute; inset:0; display:flex;
-  align-items:center; justify-content:center; color:var(--text-2);
-}
-.bo-ring-icon .bo-icon { width:15px; height:15px; }
+.bo-vit-item:hover { background:var(--surface-hover); }
 
-.bo-vit-info { flex:1; min-width:0; }
-.bo-vit-top { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
-.bo-vit-name { font-size:13px; font-weight:var(--fw-semibold); color:var(--text); }
-.bo-vit-pct { font-size:var(--fs-base); font-weight:var(--fw-bold); color:var(--text); }
-.bo-vit-meta { font-size:11.5px; color:var(--text-3); margin-top:2px; }
-.bo-vit-spark { width:100%; height:24px; direction:ltr; }
+.bo-vit-row { display:flex; align-items:center; gap:6px; min-width:0; }
+.bo-vit-ico { color:var(--text-3); flex:0 0 auto; }
+.bo-vit-name {
+  font-size:11.5px; font-weight:var(--fw-medium); color:var(--text-3);
+  letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+.bo-vit-figure { display:flex; align-items:baseline; gap:4px; }
+.bo-vit-pct {
+  font-size:23px; font-weight:var(--fw-semibold); color:var(--text);
+  line-height:1.05; letter-spacing:-.02em;
+}
+.bo-vit-pct-unit {
+  font-size:12.5px; font-weight:var(--fw-medium); color:var(--text-3);
+  margin-inline-start:1px;
+}
+
+/* Shared micro-meter. 3px, no glow, no gradient. */
+.bo-meter {
+  display:block; width:100%; height:3px; border-radius:999px;
+  background:var(--divider); overflow:hidden;
+}
+.bo-meter-fill {
+  display:block; height:100%; border-radius:999px;
+  background:var(--accent);
+  transition:width .6s var(--ease), background var(--dur-fast) var(--ease);
+}
+/* ringClass() output, reused so thresholds stay single-sourced. */
+.bo-meter-fill.bo-ring-progress--warn { background:var(--warn); }
+.bo-meter-fill.bo-ring-progress--error { background:var(--error); }
+
+.bo-vit-meta {
+  font-size:11px; color:var(--text-3); margin:0;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.bo-vit-spark { width:100%; height:18px; direction:ltr; opacity:.75; }
 .bo-vit-spark svg { display:block; width:100%; height:100%; overflow:visible; }
 
 .bo-load-row { display:flex; align-items:center; gap:var(--sp-2); padding:4px 0; }
@@ -664,52 +681,52 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
    name gets the full width. */
 /* Full-width band with the state label restored. 190px keeps the longest
    names ("OpenConnect (cisco)", "MTProto Proxy") off the ellipsis. */
+/* A status matrix, not a wall of cards: each item is a borderless row of equal
+   height, and only hover gives it a surface. */
 .bo-svc-grid {
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
-  gap:8px; align-content:start;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(172px,1fr));
+  gap:1px 4px; align-content:start;
 }
 
 .bo-svc-chip {
   display:flex; align-items:center; gap:8px;
-  background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--radius-md); padding:6px 9px;
+  background:transparent; border:none;
+  border-radius:var(--radius-sm); padding:7px 8px; min-height:32px;
   cursor:pointer; text-align:start; width:100%; font-family:inherit;
-  transition:transform var(--dur-fast) var(--ease),
-             border-color var(--dur-fast) var(--ease),
-             box-shadow var(--dur-fast) var(--ease);
+  transition:background var(--dur-fast) var(--ease);
 }
-.bo-svc-chip:hover {
-  transform:translateY(-1px);
-  border-color:var(--border-strong);
-  box-shadow:var(--shadow-sm);
-}
+.bo-svc-chip:hover { background:var(--surface-hover); }
 
-.bo-svc-led { width:9px; height:9px; border-radius:50%; flex:0 0 auto; background:var(--off); }
+.bo-svc-led { width:7px; height:7px; border-radius:50%; flex:0 0 auto; background:var(--off); }
 /* Wraps rather than ellipsising: a truncated protocol name is useless, and
    these names are the whole point of the tile. */
 .bo-svc-name {
-  font-size:13.5px; font-weight:var(--fw-semibold); color:var(--text);
-  flex:1; min-width:0; overflow-wrap:anywhere; line-height:1.3;
+  font-size:12.5px; font-weight:var(--fw-medium); color:var(--text-2);
+  flex:1; min-width:0; overflow-wrap:anywhere; line-height:1.25;
 }
 .bo-svc-state {
-  font-size:var(--fs-xs); font-weight:var(--fw-bold);
-  text-transform:uppercase; letter-spacing:.03em; color:var(--off);
+  font-size:10.5px; font-weight:var(--fw-medium);
+  letter-spacing:.01em; color:var(--off);
   white-space:nowrap; flex:0 0 auto;
 }
 
-.bo-svc-chip[data-state="running"] .bo-svc-led { background:var(--ok); box-shadow:0 0 0 3px var(--ok-weak); }
+/* Dots only — no halo rings. Running is the only state that also strengthens
+   the service name, so a healthy matrix reads at a glance. */
+.bo-svc-chip[data-state="running"] .bo-svc-led { background:var(--ok); }
+.bo-svc-chip[data-state="running"] .bo-svc-name { color:var(--text); }
 .bo-svc-chip[data-state="running"] .bo-svc-state { color:var(--ok); }
-.bo-svc-chip[data-state="idle"] .bo-svc-led { background:var(--info); box-shadow:0 0 0 3px var(--info-weak); }
-.bo-svc-chip[data-state="idle"] .bo-svc-state { color:var(--info); }
-.bo-svc-chip[data-state="stopped"] .bo-svc-led { background:var(--warn); box-shadow:0 0 0 3px var(--warn-weak); }
+.bo-svc-chip[data-state="idle"] .bo-svc-led { background:var(--info); }
+.bo-svc-chip[data-state="idle"] .bo-svc-state { color:var(--text-3); }
+.bo-svc-chip[data-state="stopped"] .bo-svc-led { background:var(--warn); }
 .bo-svc-chip[data-state="stopped"] .bo-svc-state { color:var(--warn); }
-.bo-svc-chip[data-state="error"] .bo-svc-led { background:var(--error); box-shadow:0 0 0 3px var(--error-weak); }
+.bo-svc-chip[data-state="error"] .bo-svc-led { background:var(--error); }
+.bo-svc-chip[data-state="error"] .bo-svc-name { color:var(--text); }
 .bo-svc-chip[data-state="error"] .bo-svc-state { color:var(--error); }
 /* Not installed: present in the list but never started, so it reads as absent
    rather than as a fault. */
-.bo-svc-chip[data-state="off"] { opacity:.6; }
-.bo-svc-chip[data-state="off"] .bo-svc-led { background:var(--off); box-shadow:0 0 0 3px var(--off-weak); }
-.bo-svc-chip[data-state="off"] .bo-svc-state { color:var(--off); }
+.bo-svc-chip[data-state="off"] .bo-svc-name { color:var(--text-3); }
+.bo-svc-chip[data-state="off"] .bo-svc-led { background:var(--border-strong); }
+.bo-svc-chip[data-state="off"] .bo-svc-state { color:var(--text-3); }
 
 /* ================================================================== *
  * status pills, key-value rows, buttons
@@ -717,8 +734,8 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
 
 .bo-status-pill {
   display:inline-flex; align-items:center; gap:6px;
-  font-size:var(--fs-xs); font-weight:var(--fw-semibold);
-  padding-block:4px; padding-inline:8px 10px;
+  font-size:11px; font-weight:var(--fw-medium);
+  padding-block:3px; padding-inline:7px 9px;
   border-radius:var(--radius-pill);
   background:var(--off-weak); color:var(--off);
 }
@@ -726,44 +743,47 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
 .bo-status-pill--warn { background:var(--warn-weak); color:var(--warn); }
 .bo-status-pill--error { background:var(--error-weak); color:var(--error); }
 
-.bo-kv-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:3px 0; }
-.bo-kv-label { font-size:var(--fs-sm); color:var(--text-2); font-weight:var(--fw-medium); }
-.bo-kv-value { font-size:var(--fs-base); font-weight:var(--fw-bold); color:var(--text); }
+.bo-kv-row { display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:2px 0; }
+.bo-kv-label { font-size:11.5px; color:var(--text-3); font-weight:var(--fw-medium); }
+.bo-kv-value { font-size:13px; font-weight:var(--fw-semibold); color:var(--text); }
 
 .bo-btn-row { display:flex; flex-wrap:wrap; gap:var(--sp-2); }
 /* Compact action rows: four small buttons on ONE line, so a card is not made
    tall by a wrapped second row. Used by the merged Manage actions inside the
    identity card and by Xray. */
+/* Wrap, not nowrap: .bo-tile clips its overflow, so a row that cannot fit its
+   track would hide actions outright at tablet widths. */
 .bo-btn-row--compact,
-.bo-t-xray .bo-btn-row { gap:6px; flex-wrap:nowrap; }
+.bo-t-xray .bo-btn-row { gap:6px; flex-wrap:wrap; }
 .bo-btn-row--compact .bo-icon-btn,
 .bo-t-xray .bo-icon-btn {
-  padding:6px 8px; font-size:var(--fs-xs);
+  padding:5px 8px; font-size:var(--fs-xs);
   white-space:nowrap; min-width:0;
 }
 
 .bo-icon-btn {
   display:inline-flex; align-items:center; gap:6px;
-  font-size:var(--fs-sm); font-weight:var(--fw-semibold);
-  color:var(--text-2); background:var(--surface-2);
-  border:1px solid var(--border); border-radius:var(--radius-sm);
-  padding:7px 12px; cursor:pointer; font-family:inherit;
+  font-size:12.5px; font-weight:var(--fw-medium);
+  color:var(--text-2); background:var(--surface-3);
+  border:1px solid transparent; border-radius:var(--radius-sm);
+  padding:6px 10px; cursor:pointer; font-family:inherit;
   transition:background var(--dur-fast) var(--ease),
              color var(--dur-fast) var(--ease),
-             border-color var(--dur-fast) var(--ease),
-             transform var(--dur-fast) var(--ease);
+             border-color var(--dur-fast) var(--ease);
 }
+/* Neutral hover: secondary actions should not all light up blue. */
 .bo-icon-btn:hover {
-  background:var(--accent-weak); color:var(--accent);
-  border-color:var(--accent); transform:translateY(-1px);
+  background:var(--surface-4); color:var(--text);
+  border-color:transparent;
 }
-.bo-icon-btn--danger:hover { background:var(--error-weak); color:var(--error); border-color:var(--error); }
-.bo-icon-btn--ghost { background:transparent; border-color:transparent; padding:5px 10px; }
+.bo-icon-btn--danger:hover { background:var(--error-weak); color:var(--error); border-color:transparent; }
+.bo-icon-btn--ghost { background:transparent; border-color:transparent; padding:5px 8px; }
+.bo-icon-btn--ghost:hover { background:var(--surface-hover); border-color:transparent; }
 .bo-icon-btn--accent {
-  background:var(--accent-weak); border-color:var(--accent); color:var(--accent);
+  background:transparent; border-color:var(--border); color:var(--accent);
   padding:5px 10px; font-size:var(--fs-xs);
 }
-.bo-icon-btn--accent:hover { background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+.bo-icon-btn--accent:hover { background:var(--accent-weak); color:var(--accent); border-color:var(--accent); }
 
 /* Info affordance sitting inline with a value. */
 .bo-kv-with-action { display:inline-flex; align-items:center; gap:7px; }
@@ -784,9 +804,9 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
 }
 /* --accent-strong, not --accent: white on the brand green is 4.46:1 and misses
    WCAG AA. The two greens are visually near-identical. */
-.bo-btn--primary { background:var(--accent-strong); color:var(--on-accent); align-self:flex-start; }
+.bo-btn--primary { background:var(--accent-fill); color:var(--on-accent); align-self:flex-start; }
 .bo-btn--icon { display:inline-flex; align-items:center; gap:7px; }
-.bo-btn--primary:hover { filter:brightness(1.06); transform:translateY(-1px); }
+.bo-btn--primary:hover { background:var(--accent-fill-hover); transform:translateY(-1px); }
 /* Secondary action sharing a row with a primary one: outlined, so the primary
    keeps the only filled surface and the hierarchy survives both themes. */
 .bo-btn--ghost {
@@ -796,15 +816,15 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
 .bo-btn--ghost:hover { color:var(--accent); border-color:var(--accent); transform:translateY(-1px); }
 .bo-btn[disabled] { opacity:.5; cursor:not-allowed; transform:none; filter:none; }
 
-.bo-panel-body { display:flex; flex-direction:column; justify-content:space-between; gap:18px; flex:1; }
-.bo-panel-version { font-size:23px; font-weight:var(--fw-bold); color:var(--text); }
+.bo-panel-body { display:flex; flex-direction:column; gap:12px; }
+.bo-panel-version { font-size:19px; font-weight:var(--fw-semibold); color:var(--text); letter-spacing:-.02em; }
 .bo-panel-title {
   display:inline-flex; align-items:center; gap:8px;
 }
 .bo-panel-mark {
   width:28px; height:28px; border-radius:50%; object-fit:cover; object-position:center;
-  background:#05070e; flex:0 0 auto;
-  box-shadow:0 0 0 1.5px rgba(0,232,240,.5), 0 0 14px -2px rgba(168,85,247,.5);
+  background:var(--surface-3); flex:0 0 auto;
+  box-shadow:inset 0 0 0 1px var(--border);
 }
 .bo-panel-title .wp-mark {
   width:28px; height:28px; flex:0 0 auto;
@@ -921,14 +941,13 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
    undiscoverable, and this is the one control on the tile. */
 .bo-ident-nameline { display:flex; align-items:center; gap:8px; min-width:0; }
 .bo-ident-edit {
-  border:1px solid var(--border); background:var(--surface-2); color:var(--text-3);
+  border:1px solid transparent; background:transparent; color:var(--text-3);
   cursor:pointer; padding:4px; border-radius:6px; flex:0 0 auto;
   display:inline-flex; align-items:center; justify-content:center;
-  transition:color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease),
-             background var(--dur-fast) var(--ease);
+  transition:color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
-.bo-ident-edit:hover { color:var(--accent); border-color:var(--accent); background:var(--accent-weak); }
-.bo-ident-sub { font-size:var(--fs-base); color:var(--text-3); margin-top:4px; }
+.bo-ident-edit:hover { color:var(--text); background:var(--surface-hover); }
+.bo-ident-sub { font-size:12.5px; color:var(--text-3); margin-top:3px; }
 
 /* Labelled spec rows: tinted icon, key, value. One fact per line. */
 /* Splitting Uptime into Panel + Server took this list from seven rows to eight.
@@ -938,20 +957,28 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
    Measured: at 1px the eight rows land inside the height the seven used, so the
    bento row height stays set by Overall Speed exactly as before. The 1px rules
    between rows still separate them; the padding was slack, not structure. */
-.bo-spec { display:flex; flex-direction:column; gap:0; margin:15px 0 0; }
-.bo-spec-row {
-  display:grid; grid-template-columns:22px minmax(70px,auto) 1fr;
-  align-items:center; gap:9px; padding:1px 0;
+/* Premium metadata: a two-column definition list, label above value, with no
+   per-row rules and no decorative icon column. Grouping and spacing carry the
+   structure instead of borders. */
+.bo-spec {
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px 20px; margin:14px 0 0;
 }
-.bo-spec-row + .bo-spec-row { border-top:1px solid var(--border); }
-.bo-spec-ico { display:inline-flex; align-items:center; justify-content:center; }
+@media (max-width:400px) { .bo-spec { grid-template-columns:1fr; } }
+.bo-spec-row {
+  display:flex; flex-direction:column; gap:2px;
+  min-width:0; padding:0;
+}
+/* The tinted icon column was the card's main source of visual noise. */
+.bo-spec-ico { display:none; }
 .bo-spec-key {
-  font-size:var(--fs-sm); font-weight:var(--fw-bold); color:var(--text-3);
-  text-transform:uppercase; letter-spacing:.04em; margin:0;
+  font-size:11px; font-weight:var(--fw-medium); color:var(--text-3);
+  letter-spacing:.01em; margin:0;
 }
 .bo-spec-val {
-  font-size:var(--fs-base); font-weight:var(--fw-semibold); color:var(--text);
-  margin:0; min-width:0; overflow-wrap:anywhere; text-align:end;
+  font-size:13px; font-weight:var(--fw-medium); color:var(--text);
+  margin:0; min-width:0; overflow-wrap:anywhere; text-align:start;
+  line-height:1.35;
 }
 .bo-spec-val.bo-ok { color:var(--ok); }
 .bo-spec-val.bo-warn { color:var(--warn); }
@@ -1010,30 +1037,48 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
 /* Clients: three people marks, no column rules. Colour carries the state -
    accent for the total, ok for online, error for depleted. */
 .bo-people {
-  display:grid; grid-template-columns:repeat(4,1fr);
-  gap:var(--sp-3); text-align:center;
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px; text-align:start; align-items:end;
 }
-@media (max-width:720px) { .bo-people { grid-template-columns:repeat(2,1fr); } }
-@media (max-width:360px) { .bo-people { grid-template-columns:1fr; } }
+@media (max-width:720px) {
+  .bo-people { grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:18px; }
+  /* The hairline only separates within a row, so it is dropped where the grid
+     wraps to a new line. */
+  .bo-people .bo-person:nth-child(2n+1) { border-inline-start:none; padding-inline-start:0; }
+}
+@media (max-width:360px) {
+  .bo-people { grid-template-columns:1fr; }
+  .bo-people .bo-person { border-inline-start:none; padding-inline-start:0; }
+}
+/* No box per figure: the four metrics share one baseline and are separated by a
+   hairline, so the row reads as a single instrument panel. Semantic colour
+   touches only the small marker icon. */
 .bo-person {
-  display:flex; flex-direction:column; align-items:center; gap:4px;
-  padding:9px 8px; border-radius:var(--radius-lg);
-  background:var(--surface-2); border:1px solid var(--border);
+  display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+  padding:2px 0 2px 0; border:none; background:transparent;
+  border-radius:0;
 }
-.bo-person-ico { width:21px; height:21px; fill:none; stroke:currentColor;
-  stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
-.bo-person-val { font-size:21px; font-weight:var(--fw-bold); line-height:1.1; color:var(--text); }
+.bo-person + .bo-person {
+  border-inline-start:1px solid var(--divider);
+  padding-inline-start:16px;
+}
+.bo-person-ico {
+  width:13px; height:13px; fill:none; stroke:currentColor;
+  stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
+  opacity:.9;
+}
+.bo-person-val {
+  font-size:26px; font-weight:var(--fw-semibold); line-height:1.05;
+  color:var(--text); letter-spacing:-.025em;
+}
 .bo-person-key {
-  font-size:var(--fs-xs); font-weight:var(--fw-semibold); color:var(--text-3);
-  text-transform:uppercase; letter-spacing:.04em;
+  font-size:11px; font-weight:var(--fw-medium); color:var(--text-3);
+  letter-spacing:.01em;
 }
-.bo-person--total { color:var(--text-2); }
+.bo-person--total { color:var(--text-3); }
 .bo-person--online { color:var(--ok); }
-.bo-person--online .bo-person-val { color:var(--ok); }
 .bo-person--expiring { color:var(--warn); }
-.bo-person--expiring .bo-person-val { color:var(--warn); }
 .bo-person--depleted { color:var(--error); }
-.bo-person--depleted .bo-person-val { color:var(--error); }
 
 /* Interface picker sitting in the throughput tile head. */
 .bo-iface-pick { display:flex; align-items:center; gap:6px; }
@@ -1053,22 +1098,27 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
 
 /* Same centred-pair shape as the throughput totals, so the two cards rhyme.
    Figures are smaller than the throughput headline: these are secondary. */
-.bo-conn-body { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
-.bo-conn-stat { display:flex; flex-direction:column; align-items:center; gap:3px; }
-.bo-conn-label {
-  display:flex; align-items:center; gap:6px;
-  font-size:11.5px; font-weight:var(--fw-bold);
-  text-transform:uppercase; letter-spacing:.04em; color:var(--text-3);
+/* Connections read as one metric with a split, not as two separate stats:
+   total leads, TCP/UDP are the breakdown under it. */
+.bo-conn-head {
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:10px; margin-bottom:6px;
 }
-.bo-conn-label .bo-icon { color:var(--text-3); }
-.bo-conn-stat--tcp .bo-conn-label .bo-icon { color:var(--accent); }
-.bo-conn-stat--udp .bo-conn-label .bo-icon { color:var(--info); }
-.bo-conn-value { font-size:17px; font-weight:var(--fw-bold); color:var(--text); }
-/* Sits directly under the figures, not pushed to the foot of a stretched
-   tile, which left a visible void between them. */
+.bo-conn-title { font-size:11.5px; font-weight:var(--fw-medium); color:var(--text-3); }
+.bo-conn-total {
+  font-size:20px; font-weight:var(--fw-semibold); color:var(--text);
+  line-height:1.05; letter-spacing:-.02em;
+}
+.bo-conn-body { display:flex; align-items:baseline; gap:16px; margin-bottom:7px; }
+.bo-conn-stat { display:flex; align-items:baseline; gap:6px; }
+.bo-conn-label {
+  font-size:11px; font-weight:var(--fw-medium);
+  letter-spacing:.02em; color:var(--text-3);
+}
+.bo-conn-value { font-size:13px; font-weight:var(--fw-semibold); color:var(--text-2); }
 .bo-conn-ratio {
-  display:flex; gap:2px; height:6px; border-radius:3px;
-  overflow:hidden; background:var(--surface); margin-top:0;
+  display:flex; gap:2px; height:3px; border-radius:999px;
+  overflow:hidden; background:var(--divider); margin-top:0;
 }
 .bo-conn-ratio-seg { display:block; height:100%; }
 .bo-conn-ratio-seg--tcp { background:var(--accent); }
@@ -1078,11 +1128,11 @@ body.dark .bo-t-flow, body.dark .bo-t-vit { background:var(--surface); }
  * IP addresses
  * ================================================================== */
 
-.bo-ip-row { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:8px 0; }
-.bo-ip-row + .bo-ip-row { border-top:1px solid var(--border); }
-.bo-ip-label { font-size:var(--fs-sm); font-weight:var(--fw-medium); color:var(--text-2); flex:0 0 auto; }
+.bo-ip-row { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:5px 0; }
+.bo-ip-row + .bo-ip-row { border-top:1px solid var(--divider); }
+.bo-ip-label { font-size:11.5px; font-weight:var(--fw-medium); color:var(--text-3); flex:0 0 auto; }
 .bo-ip-value {
-  font-size:var(--fs-base); font-weight:var(--fw-semibold); color:var(--text);
+  font-size:12.5px; font-weight:var(--fw-medium); color:var(--text-2);
   text-align:end; overflow-wrap:anywhere;
   direction:ltr; unicode-bidi:isolate;
 }

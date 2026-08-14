@@ -36,19 +36,18 @@ body.dark .wp-noise { opacity:.025; mix-blend-mode:overlay; }
 }
 .wp-glass > * { position:relative; z-index:1; }
 
-/* Ring around the wolf mark — restrained, not neon */
+/* The wolf mark sits flat in the UI: a neutral hairline and a quiet surface,
+   never a neon ring or halo. */
 .wp-mark {
   display:inline-flex; align-items:center; justify-content:center;
   border-radius:50%;
-  padding:2px;
-  background:conic-gradient(from 200deg, var(--brand-cyan), var(--brand-violet), var(--brand-cyan));
-  box-shadow:var(--glow-cyan), var(--glow-violet);
+  padding:1px;
+  background:var(--divider);
+  box-shadow:inset 0 0 0 1px var(--border);
 }
 body:not(.dark) .wp-mark {
-  box-shadow:
-    0 0 0 1px rgba(15,40,70,.06),
-    0 8px 20px -10px rgba(15,40,70,.18),
-    var(--glow-cyan), var(--glow-violet);
+  background:var(--surface-3);
+  box-shadow:inset 0 0 0 1px var(--border);
 }
 
 .wp-mark__inner {
@@ -69,25 +68,24 @@ body:not(.dark) .wp-mark {
 
 .wp-wordmark {
   font-family:var(--font-display);
-  font-weight:var(--fw-bold);
-  letter-spacing:.18em;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.16em;
   text-transform:uppercase;
-  background:linear-gradient(90deg, var(--brand-cyan), var(--brand-violet));
-  -webkit-background-clip:text; background-clip:text; color:transparent;
+  color:var(--text-2);
 }
 
 /* Premium primary control — also mirrored onto .ant-btn-primary via ant-bridge */
 .wp-btn-primary {
   appearance:none; border:1px solid transparent;
   border-radius:var(--radius-md);
-  background:var(--accent);
+  background:var(--accent-fill);
   color:var(--on-accent);
   font-family:inherit; font-weight:var(--fw-semibold); font-size:var(--fs-base);
   letter-spacing:.01em;
   box-shadow:none;
   transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
-.wp-btn-primary:hover { background:var(--accent-strong); transform:translateY(-1px); }
+.wp-btn-primary:hover { background:var(--accent-fill-hover); transform:translateY(-1px); }
 .wp-btn-primary:active { transform:translateY(0); }
 .wp-btn-primary:disabled { opacity:.55; cursor:not-allowed; transform:none; filter:none; }
 

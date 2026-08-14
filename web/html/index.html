@@ -162,37 +162,41 @@
       </div>
       <div class="bo-flow-cols">
         <div class="bo-flow-col bo-flow-col--up">
-          <div class="bo-flow-label">
-            <svg class="bo-icon bo-icon-16" aria-hidden="true"><use href="#bo-i-arrow-up"></use></svg>
-            {{ i18n "pages.index.upload" }}
-          </div>
-          <div class="bo-flow-value num" aria-live="polite">
-            [[ SizeFormatter.sizeFormat(ifaceRate('up')) ]]<span class="bo-unit">/s</span>
+          <div class="bo-flow-top">
+            <div class="bo-flow-label">
+              <svg class="bo-icon bo-icon-14" aria-hidden="true"><use href="#bo-i-arrow-up"></use></svg>
+              {{ i18n "pages.index.upload" }}
+            </div>
+            <div class="bo-flow-value num" aria-live="polite">
+              [[ SizeFormatter.sizeFormat(ifaceRate('up')) ]]<span class="bo-unit">/s</span>
+            </div>
           </div>
           <!-- height matches .bo-flow-chart's 96px in components.css. The prop said
                130 while the CSS forced the <svg> to 96, and preserveAspectRatio="none"
                squashed the whole plot to 74% of its intended height, thinning the
                stroke vertically along with it. -->
           <div class="bo-flow-chart">
-            <sparkline :data="history.up" :vb-width="420" :height="96" :autoscale="true" :log-scale="true"
-              :max-points="HISTORY_POINTS" :fill-opacity="0.14" :stroke="chartColors.accent"
+            <sparkline :data="history.up" :vb-width="420" :height="84" :autoscale="true" :log-scale="true"
+              :max-points="HISTORY_POINTS" :fill-opacity="0.10" :stroke="chartColors.accent"
               :show-grid="false" :padding-left="2" :padding-right="2"
-              :padding-top="6" :padding-bottom="6" />
+              :padding-top="5" :padding-bottom="5" />
           </div>
         </div>
         <div class="bo-flow-col bo-flow-col--down">
-          <div class="bo-flow-label">
-            <svg class="bo-icon bo-icon-16" aria-hidden="true"><use href="#bo-i-arrow-down"></use></svg>
-            {{ i18n "pages.index.download" }}
-          </div>
-          <div class="bo-flow-value num" aria-live="polite">
-            [[ SizeFormatter.sizeFormat(ifaceRate('down')) ]]<span class="bo-unit">/s</span>
+          <div class="bo-flow-top">
+            <div class="bo-flow-label">
+              <svg class="bo-icon bo-icon-14" aria-hidden="true"><use href="#bo-i-arrow-down"></use></svg>
+              {{ i18n "pages.index.download" }}
+            </div>
+            <div class="bo-flow-value num" aria-live="polite">
+              [[ SizeFormatter.sizeFormat(ifaceRate('down')) ]]<span class="bo-unit">/s</span>
+            </div>
           </div>
           <div class="bo-flow-chart">
-            <sparkline :data="history.down" :vb-width="420" :height="96" :autoscale="true" :log-scale="true"
-              :max-points="HISTORY_POINTS" :fill-opacity="0.14" :stroke="chartColors.info"
+            <sparkline :data="history.down" :vb-width="420" :height="84" :autoscale="true" :log-scale="true"
+              :max-points="HISTORY_POINTS" :fill-opacity="0.10" :stroke="chartColors.info"
               :show-grid="false" :padding-left="2" :padding-right="2"
-              :padding-top="6" :padding-bottom="6" />
+              :padding-top="5" :padding-bottom="5" />
           </div>
         </div>
       </div>
@@ -243,54 +247,49 @@
 
         <div class="bo-vit-item" v-for="v in vitals" :key="v.key">
           <div class="bo-vit-row">
-            <div class="bo-ring-wrap">
-              <svg viewBox="0 0 40 40" aria-hidden="true">
-                <circle class="bo-ring-track" cx="20" cy="20" r="16"></circle>
-                <circle class="bo-ring-progress" :class="ringClass(v.percent)" cx="20" cy="20" r="16"
-                  :style="{ strokeDashoffset: ringOffset(v.percent) }"></circle>
-              </svg>
-              <span class="bo-ring-icon">
-                <svg class="bo-icon" aria-hidden="true"><use :href="'#bo-i-' + v.icon"></use></svg>
-              </span>
-            </div>
-            <div class="bo-vit-info">
-              <div class="bo-vit-top">
-                <span class="bo-vit-name">[[ v.label ]]</span>
-                <span class="bo-vit-pct num">[[ v.percent ]]%</span>
-              </div>
-              <p class="bo-vit-meta">[[ v.meta ]]</p>
-            </div>
+            <svg class="bo-vit-ico bo-icon bo-icon-14" aria-hidden="true"><use :href="'#bo-i-' + v.icon"></use></svg>
+            <span class="bo-vit-name">[[ v.label ]]</span>
           </div>
+          <div class="bo-vit-figure">
+            <span class="bo-vit-pct num">[[ v.percent ]]<span class="bo-vit-pct-unit">%</span></span>
+          </div>
+          <!-- Compact micro-meter: the same ringClass() thresholds that tinted
+               the retired gauge now tint this bar, so warn/critical still read
+               identically without a second source of truth. -->
+          <span class="bo-meter" role="presentation">
+            <span class="bo-meter-fill" :class="ringClass(v.percent)"
+              :style="{ width: Math.max(0, Math.min(100, v.percent)) + '%' }"></span>
+          </span>
+          <p class="bo-vit-meta">[[ v.meta ]]</p>
           <!-- The component's default paddings (32 left, 20 bottom) assume a
-               full-size chart with axes; at 24px tall they leave a negative
+               full-size chart with axes; at 18px tall they leave a negative
                draw area, so they are zeroed out here.
                `fit` because 20px of draw height cannot resolve a 0..100 axis:
                against the fixed scale an idle machine drew a straight line. The
                10-point floor keeps a genuinely flat series (disk, idle swap)
                flat instead of magnifying its last decimal. -->
           <div class="bo-vit-spark">
-            <sparkline :data="history[v.key]" :vb-width="240" :height="24"
-              :max-points="HISTORY_POINTS" :fill-opacity="0.14" :stroke="chartColors.accent"
-              :show-grid="false" :show-marker="false" :stroke-width="1.5"
+            <sparkline :data="history[v.key]" :vb-width="240" :height="18"
+              :max-points="HISTORY_POINTS" :fill-opacity="0.10" :stroke="chartColors.accent"
+              :show-grid="false" :show-marker="false" :stroke-width="1.4"
               :fit="!v.rate" :min-span="10" :autoscale="!!v.rate" :log-scale="!!v.rate"
-              :padding-left="0" :padding-right="0" :padding-top="2" :padding-bottom="2" />
+              :padding-left="0" :padding-right="0" :padding-top="1" :padding-bottom="1" />
           </div>
         </div>
 
       </div>
       <div class="bo-divider"></div>
-      <div class="bo-tile-head bo-tile-head--sub"><h3 class="bo-tile-title">{{ i18n "pages.index.connectionCount" }}</h3></div>
+      <div class="bo-conn-head">
+        <span class="bo-conn-title">{{ i18n "pages.index.connectionCount" }}</span>
+        <span class="bo-conn-total num">[[ (Number(status.tcpCount) || 0) + (Number(status.udpCount) || 0) ]]</span>
+      </div>
       <div class="bo-conn-body">
         <div class="bo-conn-stat bo-conn-stat--tcp">
-          <span class="bo-conn-label">
-            <svg class="bo-icon bo-icon-14" aria-hidden="true"><use href="#bo-i-link"></use></svg>TCP
-          </span>
+          <span class="bo-conn-label">TCP</span>
           <span class="bo-conn-value num">[[ status.tcpCount ]]</span>
         </div>
         <div class="bo-conn-stat bo-conn-stat--udp">
-          <span class="bo-conn-label">
-            <svg class="bo-icon bo-icon-14" aria-hidden="true"><use href="#bo-i-link"></use></svg>UDP
-          </span>
+          <span class="bo-conn-label">UDP</span>
           <span class="bo-conn-value num">[[ status.udpCount ]]</span>
         </div>
       </div>
