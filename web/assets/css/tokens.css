@@ -1,15 +1,18 @@
 /*
  * tokens.css — Wild Panel Design System
  *
- * Visual language: premium network-operations / infrastructure control center.
- * Hierarchy: Deep Navy → Navy Surface → Electric Blue → Cyan → Status.
+ * Visual language: premium enterprise infrastructure / security operations console.
+ * Neutral charcoal foundation, restrained refined-blue accent, disciplined semantic
+ * status colors, near-zero decorative glow. Calm, mature, information-dense.
  *
- * Brand contracts (names must not change; values remapped to the blue family):
- *   --brand-cyan      supporting / realtime electric cyan
- *   --brand-violet    deeper electric blue (legacy name; no longer purple)
- *   --brand-obsidian  deepest navy ground
+ * Brand contracts (names must NOT change):
+ *   --brand-cyan      wolf-mark cyan (logo identity only — never general chrome)
+ *   --brand-violet    wolf-mark violet (logo identity only)
+ *   --brand-obsidian  deepest neutral ground
  *
- * Glow is reserved and restrained. Do not wash every surface in illumination.
+ * Accent (refined blue) is reserved: primary actions, selection, focus, key links.
+ * Cyan is reserved for realtime network visualization only. Status colors mean
+ * exactly one thing each (ok/warn/error/off). Do not wash surfaces in illumination.
  */
 
 :root {
@@ -29,12 +32,12 @@
   --gap-md:16px;
   --gap-lg:20px;
 
-  /* —— radius (technical, not consumer-soft) —— */
+  /* —— radius (enterprise: calm, not consumer-soft) —— */
   --radius-sm:6px;
-  --radius-md:10px;
+  --radius-md:8px;
   --radius-lg:12px;
-  --radius-xl:16px;
-  --radius-2xl:20px;
+  --radius-xl:14px;
+  --radius-2xl:18px;
   --radius-pill:999px;
 
   /* —— type (Inter EN + Vazirmatn FA) —— */
@@ -48,8 +51,8 @@
   --fs-base:14px;
   --fs-md:16px;
   --fs-lg:20px;
-  --fs-xl:28px;
-  --fs-2xl:34px;
+  --fs-xl:26px;
+  --fs-2xl:32px;
 
   --fw-normal:400;
   --fw-medium:500;
@@ -60,163 +63,161 @@
   --lh-base:1.45;
 
   /* —— motion (restrained; no bounce) —— */
-  --dur-fast:.18s;
-  --dur-med:.22s;
-  --dur-slow:.28s;
+  --dur-fast:.16s;
+  --dur-med:.2s;
+  --dur-slow:.26s;
   --ease:cubic-bezier(.22,1,.36,1);
   --ease-spring:cubic-bezier(.22,1,.36,1);
 
-  /* —— brand raw —— */
-  --brand-cyan:#35D8FF;
-  --brand-violet:#1B7AE0;
-  --brand-obsidian:#060A10;
+  /* —— brand raw (wolf mark identity — logo only) —— */
+  --brand-cyan:#00E8F0;
+  --brand-violet:#A855F7;
+  --brand-obsidian:#0B0B0D;
 }
 
 /* —— LIGHT ——
- * Cool mist operations surface. Readable blue chrome, not a white clone of dark.
- * Brand cyan/blue remain on marks, glows, and primary CTAs.
+ * Premium enterprise light: soft cool ground, white cards, quiet borders.
+ * Same design system as dark — only luminance changes.
  */
 :root {
-  --bg:#e8eef4;
-  --surface:rgba(255,255,255,.78);
-  --surface-2:rgba(241,246,251,.92);
-  --surface-hover:rgba(21,120,199,.06);
-  --surface-active:rgba(21,120,199,.12);
-  --border:rgba(20,60,100,.10);
-  --border-hover:rgba(21,120,199,.22);
-  --border-strong:rgba(21,120,199,.32);
+  --bg:#F4F6F8;
+  --surface:#FFFFFF;
+  --surface-2:#F8F9FB;
+  --surface-hover:rgba(15,23,42,.04);
+  --surface-active:rgba(37,99,235,.08);
+  --border:#DDE2E9;
+  --border-hover:#C7CED8;
+  --border-strong:#AEB6C2;
 
-  --text:#0c1520;
-  --text-2:#3d5268;
-  --text-3:#6a7f94;
+  --text:#15171A;
+  --text-2:#4E5663;
+  --text-3:#747D8B;
 
-  /* Readable UI chrome; brand cyan reserved for glow / CTA / marks */
-  --accent:#1578c7;
-  --accent-strong:#0e64a8;
-  --accent-weak:rgba(21,120,199,.10);
-  --on-accent:#ffffff;
-  --glow:#1a9ee8;
-  --glow-weak:rgba(36,168,255,.10);
+  /* Refined blue chrome accent (CTA / selection / focus) */
+  --accent:#2563EB;
+  --accent-strong:#1D4FD7;
+  --accent-weak:rgba(37,99,235,.09);
+  --on-accent:#FFFFFF;
+  --glow:#2563EB;
+  --glow-weak:rgba(37,99,235,.08);
 
-  --ok:#15803d;
-  --info:#0e8a9a;
-  --warn:#b45309;
-  --error:#be123c;
-  --off:#6b8098;
+  --ok:#1A7F37;
+  --info:#0F83C4;
+  --warn:#B4690E;
+  --error:#D22D46;
+  --off:#7A8494;
 
-  --ok-weak:rgba(21,128,61,.10);
-  --info-weak:rgba(14,138,154,.10);
-  --warn-weak:rgba(180,83,9,.10);
-  --error-weak:rgba(190,18,60,.10);
-  --off-weak:rgba(107,128,152,.10);
+  --ok-weak:rgba(26,127,55,.10);
+  --info-weak:rgba(15,131,196,.10);
+  --warn-weak:rgba(180,105,14,.12);
+  --error-weak:rgba(210,45,70,.10);
+  --off-weak:rgba(122,132,148,.10);
 
-  --shadow-sm:0 1px 2px rgba(12,30,55,.05), 0 0 0 1px rgba(20,60,100,.04);
-  --shadow-md:
-    0 10px 28px -18px rgba(12,30,55,.16),
-    0 0 22px -16px rgba(36,168,255,.08);
-  --shadow-lg:
-    0 22px 48px -24px rgba(12,30,55,.18),
-    0 0 32px -18px rgba(36,168,255,.10);
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 0 0 1px rgba(15,23,42,.03);
+  --shadow-md:0 8px 24px -18px rgba(15,23,42,.18);
+  --shadow-lg:0 20px 44px -26px rgba(15,23,42,.20);
 
-  --glass-bg:rgba(255,255,255,.72);
-  --glass-border:rgba(20,60,100,.10);
-  --glass-blur:16px;
-  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.70), rgba(255,255,255,.22) 38%, transparent 68%);
+  --glass-bg:rgba(255,255,255,.80);
+  --glass-border:#DDE2E9;
+  --glass-blur:14px;
+  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.55), transparent 60%);
 
-  --glow-cyan:0 0 16px -8px rgba(36,168,255,.22);
-  --glow-violet:0 0 14px -8px rgba(21,120,199,.16);
-  --ambient-cyan:rgba(36,168,255,.08);
-  --ambient-violet:rgba(21,120,199,.06);
+  /* Glow reserved for the wolf mark only; keep faint */
+  --glow-cyan:0 0 16px -10px rgba(0,232,240,.20);
+  --glow-violet:0 0 14px -10px rgba(168,85,247,.16);
+  --ambient-cyan:rgba(37,99,235,.04);
+  --ambient-violet:rgba(168,85,247,.03);
 
   color-scheme:light;
 }
 
-/* —— DARK (flagship) —— */
+/* —— DARK (flagship enterprise charcoal) —— */
 body.dark {
-  --bg:#08111C;
-  --surface:#0A1522;
-  --surface-2:#0D1D2D;
-  --surface-hover:rgba(36,168,255,.08);
-  --surface-active:rgba(36,168,255,.14);
-  --border:rgba(80,170,255,.12);
-  --border-hover:rgba(80,170,255,.18);
-  --border-strong:rgba(80,170,255,.26);
+  --bg:#0B0B0D;
+  --surface:#141416;
+  --surface-2:#18181B;
+  --surface-hover:rgba(255,255,255,.04);
+  --surface-active:rgba(255,255,255,.07);
+  --border:#26262B;
+  --border-hover:#33333B;
+  --border-strong:#3D3D46;
 
-  --text:#F3F7FB;
-  --text-2:#8EA2B7;
-  --text-3:#6B8299;
+  --text:#F2F3F5;
+  --text-2:#B0B3BA;
+  --text-3:#7B808A;
 
-  --accent:#24A8FF;
-  --accent-strong:#1B94E6;
-  --accent-weak:rgba(36,168,255,.12);
-  --on-accent:#041018;
-  --glow:#35D8FF;
-  --glow-weak:rgba(36,168,255,.12);
+  --accent:#3B82F6;
+  --accent-strong:#5A9BFF;
+  --accent-weak:rgba(59,130,246,.14);
+  --on-accent:#FFFFFF;
+  --glow:#3B82F6;
+  --glow-weak:rgba(59,130,246,.12);
 
-  --ok:#36D399;
-  --info:#35D8FF;
-  --warn:#F5B942;
-  --error:#FF5D6C;
-  --off:#7A8FA3;
+  --ok:#3FB950;
+  --info:#38BDF8;
+  --warn:#D9A441;
+  --error:#F0616D;
+  --off:#6E7681;
 
-  --ok-weak:rgba(54,211,153,.12);
-  --info-weak:rgba(53,216,255,.12);
-  --warn-weak:rgba(245,185,66,.14);
-  --error-weak:rgba(255,93,108,.12);
-  --off-weak:rgba(122,143,163,.14);
+  --ok-weak:rgba(63,185,80,.14);
+  --info-weak:rgba(56,189,248,.14);
+  --warn-weak:rgba(217,164,65,.16);
+  --error-weak:rgba(240,97,109,.14);
+  --off-weak:rgba(110,118,129,.16);
 
-  --shadow-sm:0 1px 2px rgba(0,8,20,.28), 0 0 0 1px rgba(80,170,255,.06);
-  --shadow-md:0 10px 28px -18px rgba(0,10,24,.55), 0 0 20px -16px rgba(36,168,255,.08);
-  --shadow-lg:0 20px 48px -24px rgba(0,10,24,.62), 0 0 28px -18px rgba(36,168,255,.10);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.32), 0 0 0 1px rgba(255,255,255,.03);
+  --shadow-md:0 10px 28px -20px rgba(0,0,0,.60);
+  --shadow-lg:0 22px 48px -26px rgba(0,0,0,.66);
 
-  --glass-bg:rgba(11,23,36,.86);
-  --glass-border:rgba(80,170,255,.12);
-  --glass-blur:16px;
-  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.015) 38%, transparent 68%);
+  --glass-bg:rgba(20,20,22,.74);
+  --glass-border:rgba(255,255,255,.08);
+  --glass-blur:14px;
+  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.03), transparent 55%);
 
-  --glow-cyan:0 0 18px -8px rgba(53,216,255,.28);
-  --glow-violet:0 0 16px -8px rgba(36,168,255,.20);
-  --ambient-cyan:rgba(53,216,255,.07);
-  --ambient-violet:rgba(36,168,255,.05);
+  /* Glow reserved for the wolf mark / realtime viz only; keep faint */
+  --glow-cyan:0 0 18px -10px rgba(0,232,240,.26);
+  --glow-violet:0 0 16px -10px rgba(168,85,247,.20);
+  --ambient-cyan:rgba(59,130,246,.035);
+  --ambient-violet:rgba(168,85,247,.03);
 
   color-scheme:dark;
 }
 
-/* —— ULTRA-DARK —— */
+/* —— ULTRA-DARK (deepest neutral) —— */
 html[data-theme='ultra-dark'] body.dark {
-  --bg:#060A10;
-  --surface:#08111C;
-  --surface-2:#0B1724;
-  --surface-hover:rgba(36,168,255,.07);
-  --surface-active:rgba(36,168,255,.12);
-  --border:rgba(80,170,255,.10);
-  --border-hover:rgba(80,170,255,.16);
-  --border-strong:rgba(80,170,255,.24);
+  --bg:#050506;
+  --surface:#0F0F11;
+  --surface-2:#141416;
+  --surface-hover:rgba(255,255,255,.035);
+  --surface-active:rgba(255,255,255,.06);
+  --border:#222226;
+  --border-hover:#2E2E34;
+  --border-strong:#38383F;
 
-  --text:#F3F7FB;
-  --text-2:#8A9FB4;
-  --text-3:#667C93;
+  --text:#F2F3F5;
+  --text-2:#A9ACB4;
+  --text-3:#71767F;
 
-  --accent:#3BB4FF;
-  --accent-strong:#24A8FF;
-  --accent-weak:rgba(59,180,255,.12);
-  --on-accent:#031018;
-  --glow:#35D8FF;
-  --glow-weak:rgba(53,216,255,.12);
+  --accent:#4C8DF7;
+  --accent-strong:#6BA4FF;
+  --accent-weak:rgba(76,141,247,.14);
+  --on-accent:#04070C;
+  --glow:#4C8DF7;
+  --glow-weak:rgba(76,141,247,.12);
 
-  --glass-bg:rgba(8,17,28,.90);
-  --glass-border:rgba(80,170,255,.10);
-  --glass-blur:18px;
-  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.045), transparent 55%);
+  --glass-bg:rgba(15,15,17,.80);
+  --glass-border:rgba(255,255,255,.07);
+  --glass-blur:16px;
+  --glass-shine:linear-gradient(145deg, rgba(255,255,255,.025), transparent 55%);
 
-  --shadow-sm:0 1px 2px rgba(0,0,0,.40), 0 0 0 1px rgba(80,170,255,.05);
-  --shadow-md:0 12px 32px -20px rgba(0,0,0,.70), 0 0 20px -16px rgba(36,168,255,.07);
-  --shadow-lg:0 24px 56px -26px rgba(0,0,0,.76), 0 0 28px -18px rgba(36,168,255,.09);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.42), 0 0 0 1px rgba(255,255,255,.03);
+  --shadow-md:0 12px 32px -22px rgba(0,0,0,.72);
+  --shadow-lg:0 24px 56px -28px rgba(0,0,0,.78);
 
-  --glow-cyan:0 0 16px -8px rgba(53,216,255,.22);
-  --glow-violet:0 0 14px -8px rgba(36,168,255,.16);
-  --ambient-cyan:rgba(53,216,255,.05);
-  --ambient-violet:rgba(36,168,255,.04);
+  --glow-cyan:0 0 16px -10px rgba(0,232,240,.22);
+  --glow-violet:0 0 14px -10px rgba(168,85,247,.16);
+  --ambient-cyan:rgba(76,141,247,.03);
+  --ambient-violet:rgba(168,85,247,.025);
 }
 
 html[data-theme-animations='off'] {

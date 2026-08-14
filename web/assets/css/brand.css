@@ -10,7 +10,7 @@
   background:
     radial-gradient(ellipse 55% 45% at 18% 12%, var(--ambient-cyan), transparent 60%),
     radial-gradient(ellipse 50% 40% at 88% 88%, var(--ambient-violet), transparent 55%),
-    radial-gradient(ellipse 70% 55% at 50% 50%, rgba(36,168,255,.04), transparent 70%);
+    radial-gradient(ellipse 70% 55% at 50% 50%, rgba(59,130,246,.02), transparent 70%);
 }
 
 .wp-noise {
@@ -78,16 +78,16 @@ body:not(.dark) .wp-mark {
 
 /* Premium primary control — also mirrored onto .ant-btn-primary via ant-bridge */
 .wp-btn-primary {
-  appearance:none; border:1px solid rgba(36,168,255,.38);
+  appearance:none; border:1px solid transparent;
   border-radius:var(--radius-md);
-  background:linear-gradient(135deg, var(--brand-cyan) 0%, #24A8FF 55%, var(--brand-violet) 130%);
-  color:#041018;
+  background:var(--accent);
+  color:var(--on-accent);
   font-family:inherit; font-weight:var(--fw-semibold); font-size:var(--fs-base);
-  letter-spacing:.02em;
-  box-shadow:var(--glow-cyan), 0 8px 22px -12px rgba(27,122,224,.28);
-  transition:filter var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  letter-spacing:.01em;
+  box-shadow:none;
+  transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
-.wp-btn-primary:hover { filter:brightness(1.05); transform:translateY(-1px); }
+.wp-btn-primary:hover { background:var(--accent-strong); transform:translateY(-1px); }
 .wp-btn-primary:active { transform:translateY(0); }
 .wp-btn-primary:disabled { opacity:.55; cursor:not-allowed; transform:none; filter:none; }
 
@@ -112,7 +112,7 @@ body:not(.dark) .wp-mark {
   height:72px !important;
   margin-bottom:14px;
   background:
-    radial-gradient(circle at 50% 50%, rgba(36,168,255,.10), transparent 62%),
+    radial-gradient(circle at 50% 50%, rgba(59,130,246,.06), transparent 62%),
     url(../img/logo.png) center / 56px 56px no-repeat;
   opacity:.95;
 }

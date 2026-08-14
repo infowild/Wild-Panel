@@ -223,6 +223,11 @@
           <span class="bo-person-val num">[[ userStats.online ]]</span>
           <span class="bo-person-key">{{ i18n "online" }}</span>
         </div>
+        <div class="bo-person bo-person--expiring">
+          <svg class="bo-person-ico" aria-hidden="true"><use href="#bo-i-user"></use></svg>
+          <span class="bo-person-val num">[[ userStats.expiring ]]</span>
+          <span class="bo-person-key">{{ i18n "depletingSoon" }}</span>
+        </div>
         <div class="bo-person bo-person--depleted">
           <svg class="bo-person-ico" aria-hidden="true"><use href="#bo-i-user"></use></svg>
           <span class="bo-person-val num">[[ userStats.depleted ]]</span>
