@@ -1,38 +1,49 @@
 {{define "component/sidebar/content"}}
 <template>
-    <nav class="bo-rail" :class="{ 'bo-rail--collapsed': collapsed }"
-        aria-label='{{ i18n "menu.navigation"}}'>
-        <div class="bo-rail-brand">
-            <a class="bo-rail-brand-link" href="{{ .base_path }}panel/" aria-label="Wild Panel">
-                <span class="wp-mark wp-mark--md">
-                    <span class="wp-mark__inner">
-                        <img src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="56" height="56" alt="Wild Panel" />
+    <!-- The slot owns the layout footprint; the rail is painted on top of it.
+         That split is what lets the hover peek widen the rail WITHOUT reflowing
+         the page beside it: the slot stays at the collapsed width while the rail
+         floats over the content, so charts and grids never resize on a mouse
+         move. Pinning the rail open (the foot button) widens the slot too, so an
+         explicitly expanded rail still occupies real space and pushes nothing. -->
+    <div class="bo-rail-slot"
+        :class="{ 'is-collapsed': isIconsOnly, 'is-peek': peeking, 'is-pinned': !collapsed }"
+        @mouseenter="onRailEnter" @mouseleave="onRailLeave"
+        @focusin="onRailFocus" @focusout="onRailBlur">
+        <nav class="bo-rail" :class="{ 'bo-rail--collapsed': isIconsOnly }"
+            aria-label='{{ i18n "menu.navigation"}}'>
+            <div class="bo-rail-brand">
+                <a class="bo-rail-brand-link" href="{{ .base_path }}panel/" aria-label="Wild Panel">
+                    <span class="wp-mark">
+                        <span class="wp-mark__inner">
+                            <img src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="56" height="56" alt="Wild Panel" />
+                        </span>
                     </span>
-                </span>
-            </a>
-            <span class="wp-wordmark">Wild Panel</span>
-        </div>
+                </a>
+                <span class="wp-wordmark">Wild Panel</span>
+            </div>
 
-        <div class="bo-rail-nav">
-            <a v-for="tab in tabs" :key="tab.key" class="bo-rail-item"
-                :class="{ 'is-active': isActive(tab.key), 'bo-rail-item--logout': tab.key.includes('logout') }" :href="tab.key"
-                :aria-current="isActive(tab.key) ? 'page' : false"
-                :title="collapsed ? tab.title : false"
-                @click.prevent="openLink(tab.key)">
-                <a-icon :type="tab.icon"></a-icon>
-                <span v-text="tab.title"></span>
-            </a>
-        </div>
+            <div class="bo-rail-nav">
+                <a v-for="tab in tabs" :key="tab.key" class="bo-rail-item"
+                    :class="{ 'is-active': isActive(tab.key), 'bo-rail-item--logout': tab.key.includes('logout') }" :href="tab.key"
+                    :aria-current="isActive(tab.key) ? 'page' : false"
+                    :title="isIconsOnly ? tab.title : false"
+                    @click.prevent="openLink(tab.key)">
+                    <span class="bo-rail-item-ico"><a-icon :type="tab.icon"></a-icon></span>
+                    <span class="bo-rail-item-label" v-text="tab.title"></span>
+                </a>
+            </div>
 
-        <div class="bo-rail-foot">
-            <a-theme-switch></a-theme-switch>
-            <button type="button" class="bo-rail-collapse" @click="toggleCollapse"
-                :aria-expanded="!collapsed" :aria-label="collapsed ? expandLabel : collapseLabel"
-                :title="collapsed ? expandLabel : collapseLabel">
-                <a-icon :type="collapsed ? 'right' : 'left'"></a-icon>
-            </button>
-        </div>
-    </nav>
+            <div class="bo-rail-foot">
+                <a-theme-switch></a-theme-switch>
+                <button type="button" class="bo-rail-collapse" @click="toggleCollapse"
+                    :aria-expanded="!collapsed" :aria-label="collapsed ? expandLabel : collapseLabel"
+                    :title="collapsed ? expandLabel : collapseLabel">
+                    <a-icon :type="collapsed ? 'right' : 'left'"></a-icon>
+                </button>
+            </div>
+        </nav>
+    </div>
 </template>
 {{end}}
 
@@ -111,12 +122,50 @@
                     },
                 ],
                 requestUri: '{{ .request_uri }}',
-                collapsed: JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)) === true,
+                // Collapsed unless the operator has pinned it open. The rail is
+                // icons-only by default and reveals itself on hover, so the
+                // stored preference now means "keep it pinned", not "collapse
+                // it": absent a stored value we start narrow rather than wide.
+                collapsed: localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === null
+                    ? true
+                    : JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)) === true,
+                // Hover peek is a pointer affordance. On touch there is no hover
+                // to leave, so a tap that "expanded" the rail would leave it
+                // stuck open with no way back; those devices keep the explicit
+                // foot toggle as the only control.
+                hoverCapable: typeof window.matchMedia === 'function'
+                    && window.matchMedia('(hover: hover) and (pointer: fine)').matches,
+                hovered: false,
+                focused: false,
                 collapseLabel: '{{ i18n "menu.collapse"}}',
                 expandLabel: '{{ i18n "menu.expand"}}',
             }
         },
+        computed: {
+            // Peeking is purely visual: `collapsed` never changes, so the
+            // preference survives the mouse passing over the rail.
+            peeking() {
+                return this.collapsed && (this.hovered || this.focused);
+            },
+            isIconsOnly() {
+                return this.collapsed && !this.peeking;
+            },
+        },
         methods: {
+            onRailEnter() {
+                if (this.hoverCapable) this.hovered = true;
+            },
+            onRailLeave() {
+                this.hovered = false;
+            },
+            // Keyboard parity for the hover peek: tabbing into a 72px rail would
+            // otherwise move focus through labels nobody can read.
+            onRailFocus() {
+                this.focused = true;
+            },
+            onRailBlur() {
+                this.focused = false;
+            },
             // The active tab used to be handed to ant's a-menu as selected-keys.
             // With plain anchors we compare against the request URI ourselves.
             // Trailing slashes vary between the emitted keys and the served URI,
