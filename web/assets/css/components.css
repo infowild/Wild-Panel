@@ -1860,13 +1860,38 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   .inbounds-page .ib-console { gap:16px; }
 }
 
+/* ---- secondary text on this page --------------------------------------------
+ * --text-3 is the shared muted token and it sits right on the edge: measured
+ * against this page's own surfaces it is 4.72:1 in dark and 4.16:1 in light, and
+ * several rules here then stacked an opacity multiplier on top of it (the
+ * metadata sub-line ran at .9, expiry at .7), which dropped the result to roughly
+ * 4.0 and 3.6 — under the 4.5:1 floor for normal text, at 11px, on the densest
+ * page in the product. That is the "slightly too faint" reading.
+ *
+ * So this page resolves its own secondary ink, chosen to clear 4.5:1 against
+ * --surface rather than inherited and then dimmed, and the opacity multipliers are
+ * gone. It stays clearly quieter than --text-2, so the hierarchy is unchanged —
+ * only the floor moved.
+ *
+ * --ib-meta-off is for genuinely disabled rows: still a step down from --ib-meta
+ * so disabled never reads as active, but no longer below the contrast floor.
+ */
+.bo-shell.inbounds-page {
+  --ib-meta:#5F6775;
+  --ib-meta-off:#79818E;
+}
+body.dark .bo-shell.inbounds-page {
+  --ib-meta:#8B9099;
+  --ib-meta-off:#787D87;
+}
+
 /* ---- ops summary: telemetry rail, not KPI cards ---- *
  * Six figures on one surface with soft dividers. As separate cards they cost
  * ~150px of vertical space to carry six numbers; as a rail they cost ~58px and
  * still read left-to-right in importance order. */
 .inbounds-page .ib-ops {
   display:flex; align-items:stretch; flex-wrap:wrap; gap:4px 0;
-  padding:10px 8px;
+  padding:10px 10px;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:var(--radius-md);
@@ -1874,8 +1899,8 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 /* min-width keeps the metrics on a steady pitch: without it the columns reflow
    every refresh as "4" becomes "12" and "4.62 TB" becomes "4.71 TB". */
 .inbounds-page .ib-ops-item {
-  display:flex; flex-direction:column; justify-content:center; gap:3px;
-  padding-inline:18px; min-width:88px;
+  display:flex; flex-direction:column; justify-content:center; gap:2px;
+  padding-inline:20px; min-width:92px;
 }
 .inbounds-page .ib-ops-item--live { cursor:pointer; border-radius:var(--radius-sm); }
 .inbounds-page .ib-ops-item--live:hover .ib-ops-val { color:var(--accent); }
@@ -1883,27 +1908,32 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   outline:2px solid var(--accent); outline-offset:1px;
 }
 .inbounds-page .ib-ops-item--muted .ib-ops-val {
-  font-size:15px; color:var(--text-2); font-weight:var(--fw-medium);
+  font-size:16px; color:var(--text-2); font-weight:var(--fw-medium);
+  line-height:22px;
 }
 /* Value carries the weight; the label is deliberately quiet so a scan lands on
    the figures first. */
+/* Fixed line boxes on both halves. Left to unitless line-heights the value and the
+   label each round differently, so the two-line stack centred a hair off and the
+   figures did not sit on one optical line across the rail. 22 + 14 + 2 gap = 38,
+   which is what keeps the rail at its existing height while the value grows. */
 .inbounds-page .ib-ops-val {
-  font-size:18px; font-weight:var(--fw-semibold); color:var(--text);
-  line-height:1.1; font-variant-numeric:tabular-nums; letter-spacing:-.01em;
+  font-size:19px; font-weight:var(--fw-semibold); color:var(--text);
+  line-height:22px; font-variant-numeric:tabular-nums; letter-spacing:-.015em;
   transition:color var(--dur-fast) var(--ease);
 }
 .inbounds-page .ib-ops-lab {
-  font-size:11px; color:var(--text-3); line-height:1.25;
+  font-size:11px; color:var(--ib-meta); line-height:14px;
   display:inline-flex; align-items:center; gap:5px;
   white-space:nowrap;
 }
 /* Separation by rhythm first, rule second: the divider is barely there, doing
    just enough to stop two figures reading as one pair. */
 .inbounds-page .ib-ops-sep {
-  width:1px; align-self:center; height:26px;
-  background:var(--divider); opacity:.7; flex:0 0 auto;
+  width:1px; align-self:center; height:28px;
+  background:var(--divider); opacity:.65; flex:0 0 auto;
 }
-.inbounds-page .ib-ops-sep--soft { opacity:.4; }
+.inbounds-page .ib-ops-sep--soft { opacity:.35; }
 .inbounds-page .ib-ops-extra {
   display:inline-flex; align-items:center; gap:6px;
   margin-inline-start:auto; padding-inline:12px;
@@ -1952,7 +1982,7 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 }
 .inbounds-page .ib-bar-cluster--lead { flex:0 0 auto; }
 .inbounds-page .ib-bar-cluster--find {
-  flex:1 1 340px; min-width:220px;
+  flex:1 1 320px; min-width:220px;
   display:flex; align-items:center; gap:8px;
 }
 .inbounds-page .ib-bar-cluster--util {
@@ -1997,8 +2027,9 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 .inbounds-page .ib-btn-2nd { color:var(--text-2); }
 .inbounds-page .ib-btn-2nd:hover { color:var(--text); }
 /* Flexible but bounded. Unbounded, search ate the whole middle of a 1920 bar
-   and pushed the view controls to the far edge. */
-.inbounds-page .ib-search { flex:1 1 auto; max-width:440px; min-width:200px; }
+   and pushed the view controls to the far edge. Cap sits in the 320–400 band
+   the toolbar can spare without the find cluster dominating the lead actions. */
+.inbounds-page .ib-search { flex:1 1 auto; max-width:400px; min-width:200px; }
 .inbounds-page .ib-search .ant-input-affix-wrapper,
 .inbounds-page .ib-search .ant-input {
   background:var(--surface-2) !important;
@@ -2112,45 +2143,49 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
  * scrollbar is present — hence 1400/1560/1760 for 1440/1600/1920 displays.
  */
 @media (min-width:1400px) {
-  .inbounds-page .ib-grid col:nth-child(3) { width:150px !important; min-width:150px !important; }
-  .inbounds-page .ib-grid col:nth-child(4) { width:156px !important; min-width:156px !important; }
-  .inbounds-page .ib-grid col:nth-child(5) { width:264px !important; min-width:264px !important; }
-  .inbounds-page .ib-grid col:nth-child(6) { width:136px !important; min-width:136px !important; }
-}
-@media (min-width:1560px) {
-  .inbounds-page .ib-grid col:nth-child(3) { width:162px !important; min-width:162px !important; }
-  .inbounds-page .ib-grid col:nth-child(4) { width:176px !important; min-width:176px !important; }
-  .inbounds-page .ib-grid col:nth-child(5) { width:284px !important; min-width:284px !important; }
+  .inbounds-page .ib-grid col:nth-child(3) { width:158px !important; min-width:158px !important; }
+  .inbounds-page .ib-grid col:nth-child(4) { width:172px !important; min-width:172px !important; }
+  .inbounds-page .ib-grid col:nth-child(5) { width:288px !important; min-width:288px !important; }
   .inbounds-page .ib-grid col:nth-child(6) { width:140px !important; min-width:140px !important; }
 }
-@media (min-width:1760px) {
+@media (min-width:1560px) {
   .inbounds-page .ib-grid col:nth-child(3) { width:172px !important; min-width:172px !important; }
   .inbounds-page .ib-grid col:nth-child(4) { width:196px !important; min-width:196px !important; }
-  .inbounds-page .ib-grid col:nth-child(5) { width:300px !important; min-width:300px !important; }
+  .inbounds-page .ib-grid col:nth-child(5) { width:312px !important; min-width:312px !important; }
   .inbounds-page .ib-grid col:nth-child(6) { width:144px !important; min-width:144px !important; }
 }
-/* Ceiling, not a container. An operations console should fill the space between
-   the rail and the viewport edge; a website-style centred column leaves dead
-   margins on exactly the displays this page is used on. At 1920 the padding below
-   is the only inset (~97% of the available area) and this cap never engages —
-   it exists so a 2560 display does not stretch a row to 2.3k pixels. */
-.inbounds-page .ib-console { max-width:1840px; margin-inline:auto; width:100%; }
+@media (min-width:1760px) {
+  .inbounds-page .ib-grid col:nth-child(3) { width:184px !important; min-width:184px !important; }
+  .inbounds-page .ib-grid col:nth-child(4) { width:216px !important; min-width:216px !important; }
+  .inbounds-page .ib-grid col:nth-child(5) { width:328px !important; min-width:328px !important; }
+  .inbounds-page .ib-grid col:nth-child(6) { width:148px !important; min-width:148px !important; }
+}
+/* Ceiling, not a container. At 1920 the page padding is the only inset (~97% of
+   the area after the rail). The cap exists so a 2560 display does not stretch a
+   row past what's scannable: at that size 2240 is ~91% of the available area,
+   which is the bottom of the 90–94% band rather than a website-style column. */
+.inbounds-page .ib-console { max-width:2240px; margin-inline:auto; width:100%; }
 
 /* Page inset per class of display. Wide screens can afford the breathing room;
-   at 1280 every pixel spent on margin comes out of the data. */
+   at 1280 every pixel spent on margin comes out of the data. The 24px band at
+   ≥1440 overrides the global 28px @1600 so this page keeps more of a 1920
+   display for the table without going edge-to-edge. */
 @media (min-width:1180px) and (max-width:1366px) {
   .inbounds-page .bo-content { padding-inline:18px; }
+}
+@media (min-width:1440px) {
+  .inbounds-page .bo-content { padding-inline:24px; }
 }
 
 /* Row height: operational, not spreadsheet. --ib-edge keeps the first and last
    cell off the frame so the checkbox and the action icons are not sitting on
    the border. */
 .inbounds-page .ib-grid { --ib-edge:18px; }
-.inbounds-page .ib-grid--cozy .ant-table-thead > tr > th { padding:9px 12px; }
-.inbounds-page .ib-grid--cozy .ant-table-tbody > tr > td { padding:13px 12px; vertical-align:middle; }
+.inbounds-page .ib-grid--cozy .ant-table-thead > tr > th { padding:10px 12px; }
+.inbounds-page .ib-grid--cozy .ant-table-tbody > tr > td { padding:15px 12px; vertical-align:middle; }
 .inbounds-page .ib-grid--compact { --ib-edge:14px; }
-.inbounds-page .ib-grid--compact .ant-table-thead > tr > th { padding:7px 10px; }
-.inbounds-page .ib-grid--compact .ant-table-tbody > tr > td { padding:9px 10px; vertical-align:middle; }
+.inbounds-page .ib-grid--compact .ant-table-thead > tr > th { padding:8px 10px; }
+.inbounds-page .ib-grid--compact .ant-table-tbody > tr > td { padding:11px 10px; vertical-align:middle; }
 
 .inbounds-page .ib-grid .ant-table-thead > tr > th:first-child,
 .inbounds-page .ib-grid .ant-table-tbody > tr > td:first-child {
@@ -2232,7 +2267,7 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
  * thing pushing the table past its frame. The column owns the width; the cell
  * only has to shrink gracefully inside it. */
 .inbounds-page .ib-idz {
-  display:flex; flex-direction:column; gap:2px; min-width:0; max-width:100%;
+  display:flex; flex-direction:column; gap:3px; min-width:0; max-width:100%;
   overflow:hidden;
 }
 .inbounds-page .ib-idz-name {
@@ -2240,12 +2275,19 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   line-height:1.3; letter-spacing:-.005em;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.inbounds-page .ib-idz--off .ib-idz-name { color:var(--text-3); }
+/* Disabled stays quieter than active, but --text-3 alone was falling under a
+   comfortable scan threshold on graphite. Step up to --text-2 and drop weight
+   instead of crushing the colour — still clearly not the primary reading. */
+.inbounds-page .ib-idz--off .ib-idz-name {
+  color:var(--text-2); font-weight:var(--fw-medium);
+}
+.inbounds-page .ib-idz--off .ib-idz-meta,
+.inbounds-page .ib-idz--off .ib-idz-sub { color:var(--ib-meta-off); opacity:1; }
 /* Port and index are figures an operator compares down the column, so the whole
    metadata line runs on tabular figures rather than only the spans marked .num. */
 .inbounds-page .ib-idz-meta {
   display:flex; align-items:center; flex-wrap:wrap; gap:3px 2px;
-  font-size:11.5px; color:var(--text-3); line-height:1.35;
+  font-size:11.5px; color:var(--ib-meta); line-height:1.35;
   min-width:0; font-variant-numeric:tabular-nums;
 }
 /* Restrained badge: a tinted well rather than a saturated pill, because every
@@ -2263,13 +2305,15 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 }
 .inbounds-page .ib-idz-sub {
   display:flex; align-items:center; flex-wrap:wrap; gap:2px;
-  font-size:11px; color:var(--text-3); opacity:.9;
+  font-size:11px; color:var(--ib-meta);
   font-variant-numeric:tabular-nums;
 }
 .inbounds-page .ib-exp { font-variant-numeric:tabular-nums; }
 .inbounds-page .ib-exp--warn { color:var(--warn); }
 .inbounds-page .ib-exp--over { color:var(--error); }
-.inbounds-page .ib-exp--quiet { opacity:.7; }
+/* Was opacity:.7 over an already-muted colour, which put this under the contrast
+   floor. One resolved colour instead of a colour times a dimmer. */
+.inbounds-page .ib-exp--quiet { color:var(--ib-meta-off); }
 
 .inbounds-page .ib-minibtn {
   display:inline-flex; align-items:center; gap:3px;
@@ -2317,7 +2361,7 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   font-variant-numeric:tabular-nums; letter-spacing:-.01em;
 }
 .inbounds-page .ib-cz-lab {
-  font-size:11px; color:var(--text-3);
+  font-size:11px; color:var(--ib-meta);
 }
 .inbounds-page .ib-cz-online {
   display:inline-flex; align-items:center; gap:5px;
@@ -2332,13 +2376,12 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
  * Used value leads, quota is subdued, percentage sits with the rail. Same
  * three-part shape in the parent row and in the client workspace so traffic is
  * read the same way at both levels. */
-/* The cap matters as much as the column width. Left to fill a 380px column the
-   rail turns back into the full-width progress bar this design replaced, and the
-   right-aligned percentage drifts so far from its value that the two stop reading
-   as one figure. 280px keeps the number, the quota and the rail as one object. */
+/* Cap sits just under the traffic column's wide-tier width so the meter, the
+   used value and the percentage stay one object — a full-column rail reads as
+   the legacy progress bar this design replaced. */
 .inbounds-page .ib-traffic {
   display:flex; flex-direction:column; gap:4px; min-width:0;
-  max-width:280px; overflow:hidden;
+  max-width:310px; overflow:hidden;
 }
 .inbounds-page .ib-traffic-line {
   display:flex; align-items:baseline; gap:4px; min-width:0;
@@ -2349,7 +2392,7 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   font-variant-numeric:tabular-nums; letter-spacing:-.01em;
 }
 .inbounds-page .ib-traffic-cap {
-  font-size:11.5px; color:var(--text-3); font-variant-numeric:tabular-nums;
+  font-size:11.5px; color:var(--ib-meta); font-variant-numeric:tabular-nums;
 }
 /* Sits with the figures, not pushed to the cell edge: once the traffic column
    widens on a large display an edge-aligned percentage loses its connection to
@@ -2383,7 +2426,9 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 .inbounds-page .ib-traffic--over .ib-traffic-pct,
 .inbounds-page .ib-traffic--over .ib-traffic-used { color:var(--error); }
 .inbounds-page .ib-traffic--off .ib-meter-fill { background:var(--off); }
-.inbounds-page .ib-traffic--off .ib-traffic-used { color:var(--text-3); }
+.inbounds-page .ib-traffic--off .ib-traffic-used {
+  color:var(--text-2); font-weight:var(--fw-medium);
+}
 .inbounds-page .ib-meter--inf {
   background:
     repeating-linear-gradient(
@@ -2461,14 +2506,14 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 .inbounds-page .ib-ws {
   margin:12px var(--ib-edge, 18px) 14px;
   background:var(--surface-2);
-  border:1px solid var(--border);
+  border:1px solid var(--border-hover);
   border-radius:var(--radius-md);
   overflow:hidden;
   box-shadow:var(--shadow-sm);
 }
 .inbounds-page .ib-ws-head {
   display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:9px 14px;
+  padding:10px 14px;
   border-bottom:1px solid var(--border);
   background:var(--surface);
 }
@@ -2508,7 +2553,7 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   border-bottom:1px solid var(--divider);
 }
 .inbounds-page .ib-ws-table .ant-table-tbody > tr > td {
-  padding:11px 12px;
+  padding:12px 12px;
   border-bottom:1px solid var(--divider);
   vertical-align:middle;
   transition:background var(--dur-fast) var(--ease);
@@ -2607,7 +2652,7 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   color:var(--text-2); cursor:default; white-space:nowrap;
 }
 .inbounds-page .ib-c-online.is-on { color:var(--text); }
-.inbounds-page .ib-c-online.is-off { color:var(--text-3); }
+.inbounds-page .ib-c-online.is-off { color:var(--text-2); }
 .inbounds-page .ib-c-en {
   display:inline-flex; align-items:center; gap:6px;
   font-size:11px; color:var(--text-3); cursor:pointer; margin:0;
@@ -2627,7 +2672,7 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
  */
 body:not(.dark) .inbounds-page .ib-ws {
   background:var(--surface-3);
-  border-color:var(--border);
+  border-color:var(--border-hover);
   box-shadow:inset 0 1px 0 rgb(255 255 255 / .7), 0 1px 2px rgb(15 23 42 / .04);
 }
 body:not(.dark) .inbounds-page .ib-ws-head {
@@ -2662,7 +2707,11 @@ body:not(.dark) .inbounds-page .ib-rowbtn:hover,
 body:not(.dark) .inbounds-page .ib-tool:hover { background:var(--surface-3); }
 /* Disabled inbounds must stay legible on a light ground: --text-3 on white is
    quiet enough already, so the row is dimmed by weight rather than more grey. */
-body:not(.dark) .inbounds-page .ib-idz--off .ib-idz-name { color:var(--text-2); }
+/* Dark already steps disabled names to --text-2; light keeps the same token so
+   the hierarchy matches across themes. */
+body:not(.dark) .inbounds-page .ib-idz--off .ib-idz-name {
+  color:var(--text-2); font-weight:var(--fw-medium);
+}
 
 .inbounds-page .client-popup-item {
   display:flex; align-items:center; gap:5px;
