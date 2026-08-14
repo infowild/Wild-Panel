@@ -1,11 +1,17 @@
 {{ template "page/head_start" .}}
 <style>
 /* ====================================================================
-   Login: Tunnel. Ported from redesign/login/tunnel.html.
+   Login: enterprise authentication surface.
 
-   The ground is one generative graphic: traffic converging into a
-   protected conduit and out the far side. The form is a solid plate
-   laid over the waist of it.
+   Composition is page-level, not card-level: the brand lockup and the
+   settings control sit in a quiet top bar, and the card below is nothing
+   but the authentication task. The old arrangement (a 148px holographic
+   ring assembly with a glowing wolf mark stacked on top of the form)
+   made the card read as decoration wrapped around an afterthought.
+
+   The ground is a still ambient field with a very slow node drift. What
+   it replaces was a radar: concentric orbital rings and a crosshair
+   centred on the card, with neon dots orbiting it.
 
    This block is INLINE on purpose. head_start already pulls five global
    stylesheets on every page of the panel and none of this is wanted on
@@ -13,26 +19,47 @@
    replaces the old arrangement, where the login styling lived in the
    global custom.css and shipped to every page that never used it.
 
-   There is deliberately no theme CSS here. tokens.css declares the
-   palette three times over (light at :root, dark at body.dark,
-   ultra-dark at html[data-theme='ultra-dark'] body.dark) and
-   aThemeSwitch drives which one is live, so consuming var(--x) inherits
-   all three themes for free.
+   Theme handling: tokens.css declares the palette three times over
+   (light at :root, dark at body.dark, ultra-dark at
+   html[data-theme='ultra-dark'] body.dark) and aThemeSwitch drives which
+   one is live, so consuming var(--x) inherits all three themes for free.
+   The --auth-* tokens below are declared at those same three selectors
+   for the same reason.
    ==================================================================== */
 
-/* The one token this page needs that tokens.css does not ship, declared
-   at the same three selectors so it themes like everything else. Values
-   are the mockup's. (The mockup also carried --bg-rgb; nothing in this
-   design reads it, because the card is deliberately opaque rather than a
-   translucent scrim. See the note above .lgt-card.) */
-:root { --shadow-lg:0 18px 40px -18px rgba(16,24,32,.14), 0 0 32px -14px rgba(0,200,210,.12), 0 0 28px -12px rgba(147,51,234,.08); }
+/* ===== login-scoped semantic tokens =====
+   Login-specific because they are login-specific: shipping them in
+   tokens.css would put them on all seven pages to serve one. */
+:root {
+  --auth-surface:var(--surface);
+  --auth-border:var(--border);
+  --auth-input:var(--surface-2);
+  --auth-input-hover:var(--surface-3);
+  --auth-input-border:var(--border);
+  --auth-shadow:0 1px 2px rgba(15,23,42,.04), 0 20px 44px -26px rgba(15,23,42,.20);
+  --auth-vignette:rgba(15,23,42,.05);
+
+  --auth-radius:16px;
+  --auth-ctl-radius:10px;
+  --auth-ctl-h:44px;
+  --auth-motion-fast:150ms;
+  --auth-motion:.5s;
+  --auth-ease:cubic-bezier(.22,1,.36,1);
+}
 body.dark {
-  --shadow-lg:0 24px 60px -20px rgba(0,0,0,.7), 0 0 40px -12px rgba(0,232,240,.22), 0 0 48px -16px rgba(168,85,247,.18);
+  /* Dark inverts the depth order: the card is the elevated plate and the
+     inputs are recessed into it. On light the card is the white plate and
+     the inputs are the tint. Same hierarchy, opposite mechanism. */
+  --auth-surface:var(--surface-3);
+  --auth-input:var(--surface);
+  --auth-input-hover:var(--surface-2);
+  --auth-shadow:0 1px 2px rgba(0,0,0,.40), 0 28px 64px -32px rgba(0,0,0,.80);
+  --auth-vignette:rgba(0,0,0,.34);
 }
 html[data-theme='ultra-dark'] body.dark {
-  --shadow-lg:0 24px 60px -20px rgba(0,0,0,.78), 0 0 44px -12px rgba(168,85,247,.24);
+  --auth-shadow:0 1px 2px rgba(0,0,0,.50), 0 28px 64px -30px rgba(0,0,0,.90);
+  --auth-vignette:rgba(0,0,0,.46);
 }
-
 /* The graphic is fixed to the viewport, so the ground colour has to be
    on the body: anything the layout fails to cover would otherwise show
    the browser's white. */
@@ -44,25 +71,24 @@ body { background:var(--bg); }
   position:relative; min-height:100vh; min-height:100dvh;
   display:flex; flex-direction:column;
   background:var(--bg); color:var(--text);
-  font-family:var(--font-display); font-size:var(--fs-base); line-height:var(--lh-base);
+  font-family:var(--font-sans); font-size:var(--fs-base); line-height:var(--lh-base);
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
   overflow-x:hidden;
 }
+/* A still vignette only. The animated cyan/violet aurora that used to live here
+   was two large radial gradients being transformed and faded forever; the
+   ambient movement is now the canvas's, which is quieter and does not composite
+   a viewport-sized layer every frame.
+   z-index 1, not 0: it has to composite ABOVE the canvas ground (z-index 0) to
+   settle the grid and the nodes into the edges. It still sits below .lgt-main,
+   which shares z-index 1 but comes later in tree order. */
 #app.login-app::before {
-  content:""; position:fixed; inset:-20%; z-index:0; pointer-events:none;
-  background:
-    radial-gradient(ellipse 50% 40% at 20% 15%, var(--ambient-cyan), transparent 60%),
-    radial-gradient(ellipse 45% 35% at 85% 80%, var(--ambient-violet), transparent 55%),
-    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,200,210,.05), transparent 70%);
-  animation:lgt-aurora 14s ease-in-out infinite alternate;
-}
-@keyframes lgt-aurora {
-  from { transform:translate3d(-2%, -1%, 0) scale(1); opacity:.9; }
-  to   { transform:translate3d(2%, 2%, 0) scale(1.05); opacity:1; }
+  content:""; position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:radial-gradient(ellipse 90% 70% at 50% 42%, transparent 40%, var(--auth-vignette, transparent) 100%);
 }
 /* color:inherit is not decoration. antd's reset paints every heading a fixed
-   rgba(0,0,0,.85), which the standalone mockup never met, and it wins over the
-   card's inherited --text: the greeting came out near-black on the dark plate. */
+   rgba(0,0,0,.85), and it wins over the card's inherited --text: the greeting
+   came out near-black on the dark plate. */
 #app.login-app h1, #app.login-app h2, #app.login-app p, #app.login-app ul { margin:0; padding:0; color:inherit; }
 #app.login-app button, #app.login-app input, #app.login-app select { font-family:inherit; font-size:inherit; }
 #app.login-app svg { display:block; }
@@ -81,129 +107,104 @@ body { background:var(--bg); }
 #app.login-app .lgt-ground { position:fixed; inset:0; z-index:0; pointer-events:none; contain:layout paint; }
 #app.login-app .lgt-ground canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
 
+/* ===== top bar =====
+   Brand identity belongs to the page, not to the card. This is what lets
+   the card be only the form. */
+#app.login-app .lgt-topbar {
+  position:relative; z-index:2; flex:0 0 auto;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:18px 24px; min-height:64px;
+}
+#app.login-app .lgt-lockup { display:flex; align-items:center; gap:10px; min-width:0; }
+#app.login-app .lgt-lockup .wp-mark { width:30px; height:30px; }
+#app.login-app .lgt-lockup .wp-mark__inner,
+#app.login-app .lgt-lockup .wp-mark img { width:100%; height:100%; }
+#app.login-app .lgt-wordmark {
+  font-size:11.5px; letter-spacing:.15em; line-height:1;
+  color:var(--text-2); white-space:nowrap;
+  direction:ltr; unicode-bidi:isolate;
+}
+
 /* ===== stage ===== */
 #app.login-app .lgt-main {
   position:relative; z-index:1; flex:1 1 auto;
   display:flex; align-items:center; justify-content:center;
-  padding:40px 20px;
+  padding:24px 20px 56px;
 }
-#app.login-app .lgt-stage { position:relative; width:100%; max-width:412px; }
+#app.login-app .lgt-stage { position:relative; width:100%; max-width:400px; }
 
 /* The legibility guarantee is two independent things, in this order.
-   ONE: the card is solid --surface with a defined border, exactly the
-   plate every other panel surface uses. Nothing behind it shows through,
-   so the contrast of every string on this screen is identical to the
-   rest of the product, at every frame, whatever the animation is doing.
+   ONE: the card is a solid plate with a defined border, exactly the
+   surface every other panel uses. Nothing behind it shows through, so the
+   contrast of every string on this screen is identical to the rest of the
+   product, at every frame, whatever the animation is doing. The glass
+   version this replaces could not promise that: a translucent card over a
+   moving canvas has moving contrast.
    TWO (in script, see quiet()): the canvas simply does not paint in a
-   wide halo around the card, so the form also has room to breathe.
-   Two was deliberately NOT done as a translucent plate over the canvas:
-   an extra composited layer lands a level off the page colour and shows
-   up as a faint banded outline on a dark ground. Not painting is exact. */
+   wide halo around the card, so the form also has room to breathe. */
 #app.login-app .lgt-card {
   position:relative; z-index:1;
-  background:var(--glass-bg);
-  border:1px solid var(--glass-border);
-  border-radius:24px;
-  box-shadow:var(--shadow-lg);
-  padding:32px 24px 28px;
-  backdrop-filter:blur(var(--glass-blur)) saturate(1.4);
-  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.4);
-  overflow:hidden;
+  background:var(--auth-surface);
+  border:1px solid var(--auth-border);
+  border-radius:var(--auth-radius);
+  box-shadow:var(--auth-shadow);
+  padding:28px 24px 26px;
 }
-#app.login-app .lgt-card > * { position:relative; z-index:1; }
-#app.login-app .lgt-card::before {
-  content:""; position:absolute; inset:0; pointer-events:none;
-  background:var(--glass-shine);
-  border-radius:inherit;
-}
-@media (min-width:420px) { #app.login-app .lgt-card { padding:36px 32px 32px; } }
+@media (min-width:420px) { #app.login-app .lgt-card { padding:32px 30px 28px; } }
 
-#app.login-app .lgt-rise { animation:lgt-rise .55s cubic-bezier(.22,1,.36,1) both; }
-@keyframes lgt-rise { from { opacity:0; transform:translateY(14px) scale(.98); } to { opacity:1; transform:none; } }
+/* ===== entrance =====
+   Staggered, short, and additive: nothing here gates interaction. The form
+   is focusable the instant it is in the DOM, mid-animation included,
+   because `both` only holds opacity/transform, not pointer events. */
+#app.login-app .lgt-rise { animation:lgt-rise var(--auth-motion) var(--auth-ease) both; }
+@keyframes lgt-rise {
+  from { opacity:0; transform:translateY(10px) scale(.99); }
+  to   { opacity:1; transform:none; }
+}
+#app.login-app .lgt-fade { animation:lgt-fade .44s var(--auth-ease) both; }
+@keyframes lgt-fade {
+  from { opacity:0; transform:translateY(6px); }
+  to   { opacity:1; transform:none; }
+}
+#app.login-app .lgt-topbar { animation:lgt-fade .5s var(--auth-ease) both; animation-delay:.06s; }
+#app.login-app .lgt-greet { animation:lgt-fade .46s var(--auth-ease) both; animation-delay:.14s; }
+/* Field-by-field reveal, CTA last. Keyed off nth-of-type on the field divs
+   rather than nth-child, so inserting the 2FA field later cannot renumber the
+   CTA and shunt it back into a delay phase. */
+#app.login-app .lgt-form > * { animation:lgt-fade .42s var(--auth-ease) both; }
+#app.login-app .lgt-form > div:nth-of-type(1) { animation-delay:.04s; }
+#app.login-app .lgt-form > div:nth-of-type(2) { animation-delay:.10s; }
+#app.login-app .lgt-form > div:nth-of-type(3) { animation-delay:.16s; }
+#app.login-app .lgt-form > .lgt-submit { animation-delay:.22s; }
 
-/* ===== hero brand + holographic rings ===== */
-#app.login-app .lgt-head {
-  position:relative;
-  display:flex; flex-direction:column; align-items:center;
-  gap:18px; padding:8px 0 4px; text-align:center;
-}
-#app.login-app .lgt-brand {
-  display:flex; flex-direction:column; align-items:center; gap:16px;
-  min-width:0; width:100%;
-}
-#app.login-app .lgt-holo {
-  position:relative; width:148px; height:148px;
-  display:flex; align-items:center; justify-content:center;
-}
-#app.login-app .lgt-holo-ring {
-  position:absolute; inset:0; border-radius:50%; pointer-events:none;
-  border:1px solid transparent;
-  background:linear-gradient(var(--bg), var(--bg)) padding-box,
-             conic-gradient(from 0deg, rgba(0,200,210,.0), rgba(0,180,190,.55), rgba(147,51,234,.0), rgba(147,51,234,.45), rgba(0,200,210,.0)) border-box;
-  -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite:xor; mask-composite:exclude;
-  padding:1px;
-}
-body.dark #app.login-app .lgt-holo-ring {
-  background:linear-gradient(var(--bg), var(--bg)) padding-box,
-             conic-gradient(from 0deg, rgba(0,232,240,.0), rgba(0,232,240,.55), rgba(168,85,247,.0), rgba(168,85,247,.5), rgba(0,232,240,.0)) border-box;
-}
-#app.login-app .lgt-holo-ring--a { inset:0; animation:lgt-spin-slow 28s linear infinite; opacity:.7; }
-#app.login-app .lgt-holo-ring--b { inset:12px; animation:lgt-spin-slow 38s linear infinite reverse; opacity:.45; }
-#app.login-app .lgt-holo-ring--c { inset:24px; border:1px solid rgba(10,158,171,.22); background:none; animation:none; }
-body.dark #app.login-app .lgt-holo-ring--c { border-color:rgba(0,232,240,.18); }
-@keyframes lgt-spin-slow { to { transform:rotate(360deg); } }
-#app.login-app .lgt-holo .wp-mark {
-  width:96px; height:96px; position:relative; z-index:1;
-  animation:lgt-logo-glow 4s ease-in-out infinite alternate;
-}
-#app.login-app .lgt-holo .wp-mark__inner, #app.login-app .lgt-holo .wp-mark img {
-  width:100%; height:100%;
-}
-@keyframes lgt-logo-glow {
-  from { box-shadow:0 0 18px -6px rgba(0,180,190,.28), 0 0 22px -8px rgba(147,51,234,.18); }
-  to   { box-shadow:0 0 28px -4px rgba(0,180,190,.45), 0 0 34px -4px rgba(147,51,234,.32); }
-}
-body.dark #app.login-app .lgt-holo .wp-mark {
-  animation:lgt-logo-glow-dark 4s ease-in-out infinite alternate;
-}
-@keyframes lgt-logo-glow-dark {
-  from { box-shadow:0 0 22px -6px rgba(0,232,240,.4), 0 0 28px -8px rgba(168,85,247,.28); }
-  to   { box-shadow:0 0 36px -4px rgba(0,232,240,.7), 0 0 48px -4px rgba(168,85,247,.55); }
-}
-#app.login-app .lgt-brand-name {
-  font-family:var(--font-display);
-  font-size:18px; font-weight:700; letter-spacing:.22em;
-  text-transform:uppercase;
-  background:linear-gradient(90deg, #00E8F0 0%, #A855F7 100%);
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-  white-space:nowrap; direction:ltr; unicode-bidi:isolate;
-}
+/* ===== settings control =====
+   Neutral, quiet, and the same size as a form control target. It used to
+   light up accent-blue with a cyan glow on hover, which made a tertiary
+   affordance compete with the CTA. */
 #app.login-app .lgt-gear {
-  width:36px; height:36px; flex:0 0 auto; border-radius:999px;
-  border:1px solid var(--glass-border); background:var(--surface-2); color:var(--text-2);
-  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  width:34px; height:34px; flex:0 0 auto; border-radius:var(--radius-md);
+  border:1px solid transparent; background:transparent; color:var(--text-3);
   display:flex; align-items:center; justify-content:center; cursor:pointer;
-  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  transition:background var(--auth-motion-fast) var(--ease),
+             color var(--auth-motion-fast) var(--ease),
+             border-color var(--auth-motion-fast) var(--ease);
 }
-#app.login-app .lgt-gear:hover,
+#app.login-app .lgt-gear:hover { background:var(--surface-hover); color:var(--text); }
 #app.login-app .lgt-gear[aria-expanded="true"] {
-  background:var(--accent-weak); border-color:var(--accent); color:var(--accent);
-  box-shadow:var(--glow-cyan);
+  background:var(--auth-input); border-color:var(--auth-border); color:var(--text);
 }
 
 /* ===== settings popover ===== */
-#app.login-app .lgt-pop-wrap { position:absolute; top:0; inset-inline-end:0; z-index:4; }
+#app.login-app .lgt-pop-wrap { position:relative; z-index:4; flex:0 0 auto; }
 #app.login-app .lgt-pop {
   position:absolute; z-index:6; top:calc(100% + 8px); inset-inline-end:0; width:252px;
-  background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:var(--radius-lg);
+  background:var(--auth-surface); border:1px solid var(--auth-border); border-radius:var(--radius-lg);
   box-shadow:var(--shadow-lg); padding:16px;
-  backdrop-filter:blur(var(--glass-blur)) saturate(1.3);
-  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.3);
   display:flex; flex-direction:column; gap:16px;
+  animation:lgt-fade .2s var(--auth-ease) both;
 }
 #app.login-app .lgt-pop-title {
-  font-size:var(--fs-xs); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:.05em; color:var(--text-3);
+  font-size:var(--fs-xs); font-weight:var(--fw-semibold); letter-spacing:.02em; color:var(--text-3);
 }
 #app.login-app .lgt-pop-group { display:flex; flex-direction:column; gap:8px; }
 /* the theme rows come from the shared a-theme-switch-login component, so
@@ -211,63 +212,92 @@ body.dark #app.login-app .lgt-holo .wp-mark {
 #app.login-app .lgt-pop-group .ant-space-item > span { font-size:var(--fs-sm); color:var(--text-2); }
 
 #app.login-app .lgt-select {
-  width:100%; padding:9px 10px; border-radius:var(--radius-md);
-  border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+  width:100%; padding:9px 10px; border-radius:var(--auth-ctl-radius);
+  border:1px solid var(--auth-input-border); background:var(--auth-input); color:var(--text);
   font-size:var(--fs-sm); cursor:pointer;
+  transition:border-color var(--auth-motion-fast) var(--ease), box-shadow var(--auth-motion-fast) var(--ease);
 }
-#app.login-app .lgt-select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-weak), var(--glow-cyan); }
+#app.login-app .lgt-select:focus {
+  outline:none; border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-weak);
+}
 
-/* ===== notices ===== */
+/* ===== notices =====
+   A 3px settle, once, on appearance. Not a shake: a rejected password is
+   not an error the user should be scolded for. */
 #app.login-app .lgt-alert {
-  display:flex; align-items:flex-start; gap:10px;
-  margin-top:16px; padding:10px 12px; border-radius:var(--radius-md);
+  display:flex; align-items:flex-start; gap:9px;
+  margin-bottom:18px; padding:10px 12px; border-radius:var(--auth-ctl-radius);
   font-size:var(--fs-sm); line-height:1.45;
   background:var(--error-weak); color:var(--error);
-  border-inline-start:2px solid var(--error);
+  animation:lgt-settle .34s var(--auth-ease) both;
 }
 #app.login-app .lgt-alert .lgt-icon { margin-top:1px; }
+@keyframes lgt-settle {
+  from { opacity:0; transform:translateY(-4px); }
+  60%  { opacity:1; }
+  to   { opacity:1; transform:none; }
+}
 
 /* ===== greeting ===== */
-#app.login-app .lgt-greet { margin-top:22px; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; }
+#app.login-app .lgt-greet {
+  display:flex; flex-direction:column; align-items:flex-start;
+  gap:5px; text-align:start; margin-bottom:24px;
+}
 #app.login-app .lgt-eyebrow {
-  font-size:var(--fs-sm); font-weight:var(--fw-semibold); color:var(--text-3);
-  text-transform:uppercase; letter-spacing:.1em;
+  font-size:var(--fs-sm); font-weight:var(--fw-medium); color:var(--text-3);
+  letter-spacing:.01em;
 }
 #app.login-app .lgt-title {
-  font-family:var(--font-display);
-  font-size:clamp(24px, 5vw, 30px); font-weight:var(--fw-bold);
-  letter-spacing:-.02em; line-height:1.15; text-wrap:balance;
+  font-size:22px; font-weight:var(--fw-semibold);
+  letter-spacing:-.02em; line-height:1.25; text-wrap:balance;
   color:var(--text);
 }
 #app.login-app .lgt-sub {
-  margin-top:2px; font-size:var(--fs-sm); color:var(--text-2); line-height:1.5; max-width:34ch;
+  font-size:var(--fs-sm); color:var(--text-3); line-height:1.5; max-width:38ch;
 }
 
 /* The fetch that gates the form is one round trip and usually lands
    before the first paint is even visible, but reserving its height keeps
    the card (and therefore the canvas quiet zone, which is measured from
-   the card) from resizing under the user when it does land. */
+   the card) from resizing under the user when it does land. The greeting
+   now renders outside the gate, so this reserves the form only. */
 #app.login-app .lgt-loading {
-  min-height:264px; display:flex; align-items:center; justify-content:center;
+  min-height:238px; display:flex; align-items:center; justify-content:center;
 }
 
 /* ===== form ===== */
-#app.login-app .lgt-form { margin-top:24px; display:flex; flex-direction:column; gap:16px; }
-#app.login-app .lgt-field { display:flex; flex-direction:column; gap:8px; }
-#app.login-app .lgt-label { font-size:var(--fs-sm); font-weight:var(--fw-semibold); color:var(--text-2); }
+#app.login-app .lgt-form { display:flex; flex-direction:column; gap:15px; }
+#app.login-app .lgt-field { display:flex; flex-direction:column; gap:7px; }
+#app.login-app .lgt-label {
+  font-size:var(--fs-sm); font-weight:var(--fw-medium); color:var(--text-2);
+  transition:color var(--auth-motion-fast) var(--ease);
+}
 #app.login-app .lgt-control {
   display:flex; align-items:center; gap:10px;
-  background:var(--surface-2); border:1px solid var(--glass-border); border-radius:14px;
+  background:var(--auth-input); border:1px solid var(--auth-input-border);
+  border-radius:var(--auth-ctl-radius);
   padding-inline:12px;
-  transition:border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+  transition:border-color var(--auth-motion-fast) var(--ease),
+             box-shadow var(--auth-motion-fast) var(--ease),
+             background var(--auth-motion-fast) var(--ease);
 }
-#app.login-app .lgt-control > .lgt-icon { color:var(--text-3); }
+#app.login-app .lgt-control > .lgt-icon {
+  color:var(--text-3);
+  transition:color var(--auth-motion-fast) var(--ease);
+}
+#app.login-app .lgt-control:hover { border-color:var(--border-hover); background:var(--auth-input-hover); }
+/* Focus is a border shift plus a 3px ring at 14% alpha. The old state filled
+   the whole control with accent-weak and stacked a cyan glow on top of the
+   ring, which is what made a focused field look like an alert. */
 #app.login-app .lgt-control:focus-within {
-  background:var(--accent-weak); border-color:var(--accent);
-  box-shadow:0 0 0 3px var(--accent-weak), var(--glow-cyan);
+  background:var(--auth-input);
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-weak);
 }
-#app.login-app .lgt-control:focus-within > .lgt-icon { color:var(--accent); }
-#app.login-app .lgt-control.is-invalid { border-color:var(--error); }
+#app.login-app .lgt-control:focus-within > .lgt-icon { color:var(--text-2); }
+#app.login-app .lgt-field:focus-within .lgt-label { color:var(--text); }
+#app.login-app .lgt-control.is-invalid { border-color:var(--error); background:var(--auth-input); }
 /* A rejected field that regains focus stays in the error colour. Without
    these two, the :focus-within rules above win on source order and repaint
    a still-invalid field with the accent ring, which reads as approval. */
@@ -276,18 +306,20 @@ body.dark #app.login-app .lgt-holo .wp-mark {
 }
 #app.login-app .lgt-control.is-invalid:focus-within > .lgt-icon { color:var(--error); }
 #app.login-app .lgt-control input {
-  flex:1 1 auto; min-width:0; height:42px;
+  flex:1 1 auto; min-width:0; height:calc(var(--auth-ctl-h) - 2px);
   border:0; background:transparent; color:var(--text);
   padding:0; outline:none;
 }
 #app.login-app .lgt-control input::placeholder { color:var(--text-3); opacity:1; }
+/* Stretched to the control's full height so the target is 34x42 while the
+   glyph stays small. A 32px square would have been a 32px target. */
 #app.login-app .lgt-reveal {
-  width:30px; height:30px; flex:0 0 auto; margin-inline-end:-4px;
+  width:34px; flex:0 0 auto; align-self:stretch; margin-inline-end:-6px;
   border:0; border-radius:var(--radius-sm); background:transparent; color:var(--text-3);
   display:flex; align-items:center; justify-content:center; cursor:pointer;
-  transition:color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+  transition:color var(--auth-motion-fast) var(--ease), background var(--auth-motion-fast) var(--ease);
 }
-#app.login-app .lgt-reveal:hover { color:var(--accent); background:var(--accent-weak); }
+#app.login-app .lgt-reveal:hover { color:var(--text); background:var(--surface-hover); }
 
 /* the code is a machine string: it stays LTR and monospaced in every locale */
 #app.login-app .lgt-code input {
@@ -295,65 +327,113 @@ body.dark #app.login-app .lgt-holo .wp-mark {
   direction:ltr; unicode-bidi:isolate; text-align:start;
 }
 #app.login-app .lgt-hint { font-size:var(--fs-xs); color:var(--text-3); line-height:1.45; }
+/* Second factor arriving mid-session is a reveal, not a jump: the field grows
+   from zero so the CTA slides rather than teleports. max-height is animated
+   (not height) because the field's natural height is unknown here. */
+/* No fill mode on purpose: once the reveal ends the field returns to its own
+   max-height:none, so a hint that wraps to three lines in another locale can
+   never be clipped by a leftover animated value. */
+#app.login-app .lgt-code {
+  animation:lgt-reveal .34s var(--auth-ease);
+  overflow:hidden;
+}
+@keyframes lgt-reveal {
+  from { opacity:0; max-height:0; transform:translateY(-4px); }
+  to   { opacity:1; max-height:200px; transform:none; }
+}
 
-/* ===== submit ===== */
+/* ===== submit =====
+   Solid accent fill with a barely-there tonal lift, sized so white label text
+   clears 4.5:1. It replaces a cyan-to-violet gradient carrying two coloured
+   drop shadows. */
 #app.login-app .lgt-submit {
-  position:relative; width:100%; height:46px; margin-top:6px;
-  border:1px solid rgba(0,232,240,.35); border-radius:14px;
-  background:linear-gradient(135deg, #00E8F0 0%, #00C4D4 45%, #A855F7 130%);
-  color:#041018;
-  font-size:var(--fs-base); font-weight:var(--fw-semibold); letter-spacing:.02em; cursor:pointer;
-  display:flex; align-items:center; justify-content:center; gap:10px;
-  box-shadow:0 8px 28px -10px rgba(0,232,240,.55), 0 0 24px -12px rgba(168,85,247,.45);
-  transition:filter var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  position:relative; width:100%; height:46px; margin-top:5px;
+  border:1px solid transparent; border-radius:var(--auth-ctl-radius);
+  /* Solid first: if color-mix is unsupported the gradient declaration is
+     dropped and the button still has a fill. */
+  background:var(--accent-fill);
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--accent-fill) 92%, #fff) 0%,
+    var(--accent-fill) 100%);
+  color:var(--on-accent);
+  font-size:var(--fs-base); font-weight:var(--fw-semibold); letter-spacing:.01em; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  box-shadow:0 1px 2px rgba(0,0,0,.14);
+  transition:background var(--auth-motion-fast) var(--ease),
+             transform var(--auth-motion-fast) var(--ease),
+             box-shadow var(--auth-motion-fast) var(--ease),
+             opacity var(--auth-motion-fast) var(--ease);
 }
 #app.login-app .lgt-submit:hover {
-  filter:brightness(1.06);
-  box-shadow:0 10px 32px -8px rgba(0,232,240,.65), 0 0 28px -8px rgba(168,85,247,.55);
+  background:var(--accent-fill-hover);
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--accent-fill-hover) 92%, #fff) 0%,
+    var(--accent-fill-hover) 100%);
+  box-shadow:0 2px 6px rgba(0,0,0,.16);
 }
-#app.login-app .lgt-submit:active { transform:translateY(1px); }
-#app.login-app .lgt-submit[aria-busy="true"] { cursor:progress; filter:none; }
-body:not(.dark) #app.login-app .lgt-submit {
-  box-shadow:0 8px 24px -10px rgba(15,40,70,.2), 0 0 22px -10px rgba(0,180,190,.35), 0 0 20px -10px rgba(147,51,234,.25);
+/* Compression, not a bounce. 1px down and the lift removed. */
+#app.login-app .lgt-submit:active { transform:translateY(1px); box-shadow:0 0 0 rgba(0,0,0,0); }
+#app.login-app .lgt-submit:disabled { cursor:default; }
+#app.login-app .lgt-submit[aria-busy="true"] {
+  cursor:progress; opacity:.82; transform:none;
 }
-body:not(.dark) #app.login-app .lgt-submit:hover {
-  box-shadow:0 10px 28px -8px rgba(15,40,70,.24), 0 0 26px -8px rgba(0,180,190,.42), 0 0 24px -8px rgba(147,51,234,.3);
-}
+/* Width is held by the label staying in the DOM; the spinner is additive, so
+   the button cannot resize when submission starts. */
 #app.login-app .lgt-spin {
-  width:16px; height:16px; flex:0 0 auto; border-radius:50%;
-  border:2px solid currentColor; border-top-color:transparent; opacity:.9;
-  animation:lgt-spin .8s linear infinite;
+  width:15px; height:15px; flex:0 0 auto; border-radius:50%;
+  border:2px solid currentColor; border-top-color:transparent; opacity:.85;
+  animation:lgt-spin .7s linear infinite;
 }
 @keyframes lgt-spin { to { transform:rotate(360deg); } }
 
-@media (max-width:400px) {
-  #app.login-app .lgt-main { padding:max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom)); }
-  #app.login-app .lgt-title { font-size:var(--fs-lg); }
-  #app.login-app .lgt-holo { width:120px; height:120px; }
-  #app.login-app .lgt-holo .wp-mark { width:78px; height:78px; }
-  #app.login-app .lgt-brand-name { font-size:14px; letter-spacing:.14em; }
-  #app.login-app .lgt-card { padding:22px 16px 20px; border-radius:18px; }
+/* ===== responsive =====
+   The card is vertically centred by .lgt-main's align-items, but the stage is
+   never height-locked: when a virtual keyboard shrinks the viewport the flex
+   line simply overflows and the page scrolls. */
+@media (max-width:420px) {
+  #app.login-app .lgt-topbar { padding:14px 16px; min-height:56px; }
+  #app.login-app .lgt-main {
+    padding:8px 14px max(24px, env(safe-area-inset-bottom));
+    align-items:flex-start;
+  }
   #app.login-app .lgt-stage { max-width:100%; }
+  #app.login-app .lgt-card { padding:24px 18px 22px; border-radius:14px; }
+  #app.login-app .lgt-title { font-size:20px; }
+  /* Interactive targets stay at 46px on touch. */
+  #app.login-app { --auth-ctl-h:46px; }
 }
-@media (min-width:401px) and (max-width:720px) {
-  #app.login-app .lgt-main { padding:28px 16px; }
+@media (min-width:421px) and (max-width:900px) {
+  #app.login-app .lgt-main { padding:24px 24px 48px; }
 }
-@media (min-width:1100px) {
-  #app.login-app .lgt-stage { max-width:440px; }
+/* Capped, not endlessly widened: an auth form gains nothing past ~26rem. */
+@media (min-width:1280px) {
+  #app.login-app .lgt-topbar { padding:22px 32px; }
+  #app.login-app .lgt-stage { max-width:416px; }
+}
+/* Short viewports (laptop + keyboard, landscape phone): stop centring so the
+   CTA is never pushed under the fold with no way to reach it. */
+@media (max-height:620px) {
+  #app.login-app .lgt-main { align-items:flex-start; padding-top:8px; }
 }
 
-/* Reduced motion. The CSS half only covers transitions; the animation
-   loop itself is cancelled in script, it is not merely slowed. */
+/* Reduced motion. The CSS half only covers transitions and the entrance; the
+   canvas loop itself is cancelled in script, it is not merely slowed. The
+   design has to be complete without any of it, which is why every rule above
+   is a state change and none of them is an animation the layout depends on. */
 @media (prefers-reduced-motion: reduce) {
   #app.login-app *, #app.login-app *::before, #app.login-app *::after {
     transition-duration:.001ms !important;
     animation-duration:.001ms !important;
     animation-iteration-count:1 !important;
+    animation-delay:0s !important;
   }
-  #app.login-app .lgt-spin { animation:none; border-top-color:currentColor; opacity:.45; }
-  #app.login-app::before,
-  #app.login-app .lgt-holo-ring,
-  #app.login-app .lgt-holo .wp-mark { animation:none !important; }
+  /* The one animation that carries meaning rather than polish. Kept, because a
+     frozen spinner next to a disabled button reads as a hung page; slowed and
+     dimmed rather than spun. */
+  #app.login-app .lgt-spin {
+    animation:none; border-top-color:currentColor; opacity:.5;
+  }
+  #app.login-app .lgt-code { animation:none !important; max-height:none; }
 }
 </style>
 {{ template "page/head_end" .}}
@@ -362,7 +442,7 @@ body:not(.dark) #app.login-app .lgt-submit:hover {
 {{/*
   Icon sprite. Kept outside #app so Vue never compiles it: <defs> has no
   reactive content and a symbol id is cheaper to reference than to
-  re-render. This is the tunnel set only, not page/icon_sprite, which is
+  re-render. This is the login set only, not page/icon_sprite, which is
   the 30-symbol shell sprite and mostly dead weight on this page.
 */}}
 <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
@@ -390,44 +470,55 @@ body:not(.dark) #app.login-app .lgt-submit:hover {
     <canvas ref="flowCanvas"></canvas>
   </div>
 
+  {{/*
+    Brand and settings are page chrome, not card content. Moving them out
+    here is what allows the card below to be nothing but the auth task, and
+    it removes the 148px ring assembly that used to sit above the greeting.
+  */}}
+  <header class="lgt-topbar">
+    <div class="lgt-lockup">
+      <span class="wp-mark">
+        <span class="wp-mark__inner">
+          <img src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="30" height="30" alt="Wild Panel" />
+        </span>
+      </span>
+      <span class="wp-wordmark lgt-wordmark">Wild Panel</span>
+    </div>
+    <div class="lgt-pop-wrap">
+      <button type="button" class="lgt-gear" ref="gear" @click.stop="settingsOpen = !settingsOpen"
+        :aria-expanded="settingsOpen ? 'true' : 'false'" aria-controls="lgt-pop"
+        aria-label='{{ i18n "menu.settings" }}' title='{{ i18n "menu.settings" }}'>
+        <svg class="lgt-icon lgt-icon-18" aria-hidden="true"><use href="#lgt-i-sliders"></use></svg>
+      </button>
+      <div class="lgt-pop" id="lgt-pop" v-show="settingsOpen" @click.stop>
+        <div class="lgt-pop-group">
+          <p class="lgt-pop-title">{{ i18n "menu.settings" }}</p>
+          <a-theme-switch-login></a-theme-switch-login>
+        </div>
+        <div class="lgt-pop-group">
+          <label class="lgt-pop-title" for="lgt-lang">{{ i18n "pages.settings.language" }}</label>
+          <select class="lgt-select" id="lgt-lang" v-model="lang" @change="LanguageManager.setLanguage(lang)">
+            <option v-for="l in LanguageManager.supportedLanguages" :key="l.value" :value="l.value"
+              v-text="l.name + ' (' + l.value + ')'"></option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
   <main class="lgt-main">
     <div class="lgt-stage" id="login">
       <div class="lgt-card lgt-rise" ref="card">
 
-        <div class="lgt-head">
-          <div class="lgt-brand">
-            <div class="lgt-holo">
-              <span class="lgt-holo-ring lgt-holo-ring--a" aria-hidden="true"></span>
-              <span class="lgt-holo-ring lgt-holo-ring--b" aria-hidden="true"></span>
-              <span class="lgt-holo-ring lgt-holo-ring--c" aria-hidden="true"></span>
-              <span class="wp-mark">
-                <span class="wp-mark__inner">
-                  <img src="{{ .base_path }}assets/img/logo.png?{{ .cur_ver }}" width="96" height="96" alt="Wild Panel" />
-                </span>
-              </span>
-            </div>
-            <span class="lgt-brand-name">Wild Panel</span>
-          </div>
-          <div class="lgt-pop-wrap">
-            <button type="button" class="lgt-gear" ref="gear" @click.stop="settingsOpen = !settingsOpen"
-              :aria-expanded="settingsOpen ? 'true' : 'false'" aria-controls="lgt-pop"
-              aria-label='{{ i18n "menu.settings" }}' title='{{ i18n "menu.settings" }}'>
-              <svg class="lgt-icon lgt-icon-18" aria-hidden="true"><use href="#lgt-i-sliders"></use></svg>
-            </button>
-            <div class="lgt-pop" id="lgt-pop" v-show="settingsOpen" @click.stop>
-              <div class="lgt-pop-group">
-                <p class="lgt-pop-title">{{ i18n "menu.settings" }}</p>
-                <a-theme-switch-login></a-theme-switch-login>
-              </div>
-              <div class="lgt-pop-group">
-                <label class="lgt-pop-title" for="lgt-lang">{{ i18n "pages.settings.language" }}</label>
-                <select class="lgt-select" id="lgt-lang" v-model="lang" @change="LanguageManager.setLanguage(lang)">
-                  <option v-for="l in LanguageManager.supportedLanguages" :key="l.value" :value="l.value"
-                    v-text="l.name + ' (' + l.value + ')'"></option>
-                </select>
-              </div>
-            </div>
-          </div>
+        {{/*
+          Outside the fetch gate. The greeting is static copy with no
+          dependency on the twoFactorEnable round trip, and rendering it
+          immediately means the card is never just a spinner in a box.
+        */}}
+        <div class="lgt-greet">
+          <p class="lgt-eyebrow">{{ i18n "pages.login.hello" }}</p>
+          <h1 class="lgt-title">{{ i18n "pages.login.title" }}</h1>
+          <p class="lgt-sub">{{ i18n "pages.login.subtitle" }}</p>
         </div>
 
         <template v-if="!loadingStates.fetched">
@@ -436,12 +527,6 @@ body:not(.dark) #app.login-app .lgt-submit:hover {
           </div>
         </template>
         <template v-else>
-
-          <div class="lgt-greet">
-            <p class="lgt-eyebrow">{{ i18n "pages.login.hello" }}</p>
-            <h1 class="lgt-title">{{ i18n "pages.login.title" }}</h1>
-            <p class="lgt-sub">{{ i18n "pages.login.subtitle" }}</p>
-          </div>
 
           {{/*
             The server already answers in the caller's locale, so the
@@ -535,22 +620,29 @@ body:not(.dark) #app.login-app .lgt-submit:hover {
          the class on the body IS the answer.
      ================================================================== */
   function createGround(groundEl, shellCv, flowCv, cardEl) {
-    /* Aurora + orbital rings — aesthetic motion matching the wolf logo.
-       Shell canvas: static rings / soft wash. Flow canvas: drifting particles. */
+    /* Ambient field. Shell canvas: two soft light regions plus a fine
+       measurement grid, painted once per resize. Flow canvas: a handful of
+       nodes drifting in straight lines at a few pixels a second.
+
+       What this replaces: three concentric orbital rings and a crosshair
+       centred on the card, with up to 48 pulsing dots orbiting it, each
+       costing a fresh radial gradient every frame. That was a radar. */
     const shell = shellCv.getContext('2d');
     const flow = flowCv.getContext('2d');
     const motionQ = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     const DPR_CAP = 1.5;
-    const TARGET_FPS = 30;
+    /* 24, not 30: the drift is slow enough that the extra six frames a second
+       buy nothing and cost battery on a page that can sit open for hours. */
+    const TARGET_FPS = 24;
     const FRAME_MS = 1000 / TARGET_FPS;
-    const MAX_DOTS = 48;
-    const MIN_DOTS = 16;
+    const MAX_DOTS = 22;
+    const MIN_DOTS = 10;
 
     let W = 0, H = 0, DPR = 1;
     let dots = [];
     let geo = null;
-    let rafId = 0, running = false, lastT = 0, acc = 0, clock = 0;
+    let rafId = 0, running = false, lastT = 0, acc = 0;
 
     const stats = window.__lgtStats = { frames: 0, drawMs: 0, avgMs: 0, dots: 0, dpr: 1, fpsCap: TARGET_FPS, running: false };
 
@@ -581,17 +673,13 @@ body:not(.dark) #app.login-app .lgt-submit:hover {
       H = groundEl.clientHeight || window.innerHeight;
       DPR = Math.min(window.devicePixelRatio || 1, DPR_CAP);
       stats.dpr = DPR;
+      // Only the quiet zone is measured now. The ring centre and radius this
+      // also used to derive existed for the orbital graphic.
       const r = cardEl.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      let cy = r.top + r.height / 2;
-      cy = Math.max(H * 0.28, Math.min(H * 0.72, cy));
       const pad = 20;
-      const feather = Math.min(110, Math.max(56, W * 0.08));
       geo = {
-        cx: cx, cy: cy,
         qx0: r.left - pad, qy0: r.top - pad, qx1: r.right + pad, qy1: r.bottom + pad,
-        qr: Math.min(40, r.width / 2), qf: feather,
-        ring: Math.max(r.width, r.height) * 0.72
+        qf: Math.min(110, Math.max(56, W * 0.08))
       };
     }
 
@@ -613,25 +701,28 @@ body:not(.dark) #app.login-app .lgt-submit:hover {
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     }
 
+    /* Nodes drift in a straight line and wrap at the edges. No orbit, so
+       nothing circles the form, and no pulse, so nothing blinks. Both themes
+       read --accent: the old light branch hard-coded a teal that no longer
+       exists anywhere in the palette. */
     function seedDots() {
-      const n = Math.max(MIN_DOTS, Math.min(MAX_DOTS, Math.round(W * H / 28000)));
+      const n = Math.max(MIN_DOTS, Math.min(MAX_DOTS, Math.round(W * H / 78000)));
       const rnd = mulberry32(0x57494C44 ^ (W * 73856093) ^ (H * 19349663));
       const dark = isDarkGround();
-      const accent = dark ? tokenRGB('--accent') : [10, 158, 171];
-      let glow;
-      try { glow = tokenRGB('--glow'); } catch (e) { glow = [147, 51, 234]; }
+      const accent = tokenRGB('--accent');
+      const neutral = tokenRGB('--text-3');
       dots = [];
       for (let i = 0; i < n; i++) {
-        const useGlow = rnd() > 0.55;
-        const col = useGlow ? glow : accent;
+        // One node in four is accent-tinted. A field of accent dots is
+        // decoration; a field with a few of them is depth.
+        const ang = rnd() * Math.PI * 2;
+        const sp = 1.6 + rnd() * 3.2;
         dots.push({
-          a: rnd() * Math.PI * 2,
-          r: geo.ring * (0.55 + rnd() * 0.9),
-          sp: (0.08 + rnd() * 0.22) * (rnd() > 0.5 ? 1 : -1),
-          sz: 0.8 + rnd() * 2.2,
-          pulse: rnd() * Math.PI * 2,
-          col: col,
-          drift: 8 + rnd() * 28
+          x: rnd() * W, y: rnd() * H,
+          vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+          sz: 0.7 + rnd() * 1.1,
+          a: (dark ? 0.12 : 0.10) + rnd() * (dark ? 0.16 : 0.12),
+          col: rnd() > 0.75 ? accent : neutral
         });
       }
       stats.dots = dots.length;
@@ -641,79 +732,65 @@ body:not(.dark) #app.login-app .lgt-submit:hover {
       sizeCanvas(shellCv, shell);
       shell.clearRect(0, 0, W, H);
       const dark = isDarkGround();
-      const accent = dark ? tokenRGB('--accent') : [10, 158, 171];
-      let glow;
-      try { glow = tokenRGB('--glow'); } catch (e) { glow = [147, 51, 234]; }
+      const accent = tokenRGB('--accent');
+      const line = tokenRGB('--border');
+      // The grid needs its own colour: --border against --bg is nearly the same
+      // luminance in light theme, so a grid drawn in it would not exist there.
+      const grid = tokenRGB('--text-3');
+      const R = Math.max(W, H);
 
-      // Soft aurora washes (stronger in dark, mist-soft in light)
-      const a1 = shell.createRadialGradient(W * 0.18, H * 0.12, 0, W * 0.18, H * 0.12, Math.max(W, H) * 0.45);
-      a1.addColorStop(0, rgba(accent, dark ? 0.16 : 0.10));
+      // Two ambient regions at very low alpha: accent-tinted high on one side,
+      // neutral low on the other. Enough for the ground to have a direction,
+      // not enough to read as a gradient wallpaper.
+      const a1 = shell.createRadialGradient(W * 0.20, H * 0.04, 0, W * 0.20, H * 0.04, R * 0.66);
+      a1.addColorStop(0, rgba(accent, dark ? 0.075 : 0.055));
       a1.addColorStop(1, rgba(accent, 0));
       shell.fillStyle = a1;
       shell.fillRect(0, 0, W, H);
 
-      const a2 = shell.createRadialGradient(W * 0.88, H * 0.88, 0, W * 0.88, H * 0.88, Math.max(W, H) * 0.42);
-      a2.addColorStop(0, rgba(glow, dark ? 0.14 : 0.08));
-      a2.addColorStop(1, rgba(glow, 0));
+      const a2 = shell.createRadialGradient(W * 0.88, H * 0.96, 0, W * 0.88, H * 0.96, R * 0.55);
+      a2.addColorStop(0, rgba(line, dark ? 0.34 : 0.20));
+      a2.addColorStop(1, rgba(line, 0));
       shell.fillStyle = a2;
       shell.fillRect(0, 0, W, H);
 
-      // Orbital crosshair (logo geometry) — both themes
-      shell.save();
-      shell.translate(geo.cx, geo.cy);
-      const rings = [geo.ring * 0.72, geo.ring * 1.05, geo.ring * 1.38];
-      for (let i = 0; i < rings.length; i++) {
-        const rad = rings[i];
-        const base = dark ? (0.10 + i * 0.04) : (0.14 + i * 0.05);
-        const alpha = quiet(geo.cx + rad, geo.cy) * base;
-        shell.beginPath();
-        shell.arc(0, 0, rad, 0, Math.PI * 2);
-        shell.strokeStyle = rgba(i === 1 ? glow : accent, alpha);
-        shell.lineWidth = i === 1 ? 1.25 : 0.8;
-        shell.stroke();
-      }
-      const arm = geo.ring * 1.55;
+      // A fine measurement grid is the one structural motif kept: it reads as
+      // infrastructure instead of as a radar sweep. Static, painted once per
+      // resize, and low enough to sit under the threshold of notice.
+      const step = 64;
+      shell.lineWidth = 1;
+      shell.strokeStyle = rgba(grid, dark ? 0.10 : 0.065);
       shell.beginPath();
-      shell.moveTo(-arm, 0); shell.lineTo(arm, 0);
-      shell.moveTo(0, -arm); shell.lineTo(0, arm);
-      shell.strokeStyle = rgba(accent, dark ? 0.08 : 0.10);
-      shell.lineWidth = 0.7;
+      for (let x = step; x < W; x += step) { shell.moveTo(x + .5, 0); shell.lineTo(x + .5, H); }
+      for (let y = step; y < H; y += step) { shell.moveTo(0, y + .5); shell.lineTo(W, y + .5); }
       shell.stroke();
-      shell.restore();
     }
 
+    /* One fill per node. The previous version allocated a radial gradient and
+       ran two fills per node per frame, which was the whole cost of the page. */
     function paintFlow(dt) {
-      sizeCanvas(flowCv, flow);
       flow.clearRect(0, 0, W, H);
-      const dark = isDarkGround();
-      clock += dt;
+      const s = dt * 0.001;
       for (let i = 0; i < dots.length; i++) {
         const d = dots[i];
-        d.a += d.sp * dt * 0.001;
-        d.pulse += dt * 0.0022;
-        const wobble = Math.sin(clock * 0.0007 + d.pulse) * d.drift;
-        const x = geo.cx + Math.cos(d.a) * (d.r + wobble * 0.15);
-        const y = geo.cy + Math.sin(d.a) * (d.r * 0.62 + wobble * 0.1);
-        const q = quiet(x, y);
-        if (q < 0.04) continue;
-        const breath = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(d.pulse));
-        const a = q * breath * (dark ? 0.85 : 0.55);
-        const rg = flow.createRadialGradient(x, y, 0, x, y, d.sz * 3.2);
-        rg.addColorStop(0, rgba(d.col, a));
-        rg.addColorStop(1, rgba(d.col, 0));
-        flow.fillStyle = rg;
+        d.x += d.vx * s;
+        d.y += d.vy * s;
+        if (d.x < -8) d.x = W + 8; else if (d.x > W + 8) d.x = -8;
+        if (d.y < -8) d.y = H + 8; else if (d.y > H + 8) d.y = -8;
+        const q = quiet(d.x, d.y);
+        if (q < 0.05) continue;
+        flow.fillStyle = rgba(d.col, d.a * q);
         flow.beginPath();
-        flow.arc(x, y, d.sz * 3.2, 0, Math.PI * 2);
-        flow.fill();
-        flow.fillStyle = rgba(d.col, a);
-        flow.beginPath();
-        flow.arc(x, y, d.sz * 0.55, 0, Math.PI * 2);
+        flow.arc(d.x, d.y, d.sz, 0, Math.PI * 2);
         flow.fill();
       }
     }
 
     function build() {
       measure();
+      // Sizing a canvas clears and may reallocate its backing store, so it
+      // happens here and on resize only. paintFlow used to do it every frame.
+      sizeCanvas(flowCv, flow);
       seedDots();
       paintShell();
       paintFlow(0);
