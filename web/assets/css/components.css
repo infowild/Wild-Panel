@@ -1740,15 +1740,17 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
  * ~150px of vertical space to carry six numbers; as a rail they cost ~58px and
  * still read left-to-right in importance order. */
 .inbounds-page .ib-ops {
-  display:flex; align-items:stretch; flex-wrap:wrap; gap:2px 0;
-  padding:9px 6px;
+  display:flex; align-items:stretch; flex-wrap:wrap; gap:4px 0;
+  padding:10px 8px;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:var(--radius-md);
 }
+/* min-width keeps the metrics on a steady pitch: without it the columns reflow
+   every refresh as "4" becomes "12" and "4.62 TB" becomes "4.71 TB". */
 .inbounds-page .ib-ops-item {
-  display:flex; flex-direction:column; justify-content:center; gap:2px;
-  padding-inline:16px; min-width:0;
+  display:flex; flex-direction:column; justify-content:center; gap:3px;
+  padding-inline:18px; min-width:88px;
 }
 .inbounds-page .ib-ops-item--live { cursor:pointer; border-radius:var(--radius-sm); }
 .inbounds-page .ib-ops-item--live:hover .ib-ops-val { color:var(--accent); }
@@ -1766,15 +1768,17 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   transition:color var(--dur-fast) var(--ease);
 }
 .inbounds-page .ib-ops-lab {
-  font-size:11px; color:var(--text-3); line-height:1.3;
+  font-size:11px; color:var(--text-3); line-height:1.25;
   display:inline-flex; align-items:center; gap:5px;
   white-space:nowrap;
 }
+/* Separation by rhythm first, rule second: the divider is barely there, doing
+   just enough to stop two figures reading as one pair. */
 .inbounds-page .ib-ops-sep {
-  width:1px; align-self:center; height:30px;
-  background:var(--divider); flex:0 0 auto;
+  width:1px; align-self:center; height:26px;
+  background:var(--divider); opacity:.7; flex:0 0 auto;
 }
-.inbounds-page .ib-ops-sep--soft { opacity:.5; }
+.inbounds-page .ib-ops-sep--soft { opacity:.4; }
 .inbounds-page .ib-ops-extra {
   display:inline-flex; align-items:center; gap:6px;
   margin-inline-start:auto; padding-inline:12px;
@@ -1823,12 +1827,21 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 }
 .inbounds-page .ib-bar-cluster--lead { flex:0 0 auto; }
 .inbounds-page .ib-bar-cluster--find {
-  flex:1 1 260px; min-width:200px;
+  flex:1 1 340px; min-width:220px;
   display:flex; align-items:center; gap:8px;
 }
 .inbounds-page .ib-bar-cluster--util {
   flex:0 0 auto; margin-inline-start:auto;
   display:flex; align-items:center; gap:8px;
+}
+/* View + refresh read as one group of same-sized controls. Ant's own button
+   group already joins the refresh pair; these three lines give the standalone
+   expand toggle and the density segment the same box so the cluster does not
+   look like three unrelated widgets sitting next to each other. */
+.inbounds-page .ib-bar-cluster--util > .ib-tool,
+.inbounds-page .ib-bar .ib-seg,
+.inbounds-page .ib-bar .ant-btn-group > .ant-btn {
+  height:var(--ib-ctl); border-radius:var(--radius-sm);
 }
 
 /* Control baseline. Flex centring on the button box is what actually puts an
@@ -1860,7 +1873,7 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 .inbounds-page .ib-btn-2nd:hover { color:var(--text); }
 /* Flexible but bounded. Unbounded, search ate the whole middle of a 1920 bar
    and pushed the view controls to the far edge. */
-.inbounds-page .ib-search { flex:1 1 auto; max-width:420px; min-width:160px; }
+.inbounds-page .ib-search { flex:1 1 auto; max-width:440px; min-width:200px; }
 .inbounds-page .ib-search .ant-input-affix-wrapper,
 .inbounds-page .ib-search .ant-input {
   background:var(--surface-2) !important;
@@ -1957,31 +1970,51 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 
 /* Wide-screen redistribution.
  *
- * Only the identity column is elastic, so on a 1920 display it absorbed every
- * spare pixel — a ~1100px name column sitting next to four zones squeezed to
- * their minimums, with the operational data huddled against the right edge.
+ * Only the identity column is elastic, so every spare pixel on a wide display
+ * landed there — a name column wider than the four data zones put together, with
+ * the operational figures huddled against the right edge. These tiers hand the
+ * surplus to traffic and clients first (they carry meters that read better with
+ * room) and let identity keep the remainder, so widening the viewport improves
+ * every zone instead of just one.
+ *
  * Ant writes the column widths as inline style on <col>, so overriding them from
  * CSS is the only way to rebalance without a per-breakpoint JS column set;
- * !important is what it costs. Order follows the `columns` array in
- * inbounds.html: select, identity, status, clients, traffic, operate.
+ * !important is what it costs. nth-child follows the `columns` array in
+ * inbounds.html — select, identity, status, clients, traffic, operate — so a
+ * column added or reordered there needs these three blocks updated too.
+ *
+ * Thresholds are viewport widths, which run ~22px under the window width once a
+ * scrollbar is present — hence 1400/1560/1760 for 1440/1600/1920 displays.
  */
-@media (min-width:1500px) {
-  .inbounds-page .ib-grid col:nth-child(3) { width:160px !important; min-width:160px !important; }
-  .inbounds-page .ib-grid col:nth-child(4) { width:150px !important; min-width:150px !important; }
+@media (min-width:1400px) {
+  .inbounds-page .ib-grid col:nth-child(3) { width:150px !important; min-width:150px !important; }
+  .inbounds-page .ib-grid col:nth-child(4) { width:156px !important; min-width:156px !important; }
+  .inbounds-page .ib-grid col:nth-child(5) { width:264px !important; min-width:264px !important; }
+  .inbounds-page .ib-grid col:nth-child(6) { width:136px !important; min-width:136px !important; }
+}
+@media (min-width:1560px) {
+  .inbounds-page .ib-grid col:nth-child(3) { width:162px !important; min-width:162px !important; }
+  .inbounds-page .ib-grid col:nth-child(4) { width:176px !important; min-width:176px !important; }
+  .inbounds-page .ib-grid col:nth-child(5) { width:284px !important; min-width:284px !important; }
+  .inbounds-page .ib-grid col:nth-child(6) { width:140px !important; min-width:140px !important; }
+}
+@media (min-width:1760px) {
+  .inbounds-page .ib-grid col:nth-child(3) { width:172px !important; min-width:172px !important; }
+  .inbounds-page .ib-grid col:nth-child(4) { width:196px !important; min-width:196px !important; }
   .inbounds-page .ib-grid col:nth-child(5) { width:300px !important; min-width:300px !important; }
-  .inbounds-page .ib-grid col:nth-child(6) { width:124px !important; min-width:124px !important; }
+  .inbounds-page .ib-grid col:nth-child(6) { width:144px !important; min-width:144px !important; }
 }
-@media (min-width:1680px) {
-  .inbounds-page .ib-grid col:nth-child(3) { width:176px !important; min-width:176px !important; }
-  .inbounds-page .ib-grid col:nth-child(4) { width:164px !important; min-width:164px !important; }
-  .inbounds-page .ib-grid col:nth-child(5) { width:348px !important; min-width:348px !important; }
-  .inbounds-page .ib-grid col:nth-child(6) { width:132px !important; min-width:132px !important; }
-}
-/* Beyond this the workspace stops growing and centres instead. A table row whose
-   name column is wider than the four data zones put together reads as stretched
-   however the surplus is shared out. */
-@media (min-width:1720px) {
-  .inbounds-page .ib-console { max-width:1680px; margin-inline:auto; width:100%; }
+/* Ceiling, not a container. An operations console should fill the space between
+   the rail and the viewport edge; a website-style centred column leaves dead
+   margins on exactly the displays this page is used on. At 1920 the padding below
+   is the only inset (~97% of the available area) and this cap never engages —
+   it exists so a 2560 display does not stretch a row to 2.3k pixels. */
+.inbounds-page .ib-console { max-width:1840px; margin-inline:auto; width:100%; }
+
+/* Page inset per class of display. Wide screens can afford the breathing room;
+   at 1280 every pixel spent on margin comes out of the data. */
+@media (min-width:1180px) and (max-width:1366px) {
+  .inbounds-page .bo-content { padding-inline:18px; }
 }
 
 /* Row height: operational, not spreadsheet. --ib-edge keeps the first and last
@@ -2083,10 +2116,12 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .inbounds-page .ib-idz--off .ib-idz-name { color:var(--text-3); }
+/* Port and index are figures an operator compares down the column, so the whole
+   metadata line runs on tabular figures rather than only the spans marked .num. */
 .inbounds-page .ib-idz-meta {
   display:flex; align-items:center; flex-wrap:wrap; gap:3px 2px;
   font-size:11.5px; color:var(--text-3); line-height:1.35;
-  min-width:0;
+  min-width:0; font-variant-numeric:tabular-nums;
 }
 /* Restrained badge: a tinted well rather than a saturated pill, because every
    row carries one and a bright pill per row is the whole page. */
@@ -2104,6 +2139,7 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 .inbounds-page .ib-idz-sub {
   display:flex; align-items:center; flex-wrap:wrap; gap:2px;
   font-size:11px; color:var(--text-3); opacity:.9;
+  font-variant-numeric:tabular-nums;
 }
 .inbounds-page .ib-exp { font-variant-numeric:tabular-nums; }
 .inbounds-page .ib-exp--warn { color:var(--warn); }
@@ -2171,9 +2207,13 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
  * Used value leads, quota is subdued, percentage sits with the rail. Same
  * three-part shape in the parent row and in the client workspace so traffic is
  * read the same way at both levels. */
+/* The cap matters as much as the column width. Left to fill a 380px column the
+   rail turns back into the full-width progress bar this design replaced, and the
+   right-aligned percentage drifts so far from its value that the two stop reading
+   as one figure. 280px keeps the number, the quota and the rail as one object. */
 .inbounds-page .ib-traffic {
   display:flex; flex-direction:column; gap:4px; min-width:0;
-  max-width:100%; overflow:hidden;
+  max-width:280px; overflow:hidden;
 }
 .inbounds-page .ib-traffic-line {
   display:flex; align-items:baseline; gap:4px; min-width:0;
@@ -2239,9 +2279,12 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   display:inline-flex; align-items:center; justify-content:flex-end;
   gap:2px; white-space:nowrap;
 }
+/* 32px target around a 15px glyph. The icon stays the same size it looked before
+   — the box around it grew, so the row is easier to hit without the actions
+   becoming visually heavier. */
 .inbounds-page .ib-rowbtn {
   display:inline-flex; align-items:center; justify-content:center;
-  width:30px; height:30px; padding:0; border:none;
+  width:32px; height:32px; padding:0; border:none;
   background:transparent; color:var(--text-3);
   border-radius:var(--radius-sm); cursor:pointer;
   transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
@@ -2250,7 +2293,14 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
   background:var(--surface-4); color:var(--text);
 }
 .inbounds-page .ib-rowbtn:focus-visible {
-  outline:2px solid var(--accent); outline-offset:-1px;
+  outline:2px solid var(--accent); outline-offset:1px;
+  color:var(--text); background:var(--surface-4);
+}
+/* The drag handle is a sibling of these buttons, so it has to sit on the same
+   box or the action strip steps up and down along the row. */
+.inbounds-page .bo-row-actions .sortable-icon {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:32px; height:32px; padding:0;
 }
 /* Destructive entries stay restrained: tinted on hover, never a red button in
    the resting row. */
@@ -2278,6 +2328,11 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 .inbounds-page .ant-table-expanded-row:hover > td {
   background:var(--bg) !important;
 }
+/* box-shadow has no logical form, so the edge that ties the workspace to its
+   parent has to be mirrored by hand. */
+[dir="rtl"] .inbounds-page .ant-table-expanded-row > td {
+  box-shadow:inset -2px 0 0 var(--accent);
+}
 .inbounds-page .ib-ws {
   margin:12px var(--ib-edge, 18px) 14px;
   background:var(--surface-2);
@@ -2295,15 +2350,20 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 .inbounds-page .ib-ws-head-lead {
   display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-width:0;
 }
+/* Header hierarchy: the section name leads, its counts follow in body weight,
+   and the owning inbound sits opposite as the quietest thing in the strip — it is
+   context, not a heading. */
 .inbounds-page .ib-ws-kicker {
   font-size:11px; font-weight:var(--fw-semibold);
-  letter-spacing:.04em; text-transform:uppercase; color:var(--text-3);
+  letter-spacing:.06em; text-transform:uppercase; color:var(--text-2);
 }
 .inbounds-page .ib-ws-stats {
   display:inline-flex; align-items:center; gap:6px;
   font-size:12px; color:var(--text-2);
 }
+.inbounds-page .ib-ws-stats .num { font-weight:var(--fw-semibold); color:var(--text); }
 .inbounds-page .ib-ws-stats-lab { color:var(--text-3); }
+.inbounds-page .ib-ws-head .ib-ops-sep { height:14px; opacity:.6; }
 .inbounds-page .ib-ws-online {
   display:inline-flex; align-items:center; gap:5px;
 }
@@ -2330,11 +2390,11 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 }
 .inbounds-page .ib-ws-table .ant-table-thead > tr > th:first-child,
 .inbounds-page .ib-ws-table .ant-table-tbody > tr > td:first-child {
-  padding-inline-start:14px;
+  padding-inline-start:16px;
 }
 .inbounds-page .ib-ws-table .ant-table-thead > tr > th:last-child,
 .inbounds-page .ib-ws-table .ant-table-tbody > tr > td:last-child {
-  padding-inline-end:14px;
+  padding-inline-end:16px;
 }
 .inbounds-page .ib-ws-table .ant-table-tbody > tr:last-child > td {
   border-bottom:none;
@@ -2361,12 +2421,16 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 }
 .inbounds-page .ib-client-dot { margin-block-start:5px; }
 .inbounds-page .ib-client-body { min-width:0; display:flex; flex-direction:column; gap:2px; }
+/* The account identifier is what an operator scans this table for, so it carries
+   the same weight here as the inbound name does upstairs. The comment stays a
+   full step quieter. */
 .inbounds-page .client-email {
-  font-size:13px; font-weight:var(--fw-medium); color:var(--text);
+  font-size:13.5px; font-weight:var(--fw-semibold); color:var(--text);
+  line-height:1.3; letter-spacing:-.005em;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .inbounds-page .client-comment {
-  font-size:11.5px; color:var(--text-3);
+  font-size:11.5px; color:var(--text-3); line-height:1.3;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 /* Duration chip. A one-shot account has no cycle to meter, so it reads as a
@@ -2410,18 +2474,70 @@ body:not(.dark) .bo-shell.inbounds-page { --bg:#F1F4F7; }
 }
 
 .inbounds-page .ib-c-status {
-  display:flex; flex-direction:column; gap:5px; align-items:flex-start;
+  display:flex; flex-direction:column; gap:6px; align-items:flex-start;
 }
 .inbounds-page .ib-c-online {
   display:inline-flex; align-items:center; gap:6px;
-  font-size:12px; color:var(--text-2); cursor:default;
+  font-size:12px; font-weight:var(--fw-medium);
+  color:var(--text-2); cursor:default; white-space:nowrap;
 }
 .inbounds-page .ib-c-online.is-on { color:var(--text); }
 .inbounds-page .ib-c-online.is-off { color:var(--text-3); }
 .inbounds-page .ib-c-en {
   display:inline-flex; align-items:center; gap:6px;
   font-size:11px; color:var(--text-3); cursor:pointer; margin:0;
+  white-space:nowrap;
 }
+
+/* ---- light theme pass ---- *
+ * Light is not the dark palette inverted. Two things need saying explicitly:
+ *
+ * 1. Depth runs the other way. In dark, a nested surface is *lighter* than its
+ *    parent; in light it has to be *darker*, and #F8F9FB on #FFFFFF is too small
+ *    a step to register. The client workspace therefore drops further and leans
+ *    on a hairline shadow rather than a heavier border, which is how elevation
+ *    reads on paper-like grounds.
+ * 2. Neutral greys go muddy against white. The borders here are cooled slightly
+ *    so the frame reads as deliberate chrome instead of grey smudge.
+ */
+body:not(.dark) .inbounds-page .ib-ws {
+  background:var(--surface-3);
+  border-color:var(--border);
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / .7), 0 1px 2px rgb(15 23 42 / .04);
+}
+body:not(.dark) .inbounds-page .ib-ws-head {
+  background:var(--surface);
+}
+/* The recessed well the workspace sits in. --bg alone is barely off white, so it
+   gets a hairline of its own to mark where the parent row ends. */
+body:not(.dark) .inbounds-page .ant-table-expanded-row > td {
+  background:var(--surface-2) !important;
+  box-shadow:inset 2px 0 0 var(--accent), inset 0 1px 0 var(--divider);
+}
+[dir="rtl"] body:not(.dark) .inbounds-page .ant-table-expanded-row > td,
+body:not(.dark) [dir="rtl"] .inbounds-page .ant-table-expanded-row > td {
+  box-shadow:inset -2px 0 0 var(--accent), inset 0 1px 0 var(--divider);
+}
+/* Hover on white wants a cool tint, not grey: a neutral darkening reads as the
+   row having been greyed out rather than pointed at. */
+body:not(.dark) .inbounds-page .ib-grid .ant-table-tbody > tr:hover > td,
+body:not(.dark) .inbounds-page .ib-ws-table .ant-table-tbody > tr:hover > td {
+  background:rgb(37 99 235 / .035) !important;
+}
+/* The meter track needs more contrast against white than --surface-4 gives it,
+   or an empty meter disappears and a full one looks like a floating bar. */
+body:not(.dark) .inbounds-page .ib-meter { background:rgb(15 23 42 / .10); }
+/* Chrome-weight controls: on white these read as inputs, so they take the same
+   border the search field does instead of a borderless tint. */
+body:not(.dark) .inbounds-page .ib-idz-proto {
+  background:var(--surface-2); border-color:var(--border);
+}
+body:not(.dark) .inbounds-page .ib-tag { background:var(--surface-2); }
+body:not(.dark) .inbounds-page .ib-rowbtn:hover,
+body:not(.dark) .inbounds-page .ib-tool:hover { background:var(--surface-3); }
+/* Disabled inbounds must stay legible on a light ground: --text-3 on white is
+   quiet enough already, so the row is dimmed by weight rather than more grey. */
+body:not(.dark) .inbounds-page .ib-idz--off .ib-idz-name { color:var(--text-2); }
 
 .inbounds-page .client-popup-item {
   display:flex; align-items:center; gap:5px;
