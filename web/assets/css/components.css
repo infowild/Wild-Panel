@@ -12,8 +12,8 @@
  *     stamp data-theme on <html>; the panel puts the theme class on <body>
  *     (aThemeSwitch.html:50) and reserves html[data-theme] for ultra-dark.
  *   - The rail is 248px expanded (80px collapsed), not 84px. Menu labels do not fit at 84px in every
- *     locale: "ÐÐ´Ð¼Ð¸Ð½Ð¸ÑÑÑÐ°ÑÐ¾ÑÑ", "ÐÐ°ÑÑÑÐ¾Ð¹ÐºÐ¸ Xray", "Panel Settings" and
- *     "Ù¾ÛÚ©Ø±Ø¨ÙØ¯Û Ø§ÛÚ©Ø³âØ±Û" all overrun. Labels wrap to two lines here.
+ *     locale: "ÃÂÃÂ´ÃÂ¼ÃÂ¸ÃÂ½ÃÂ¸ÃÂÃÂÃÂÃÂ°ÃÂÃÂ¾ÃÂÃÂ", "ÃÂÃÂ°ÃÂÃÂÃÂÃÂ¾ÃÂ¹ÃÂºÃÂ¸ Xray", "Panel Settings" and
+ *     "ÃÂ¾ÃÂÃÂ©ÃÂ±ÃÂ¨ÃÂÃÂ¯ÃÂ ÃÂ§ÃÂÃÂ©ÃÂ³Ã¢ÂÂÃÂ±ÃÂ" all overrun. Labels wrap to two lines here.
  *   - Physical direction properties are logical throughout, for fa_IR/ar_EG.
  *     Charts and numeric strings are explicitly pinned LTR: a mirrored time
  *     axis is wrong, and bidi reordering mangles IPs and version numbers.
@@ -57,6 +57,11 @@
 /* No ambient colour wash and no film grain: the enterprise ground is a flat
    neutral surface, and every gradient here read as decoration. */
 .bo-shell > * { position:relative; z-index:1; }
+/* The rail must paint above .bo-main when it peeks. .bo-shell > * above gives
+   every child z-index:1, and source order would then put the main column on
+   top of the rail — which is exactly wrong for an overlay that has to catch
+   the pointer. Beat that rule on specificity so the rail stays at 30. */
+.bo-shell > .bo-rail-slot { z-index:30; }
 
 .bo-shell svg { display:block; }
 .bo-shell button { font-family:inherit; }
@@ -102,206 +107,286 @@
  * shell: rail nav
  * ================================================================== */
 
-/* The rail is two elements, not one.
-
-   .bo-rail-slot is the flex child: it owns the width the page yields to the
-   navigation. .bo-rail is painted absolutely inside it and is the thing that
-   actually widens. Keeping those separate is what makes hover-to-peek usable â
-   the slot stays at the collapsed width, so the rail floats OVER the content
-   and nothing beside it reflows. A rail that pushed the page on every mouse
-   pass would resize the bento grid and re-render every sparkline mid-motion.
-
-   Pinning (the foot button, persisted) widens the slot as well, so a rail the
-   operator chose to keep open behaves like an ordinary column again.
-
-   Geometry is derived, not hand-tuned: --rail-item-pad places the icon box so
-   its centre lands exactly on the collapsed rail's midline, which means the
-   icons do not drift sideways while the rail expands. Only the labels move. */
+/* THE RAIL IS THREE ELEMENTS, AND THE MIDDLE ONE IS THE WHOLE POINT.
+ *
+ *   .bo-rail-slot  flex child. Owns the width the page yields to navigation.
+ *   .bo-rail-hit   the hover region. NEVER transitions.
+ *   .bo-rail       the visible panel. This is what animates.
+ *
+ * Why the hit region exists at all: hover is re-evaluated against the CURRENT
+ * layout on every frame. If the element you hover is also the element that
+ * animates, a pointer moving inland faster than the panel grows lands on the
+ * CONTENT for a few frames, the browser fires mouseleave, and the rail slams
+ * shut under the cursor. That was the previous implementation's bug, and it is
+ * unfixable while the hit target is the animating box: it is a race between the
+ * pointer and an easing curve, and on a fast diagonal the pointer wins.
+ *
+ * So the hit region snaps to the full expanded width the instant it is entered,
+ * with no transition, while the panel behind it eases open. From the first frame
+ * the entire 240px is hoverable, so the pointer cannot fall out of a region it
+ * has already entered. Leaving snaps it back to the rail width, which cannot
+ * oscillate because nothing about that change is animated.
+ *
+ * Consequence worth knowing: peek state lives in CSS (:hover / :focus-within),
+ * not in Vue. There is no JS mirror of it to drift out of sync. Vue owns only
+ * the persisted pin and an "an overlay of mine is open" latch.
+ *
+ * Geometry is derived, not hand-tuned. --rail-item-pad places the icon box so
+ * its centre lands exactly on the collapsed rail's midline, which is why icons
+ * do not drift sideways as the rail opens. Only labels move.
+ */
 .bo-rail-slot {
-  --rail-w:248px;
+  --rail-w:240px;
   --rail-w-collapsed:72px;
   --rail-pad:12px;
   --rail-ico:24px;
+  --rail-gap:12px;
   --rail-item-pad:calc(var(--rail-w-collapsed) / 2 - var(--rail-pad) - var(--rail-ico) / 2);
   --rail-brand-pad:calc(var(--rail-w-collapsed) / 2 - var(--rail-pad) - 16px);
-  /* Split into an offset and an ink so direction and theme can each be set
-     independently, without either selector having to restate the whole
-     shadow. */
-  --rail-peek-x:24px;
-  --rail-peek-ink:rgba(15,23,42,.20);
+  /* Offset and ink are separate so direction and theme can each be set without
+     either selector restating the whole shadow. */
+  --rail-peek-x:22px;
+  --rail-peek-ink:rgba(15,23,42,.18);
+  --rail-reveal-x:-6px;
 
   position:relative; z-index:30;
-  flex:0 0 var(--rail-w); width:var(--rail-w); height:100%;
-  transition:flex-basis var(--dur-med) var(--ease), width var(--dur-med) var(--ease);
+  flex:0 0 var(--rail-w-collapsed); inline-size:var(--rail-w-collapsed);
+  block-size:100%;
+  transition:flex-basis var(--dur-med) var(--ease), inline-size var(--dur-med) var(--ease);
 }
-/* Keyed off "not pinned" rather than "collapsed" on purpose: while peeking the
-   rail is wide but the footprint must stay narrow. */
-.bo-rail-slot:not(.is-pinned) {
-  flex-basis:var(--rail-w-collapsed); width:var(--rail-w-collapsed);
+/* Pinning is the only thing that changes the page's footprint. Peeking never
+   does, so the bento grid never reflows and no sparkline re-renders mid-motion
+   just because the pointer crossed the rail. */
+.bo-rail-slot.is-pinned {
+  flex-basis:var(--rail-w); inline-size:var(--rail-w);
+}
+[dir="rtl"] .bo-rail-slot { --rail-peek-x:-22px; --rail-reveal-x:6px; }
+body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.58); }
+
+/* The hover region. Instant by contract - see the note above. */
+.bo-rail-hit {
+  position:absolute; inset-block:0; inset-inline-start:0;
+  inline-size:var(--rail-w-collapsed);
+  display:flex;
+  transition:none;
+}
+.bo-rail-slot.is-pinned .bo-rail-hit,
+.bo-rail-slot.is-overlay .bo-rail-hit,
+.bo-rail-hit:focus-within { inline-size:var(--rail-w); }
+/* Pointer peek is opt-in per input device. On touch a tap synthesises hover and
+   would leave the rail stuck open with no pointer to withdraw, so those devices
+   get the explicit foot toggle instead. */
+@media (hover: hover) and (pointer: fine) {
+  .bo-rail-hit:hover { inline-size:var(--rail-w); }
 }
 
 .bo-rail {
-  position:absolute; inset-block:0; inset-inline-start:0;
-  width:var(--rail-w); height:100%;
+  inline-size:var(--rail-w-collapsed); block-size:100%;
   background:var(--sidebar-bg);
   border-inline-end:1px solid var(--border);
   display:flex; flex-direction:column; align-items:stretch;
-  padding:16px var(--rail-pad) 14px; gap:0;
-  overflow-y:auto; overflow-x:hidden;
+  padding:14px var(--rail-pad) 12px;
+  /* No overflow:hidden here: it would clip the peek box-shadow. Labels are
+     already squeezed to zero width when collapsed, and the nav owns its own
+     scrollport below. */
+  overflow:visible;
   box-shadow:none;
-  transition:width 260ms var(--ease), box-shadow 260ms var(--ease);
+  transition:inline-size 200ms var(--ease), box-shadow 200ms var(--ease);
 }
-.bo-rail-slot.is-collapsed .bo-rail { width:var(--rail-w-collapsed); }
-/* Peek is an overlay, so it needs the elevation the pinned rail does not:
-   without a shadow the floating panel and the page behind it read as one
-   surface. Source order matters â .is-peek only ever coexists with
-   .is-collapsed, and must win. */
-.bo-rail-slot.is-peek .bo-rail {
-  width:var(--rail-w);
-  box-shadow:var(--rail-peek-x) 0 48px -26px var(--rail-peek-ink);
+/* Peek floats over the page, so it needs the elevation a pinned rail does not:
+   without a boundary the overlay and the content behind it read as one surface.
+   Pinned stays flat because it is a real column. */
+.bo-rail-slot.is-overlay .bo-rail,
+.bo-rail-hit:focus-within .bo-rail {
+  inline-size:var(--rail-w);
+  box-shadow:var(--rail-peek-x) 0 44px -26px var(--rail-peek-ink);
 }
-[dir="rtl"] .bo-rail-slot { --rail-peek-x:-24px; }
-body.dark .bo-rail-slot { --rail-peek-ink:rgba(0,0,0,.62); }
-.bo-rail > * { position:relative; z-index:1; }
+@media (hover: hover) and (pointer: fine) {
+  .bo-rail-hit:hover .bo-rail {
+    inline-size:var(--rail-w);
+    box-shadow:var(--rail-peek-x) 0 44px -26px var(--rail-peek-ink);
+  }
+}
+.bo-rail-slot.is-pinned .bo-rail { inline-size:var(--rail-w); box-shadow:none; }
 
+/* ---- reveal: the only thing that moves when the rail opens ---------------
+   Collapsed labels are squeezed to zero used width, not display:none-d, so the
+   open reads as one continuous motion. Zero width matters structurally too: an
+   invisible-but-measured label would push the flex row past 72px and the
+   collapsed rail would clip its own icons. Spacing rides on the label's own
+   margin rather than the row's `gap`, because `gap` keeps reserving its 12px
+   after the label has collapsed. */
+.bo-rail-reveal {
+  opacity:0; transform:translateX(var(--rail-reveal-x));
+  max-inline-size:0; flex:0 0 0;
+  margin:0; padding:0;
+  white-space:nowrap; overflow:hidden;
+  pointer-events:none;
+  transition:opacity 160ms var(--ease), transform 160ms var(--ease);
+}
+.bo-rail-slot.is-pinned .bo-rail-reveal,
+.bo-rail-slot.is-overlay .bo-rail-reveal,
+.bo-rail-hit:focus-within .bo-rail-reveal {
+  opacity:1; transform:none;
+  max-inline-size:none; flex:1 1 auto;
+  margin-inline-start:var(--rail-gap);
+  pointer-events:auto;
+  transition-delay:70ms;
+}
+@media (hover: hover) and (pointer: fine) {
+  .bo-rail-hit:hover .bo-rail-reveal {
+    opacity:1; transform:none;
+    max-inline-size:none; flex:1 1 auto;
+    margin-inline-start:var(--rail-gap);
+    pointer-events:auto;
+    transition-delay:70ms;
+  }
+}
+
+/* ---- brand -------------------------------------------------------------- */
+/* The mark keeps a fixed 32px box at a fixed anchor: it must not resize or
+   drift when the wordmark arrives beside it. Flat surface and a hairline ring,
+   no halo - see .wp-mark in brand.css. */
 .bo-rail-brand {
-  display:flex; flex-direction:row; align-items:center; gap:10px;
-  color:var(--text); width:100%;
-  padding:0 var(--rail-brand-pad) 14px; margin-bottom:8px;
-  border-bottom:1px solid var(--divider);
+  display:flex; align-items:center;
+  inline-size:100%; color:var(--text);
+  padding:0 var(--rail-brand-pad) 12px;
+  margin-block-end:8px;
+  border-block-end:1px solid var(--divider);
 }
-.bo-rail-brand .wp-mark { width:32px; height:32px; flex:0 0 auto; }
+.bo-rail-brand-link {
+  display:block; line-height:0; flex:0 0 auto;
+  border-radius:50%;
+}
+.bo-rail-brand .wp-mark {
+  inline-size:32px; block-size:32px; flex:0 0 auto;
+  transition:box-shadow var(--dur-fast) var(--ease);
+}
+.bo-rail-brand-link:hover .wp-mark { box-shadow:inset 0 0 0 1px var(--border-hover); }
 .bo-rail-brand .wp-wordmark {
-  font-size:10.5px; letter-spacing:.15em; text-align:start; line-height:1.2;
-  flex:1; min-width:0; white-space:nowrap; overflow:hidden;
-}
-.bo-rail-brand-link { display:block; line-height:0; flex:0 0 auto; }
-.bo-rail-brand-link .wp-mark {
-  transition:box-shadow var(--dur-med) var(--ease);
-}
-.bo-rail-brand-link:hover .wp-mark {
-  box-shadow:inset 0 0 0 1px var(--border-hover);
+  font-size:11px; font-weight:var(--fw-semibold);
+  letter-spacing:.14em; line-height:1.2; text-align:start;
+  color:var(--text-2); min-inline-size:0;
 }
 
+/* ---- main nav ----------------------------------------------------------- */
+/* The nav scrolls, not the rail: a scrollbar on a 72px rail is ugly and, worse,
+   its gutter would shift every icon off the midline. */
 .bo-rail-nav {
   display:flex; flex-direction:column; gap:2px;
-  width:100%; flex:1 1 auto;
-  padding:2px 0;
+  inline-size:100%; flex:1 1 auto; min-block-size:0;
+  padding-block:2px;
+  overflow-y:auto; overflow-x:hidden;
+  scrollbar-width:thin; scrollbar-color:var(--border) transparent;
 }
-
-/* Theme switch and collapse control, pinned to the bottom of the rail.
-   Centred and wrapping rather than space-between: the two controls sit side by
-   side at full width and fold onto two rows as the rail narrows, which the
-   width transition absorbs. A flex-direction flip keyed off the collapsed class
-   would snap instead. */
-.bo-rail-foot {
-  display:flex; flex-flow:row wrap; align-items:center; justify-content:center;
-  gap:8px; width:100%; margin-top:auto;
-  padding:12px 0 0; border-top:1px solid var(--divider);
-}
-
-.bo-rail-collapse {
-  width:34px; height:34px; border-radius:var(--radius-md);
-  border:1px solid var(--border); background:var(--surface-2);
-  color:var(--text-3); cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  transition:background var(--dur-fast) var(--ease),
-             color var(--dur-fast) var(--ease),
-             border-color var(--dur-fast) var(--ease),
-             box-shadow var(--dur-fast) var(--ease);
-}
-.bo-rail-collapse:hover {
-  background:var(--surface-4); color:var(--text); border-color:var(--border-hover);
-}
-/* The chevron points inward/outward, so it must mirror in RTL. */
-[dir="rtl"] .bo-rail-collapse { transform:scaleX(-1); }
+.bo-rail-nav::-webkit-scrollbar { width:4px; }
+.bo-rail-nav::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+.bo-rail-nav::-webkit-scrollbar-track { background:transparent; }
 
 .bo-rail-item {
   position:relative;
-  display:flex; flex-direction:row; align-items:center;
-  gap:calc(var(--rail-pad) - 1px);
-  width:100%; padding:9px var(--rail-item-pad);
+  display:flex; align-items:center;
+  inline-size:100%; min-block-size:40px;
+  padding:8px var(--rail-item-pad);
   border-radius:var(--radius-md); border:none; background:transparent;
   color:var(--text-2); cursor:pointer; text-decoration:none;
-  transition:background var(--dur-fast) var(--ease),
-             color var(--dur-fast) var(--ease);
+  text-align:start; font-family:inherit;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
-/* Fixed box so the glyph is optically centred in the collapsed rail and does
-   not shift when the label arrives. */
+/* Fixed box: the glyph is optically centred in the collapsed rail and holds
+   that exact x when the label arrives. */
 .bo-rail-item-ico {
-  flex:0 0 var(--rail-ico); width:var(--rail-ico); height:var(--rail-ico);
+  flex:0 0 var(--rail-ico); inline-size:var(--rail-ico); block-size:var(--rail-ico);
   display:flex; align-items:center; justify-content:center;
-  color:inherit;
+  color:var(--text-3);
+  transition:color var(--dur-fast) var(--ease);
 }
-.bo-rail-item-ico .anticon { font-size:17.5px; line-height:1; }
-/* Labels fade and slide rather than being display:none-d, so expanding reads as
-   one continuous motion instead of text popping in at the end. They stay in
-   flow while collapsed (squeezed to a few invisible pixels) so nothing about
-   the icon's position depends on them. */
+.bo-rail-item-ico .anticon { font-size:17px; line-height:1; }
 .bo-rail-item-label {
-  font-size:13px; font-weight:var(--fw-medium); letter-spacing:.01em;
-  text-align:start; line-height:1.3;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  flex:1 1 auto; min-width:0; max-width:none;
-  opacity:1; transform:none;
-  transition:opacity 180ms var(--ease) 60ms, transform 180ms var(--ease) 60ms;
-}
-.bo-rail--collapsed .bo-rail-item-label,
-.bo-rail--collapsed .bo-rail-brand .wp-wordmark {
-  opacity:0; transform:translateX(-4px);
-  /* Collapse the used width too, otherwise the invisible label still pushes
-     the flex item past the rail's 72px and the absolute rail measures wider
-     than its slot. */
-  max-width:0; margin:0; padding:0; flex:0 0 0;
-  transition-delay:0ms;
-  pointer-events:none;
-}
-[dir="rtl"] .bo-rail--collapsed .bo-rail-item-label,
-[dir="rtl"] .bo-rail--collapsed .bo-rail-brand .wp-wordmark {
-  transform:translateX(4px);
-}
-.bo-rail-brand .wp-wordmark {
-  transition:opacity 180ms var(--ease) 60ms, transform 180ms var(--ease) 60ms;
+  font-size:13px; font-weight:var(--fw-medium); letter-spacing:.005em;
+  line-height:1.3; text-overflow:ellipsis;
 }
 
-.bo-rail-item:hover {
-  color:var(--text); background:var(--surface-hover);
-}
-/* Elegant, quiet selection: an elevated neutral surface, stronger label, and a
-   single 2px accent indicator. No fill, no glow, no border. The indicator is
-   pinned to the rail's padding edge rather than the item's, so it reads as a
-   marker on the rail in both widths. */
+.bo-rail-item:hover { color:var(--text); background:var(--surface-hover); }
+.bo-rail-item:hover .bo-rail-item-ico { color:var(--text-2); }
+
+/* Quiet selection: an elevated neutral surface, a hairline to define its edge,
+   an accent glyph, and one 3px marker on the rail's own padding edge. No fill,
+   no glow, no ring around the whole row. The marker is anchored to the rail
+   rather than the item, so it reads identically at both widths. */
 .bo-rail-item.is-active {
   color:var(--text); background:var(--surface-3);
-  box-shadow:none;
+  box-shadow:inset 0 0 0 1px var(--divider);
 }
-.bo-rail-item.is-active .bo-rail-item-label { font-weight:var(--fw-semibold); }
 .bo-rail-item.is-active .bo-rail-item-ico { color:var(--accent); }
+.bo-rail-item.is-active .bo-rail-item-label { font-weight:var(--fw-semibold); }
 .bo-rail-item.is-active::before {
   content:""; position:absolute;
-  inset-inline-start:calc(var(--rail-pad) * -1); top:50%;
-  transform:translateY(-50%);
-  width:2px; height:18px; border-radius:0 2px 2px 0;
+  inset-inline-start:calc(var(--rail-pad) * -1);
+  inset-block-start:50%; transform:translateY(-50%);
+  width:3px; height:20px; border-radius:0 3px 3px 0;
   background:var(--accent);
 }
-[dir="rtl"] .bo-rail-item.is-active::before {
-  border-radius:2px 0 0 2px;
+[dir="rtl"] .bo-rail-item.is-active::before { border-radius:3px 0 0 3px; }
+
+/* ---- foot: logout, theme, pin ------------------------------------------- */
+/* One group on the same grid as the nav, set apart by space and a divider
+   rather than by looking like a different species of control. */
+.bo-rail-foot {
+  display:flex; flex-direction:column; gap:2px;
+  inline-size:100%; margin-block-start:auto;
+  padding-block-start:10px;
+  border-block-start:1px solid var(--divider);
 }
-.bo-rail-item--logout {
-  margin-top:auto;
+.bo-rail-item--logout:hover { color:var(--error); background:var(--error-weak); }
+.bo-rail-item--logout:hover .bo-rail-item-ico { color:var(--error); }
+/* The chevron points inward/outward, so it mirrors with direction. */
+[dir="rtl"] .bo-rail-pin .bo-rail-item-ico { transform:scaleX(-1); }
+
+/* The theme control is an <a-popover> trigger, so it cannot itself be a
+   .bo-rail-item. Strip its standalone button chrome and let it inherit the nav
+   row geometry, so it lands on the same icon midline as every other entry
+   instead of reading as a widget bolted to the bottom. The popover wraps the
+   trigger in one or two spans; give those full row width rather than using
+   display:contents (which has spotty a11y support and fights nested wraps). */
+.bo-rail-foot > .ant-popover-wrap,
+.bo-rail-foot > span {
+  display:block; inline-size:100%;
+}
+.bo-rail-foot .ant-popover-wrap > span { display:block; inline-size:100%; }
+.bo-rail-foot .bo-theme-toggle {
+  inline-size:100%; block-size:auto; min-block-size:40px;
+  border:none; border-radius:var(--radius-md); background:transparent;
   color:var(--text-2);
+  display:flex; align-items:center; justify-content:flex-start;
+  padding:8px var(--rail-item-pad);
+  cursor:pointer;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
-.bo-rail-item--logout:hover {
-  color:var(--error); background:var(--error-weak);
+.bo-rail-foot .bo-theme-toggle:hover {
+  background:var(--surface-hover); color:var(--text); border-color:transparent;
 }
-.bo-rail-item--logout .bo-rail-item-ico { color:inherit; }
+.bo-rail-foot .bo-theme-toggle .bo-rail-item-ico {
+  position:relative;
+  color:var(--text-3);
+  flex:0 0 var(--rail-ico);
+}
+.bo-rail-foot .bo-theme-toggle:hover .bo-rail-item-ico { color:var(--text-2); }
+/* One glyph at a time: the shared sun/moon swap rules hide the other, but both
+   nodes stay in the tree. Keep the visible one centred in the same 24px box
+   every other nav icon uses so the Theme row never drifts off the midline. */
+.bo-rail-foot .bo-theme-toggle .bo-rail-item-ico .bo-icon {
+  position:absolute; inset:0; margin:auto;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .bo-rail-slot,
   .bo-rail,
-  .bo-rail-item-label,
-  .bo-rail-brand .wp-wordmark { transition-duration:1ms; }
+  .bo-rail-reveal,
+  .bo-rail-item,
+  .bo-rail-item-ico { transition-duration:1ms !important; transition-delay:0ms !important; }
 }
+
 
 /* ================================================================== *
  * shell: topbar and content
@@ -383,8 +468,8 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
  *
  * One strip carrying what used to be four cards: server identity, the panel
  * updater, the Manage actions and Xray. None of them had enough content to
- * justify a card â between them roughly two dozen short strings and fifteen
- * buttons â so each was mostly empty height, and together they pushed the
+ * justify a card Ã¢ÂÂ between them roughly two dozen short strings and fifteen
+ * buttons Ã¢ÂÂ so each was mostly empty height, and together they pushed the
  * analytical tiles below the fold.
  *
  * Two bands: a bar (who this server is, what you can do to the panel) and a
@@ -424,7 +509,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
   display:flex; align-items:center; flex-wrap:wrap; gap:0 7px;
   margin:2px 0 0; font-size:12.5px; color:var(--text-3); line-height:1.4;
 }
-/* A real element, not a "Â·" in the text: a rendered separator can be gated by
+/* A real element, not a "ÃÂ·" in the text: a rendered separator can be gated by
    v-if and can never be left stranded at the start of a wrapped line. */
 .bo-cc-sep {
   width:3px; height:3px; border-radius:50%; flex:0 0 auto;
@@ -466,8 +551,8 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 .bo-cc-mod-note--err { color:var(--error); }
 .bo-cc-mod-acts { display:flex; align-items:center; gap:3px; }
 
-/* Uniform square icon action. Every icon-only control in the strip â updater,
-   Xray, cancel â uses this one size so they share an optical line. */
+/* Uniform square icon action. Every icon-only control in the strip Ã¢ÂÂ updater,
+   Xray, cancel Ã¢ÂÂ uses this one size so they share an optical line. */
 .bo-cc-ico {
   width:28px; height:28px; padding:0; flex:0 0 auto;
   border:none; border-radius:var(--radius-sm); background:transparent;
@@ -527,7 +612,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 }
 
 /* Wrapping flex, not auto-fit grid. With a grid, a final row that does not fill
-   its tracks leaves empty cells â and since the separators are drawn by the
+   its tracks leaves empty cells Ã¢ÂÂ and since the separators are drawn by the
    container's background showing through 1px gaps, those empty cells render as a
    block of divider colour. Flex items that grow always fill their row exactly,
    so the hairlines stay hairlines at every width. */
@@ -613,7 +698,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
 
 /* Four tiles, each of which earns a card: throughput, vitals, clients,
    services. Identity, Xray, the updater and Manage moved into the control
-   center strip above â they were the four that could not fill one. */
+   center strip above Ã¢ÂÂ they were the four that could not fill one. */
 .bo-bento {
   display:grid; grid-template-columns:1fr; gap:var(--gap-sm);
   grid-template-areas:
@@ -687,7 +772,7 @@ body.dark .bo-theme-toggle .bo-i-moon { display:block; }
    PRIMARY   (flow, vit)   elevated surface, shadow, accent marker
    SECONDARY (users)       flat surface, plain heading
    TERTIARY  (svc)         recessed, tighter, quietest heading
-   Weight is carried by surface depth, padding and heading scale â not colour. */
+   Weight is carried by surface depth, padding and heading scale Ã¢ÂÂ not colour. */
 .bo-t-flow, .bo-t-vit {
   padding:16px 18px;
   box-shadow:var(--shadow-sm);
@@ -698,7 +783,7 @@ body:not(.dark) .bo-t-flow,
 body:not(.dark) .bo-t-vit { background:var(--surface); box-shadow:var(--shadow-md); }
 body.dark .bo-t-flow,
 body.dark .bo-t-vit { background:var(--surface-3); }
-/* :first-child â only the card's own heading is promoted. System Status also
+/* :first-child Ã¢ÂÂ only the card's own heading is promoted. System Status also
    contains a nested "IP addresses" heading, which must stay a quiet sub-head. */
 .bo-t-flow > .bo-tile-head:first-child .bo-tile-title,
 .bo-t-vit > .bo-tile-head:first-child .bo-tile-title { font-size:var(--fs-base); color:var(--text); }
@@ -785,7 +870,7 @@ body.dark .bo-t-svc { background:var(--surface); }
 .bo-unit { font-size:12px; font-weight:var(--fw-medium); color:var(--text-3); margin-inline-start:3px; white-space:nowrap; }
 
 /* Time flows left-to-right in every locale. Never mirror a chart.
-   The two hairlines are the chart's reference grid â drawn by the container so
+   The two hairlines are the chart's reference grid Ã¢ÂÂ drawn by the container so
    the shared sparkline component needs no change. */
 .bo-flow-chart {
   width:100%; height:84px; flex:0 0 84px; margin-top:6px; direction:ltr;
@@ -818,7 +903,7 @@ body.dark .bo-t-svc { background:var(--surface); }
 
 /* Analytical metric matrix: label, large figure with its absolute reading on the
    same baseline, micro-meter, trend line. Deliberately NOT a stack of
-   full-width bars â the figure leads and the meter is a 3px reference, not the
+   full-width bars Ã¢ÂÂ the figure leads and the meter is a 3px reference, not the
    subject.
 
    The four cells are divided by hairlines rather than by gaps, so the block
@@ -880,7 +965,7 @@ body.dark .bo-t-svc { background:var(--surface); }
   margin-inline-start:1px;
 }
 /* Threshold tint on the figure as well as the meter: at a glance a hot metric
-   should not require comparing bar lengths. Never the only signal â the number
+   should not require comparing bar lengths. Never the only signal Ã¢ÂÂ the number
    and the meter both still carry it. */
 .bo-vit-pct.bo-ring-progress--warn { color:var(--warn); }
 .bo-vit-pct.bo-ring-progress--error { color:var(--error); }
@@ -958,7 +1043,7 @@ body.dark .bo-t-svc { background:var(--surface); }
   white-space:nowrap; flex:0 0 auto;
 }
 
-/* Dots only â no halo rings. Running is the only state that also strengthens
+/* Dots only Ã¢ÂÂ no halo rings. Running is the only state that also strengthens
    the service name, so a healthy matrix reads at a glance. */
 .bo-svc-chip[data-state="running"] .bo-svc-led { background:var(--ok); }
 .bo-svc-chip[data-state="running"] .bo-svc-name { color:var(--text); }
@@ -1073,7 +1158,7 @@ body.dark .bo-t-svc { background:var(--surface); }
    is the payload, so it gets the monospace face and the room: the chain label
    is fixed-width and the button is intrinsic, leaving the middle column to
    absorb whatever is left. Addresses are long and unbreakable, hence the
-   explicit wrap rather than an ellipsis â a truncated address invites copying
+   explicit wrap rather than an ellipsis Ã¢ÂÂ a truncated address invites copying
    half of one by hand. */
 .bo-donate-intro { margin:0 0 var(--sp-3); font-size:13px; color:var(--text-3); }
 .bo-donate-list { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
@@ -1096,7 +1181,7 @@ body.dark .bo-t-svc { background:var(--surface); }
 
 /* Under ~560px the three columns cannot all hold their minimum, so the row
    becomes two lines: chain and button on the first, the address spanning the
-   second. Every cell is placed explicitly â grid auto-placement only moves
+   second. Every cell is placed explicitly Ã¢ÂÂ grid auto-placement only moves
    forward, so once the full-width address claims row 2 the button would land
    on a row 3 of its own instead of back beside the chain. */
 @media (max-width:560px) {
@@ -1615,7 +1700,7 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
  *
  * Five bands in reading order: KPIs, command bar, selection, grid,
  * expanded client detail. Scoped to .inbounds-page so Overview and
- * Settings keep their own card/table language. Tokens only â no
+ * Settings keep their own card/table language. Tokens only Ã¢ÂÂ no
  * hex that would need a second light-theme pass.
  * ================================================================== */
 

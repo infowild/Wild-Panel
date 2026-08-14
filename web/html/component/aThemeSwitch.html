@@ -9,8 +9,14 @@
 */}}
 {{define "component/themeSwitchTemplate"}}
 <template>
+  <!-- visible-change is load-bearing for the rail: the popover portals outside
+       the hover hit region, so without the overlay latch the CSS :hover would
+       end the moment the pointer moved onto the menu and the rail would slam
+       shut under an open popover. The ids on the two rows are also load-
+       bearing — see the file header. -->
   <a-popover placement="rightBottom" trigger="click"
-    :overlay-class-name="themeSwitcher.currentTheme">
+    :overlay-class-name="themeSwitcher.currentTheme"
+    @visibleChange="onVisibleChange">
     <template slot="content">
       <div class="bo-theme-menu">
         <div id="change-theme" class="bo-theme-row" @mousedown="themeSwitcher.animationsOff()">
@@ -27,9 +33,14 @@
       </div>
     </template>
     <button type="button" class="bo-theme-toggle"
-      title='{{ i18n "menu.theme" }}' aria-label='{{ i18n "menu.theme" }}'>
-      <svg class="bo-icon bo-icon-16 bo-i-sun" aria-hidden="true"><use href="#bo-i-sun"></use></svg>
-      <svg class="bo-icon bo-icon-16 bo-i-moon" aria-hidden="true"><use href="#bo-i-moon"></use></svg>
+      :title="showLabel ? false : (label || defaultLabel)"
+      :aria-label="label || defaultLabel">
+      <span class="bo-rail-item-ico" aria-hidden="true">
+        <svg class="bo-icon bo-icon-16 bo-i-sun"><use href="#bo-i-sun"></use></svg>
+        <svg class="bo-icon bo-icon-16 bo-i-moon"><use href="#bo-i-moon"></use></svg>
+      </span>
+      <span v-if="showLabel" class="bo-rail-item-label bo-rail-reveal"
+        v-text="label || defaultLabel"></span>
     </button>
   </a-popover>
 </template>
@@ -107,9 +118,22 @@
   const themeSwitcher = createThemeSwitcher();
   Vue.component('a-theme-switch', {
     template: `{{template "component/themeSwitchTemplate"}}`,
+    props: {
+      // When true the trigger renders as a full rail row (icon + revealing
+      // label) instead of a lone circular button. The sidebar passes this;
+      // nothing else does, so the default keeps every other caller unchanged.
+      showLabel: { type: Boolean, default: false },
+      label: { type: String, default: '' },
+    },
     data: () => ({
-      themeSwitcher
+      themeSwitcher,
+      defaultLabel: '{{ i18n "menu.theme" }}',
     }),
+    methods: {
+      onVisibleChange(open) {
+        this.$emit('overlay-change', !!open);
+      },
+    },
     mounted() {
       this.$message.config({
         getContainer: () => document.getElementById('message')
