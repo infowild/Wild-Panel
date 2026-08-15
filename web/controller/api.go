@@ -17,6 +17,7 @@ type APIController struct {
 	serverController  *ServerController
 	Tgbot             service.Tgbot
 	apiTokenService   service.ApiTokenService
+	userService       service.UserService
 }
 
 // NewAPIController creates a new APIController instance and initializes its routes.
@@ -28,22 +29,49 @@ func NewAPIController(g *gin.RouterGroup, customGeo *service.CustomGeoService) *
 
 // checkAPIAuth accepts either a logged-in panel session or a valid Bearer API token
 // (mirzabot / scripts). Unauthenticated callers get 404 to hide the API surface.
+//
+// A matching token alone is not enough: every /panel/api route also runs
+// requirePerm / ownership middleware that read session.GetLoginUser. Without a
+// real user row in the request context those gates answer 401 "login again",
+// which is exactly the intermittent "bot disconnected from panel" symptom —
+// Match succeeds, then the first inbound call is refused. Tokens act as the
+// first enabled super admin for the life of the request only (no cookie).
 func (a *APIController) checkAPIAuth(c *gin.Context) {
 	if session.IsLogin(c) {
 		c.Set("api_authed", false)
 		c.Next()
 		return
 	}
-	auth := c.GetHeader("Authorization")
-	if after, ok := strings.CutPrefix(auth, "Bearer "); ok {
-		tok := strings.TrimSpace(after)
-		if tok != "" && a.apiTokenService.Match(tok) {
-			c.Set("api_authed", true)
-			c.Next()
+	tok := bearerToken(c.GetHeader("Authorization"))
+	if tok != "" && a.apiTokenService.Match(tok) {
+		actor, err := a.userService.GetAPIActor()
+		if err != nil || actor == nil {
+			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
+		// Request-scoped only. Do not call SetLoginUser: that would write a
+		// session cookie for a machine client that never sent one.
+		c.Set("LOGIN_USER_ROW", actor)
+		c.Set("api_authed", true)
+		c.Next()
+		return
 	}
 	c.AbortWithStatus(http.StatusNotFound)
+}
+
+// bearerToken pulls the secret out of an Authorization header. Accepts both
+// "Bearer" and "bearer" (and any other casing): some HTTP clients and reverse
+// proxies normalize the scheme differently from Go's strings.CutPrefix.
+func bearerToken(auth string) string {
+	auth = strings.TrimSpace(auth)
+	if auth == "" {
+		return ""
+	}
+	const prefix = "bearer "
+	if len(auth) < len(prefix) || !strings.EqualFold(auth[:len(prefix)], prefix) {
+		return ""
+	}
+	return strings.TrimSpace(auth[len(prefix):])
 }
 
 // initRouter sets up the API routes for inbounds, server, and other endpoints.

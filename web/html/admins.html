@@ -22,9 +22,9 @@
             <!-- The table is hidden entirely when there is nothing in it: an
                  empty grid of column headers explains less than the state
                  below, and offers no way out of it. -->
-            <div class="pgc-panel" v-if="admins.length">
+            <div class="pgc-panel" v-if="admins.length && !isMobile">
                 <a-table :columns="columns" :row-key="r => r.id" :data-source="admins"
-                  :scroll="isMobile ? {} : { x: 700 }" :pagination="false" bordered
+                  :scroll="{ x: 700 }" :pagination="false" bordered
                   :locale='{ emptyText: `{{ i18n "noData" }}` }'>
 
                   <template slot="username" slot-scope="text, admin">
@@ -87,6 +87,82 @@
                     </a-dropdown>
                   </template>
                 </a-table>
+            </div>
+
+            <!-- Phones get the panel's card vocabulary instead of the roster.
+                 Seven columns (three of them declared at 45-50px) cannot be read
+                 at 360px: squeezing them was what made this page look broken, and
+                 a sideways-scrolling table is not the answer the rest of the panel
+                 gives. Same data, same handlers, one account per card. -->
+            <div class="bo-cards" v-else-if="admins.length">
+              <article class="bo-tile bo-rs" v-for="admin in admins" :key="admin.id">
+                <div class="bo-rs-head">
+                  <div :style="{ minWidth: 0 }">
+                    <div class="bo-rs-name">
+                      [[ admin.username ]]
+                      <a-tag v-if="admin.isSuperAdmin" color="purple" :style="{ marginInlineStart: '6px' }">
+                        {{ i18n "pages.admins.superAdmin" }}
+                      </a-tag>
+                    </div>
+                    <div class="bo-rs-sub" v-if="admin.nickname">[[ admin.nickname ]]</div>
+                  </div>
+                  <div :style="{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }">
+                    <a-tag :color="admin.enable ? 'green' : 'red'" :style="{ marginInlineEnd: 0 }">
+                      [[ admin.enable ? '{{ i18n "enabled" }}' : '{{ i18n "disabled" }}' ]]
+                    </a-tag>
+                    <a-dropdown :trigger="['click']">
+                      <a-icon @click="e => e.preventDefault()" type="more"
+                        :style="{ fontSize: '16px', cursor: 'pointer' }"></a-icon>
+                      <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                        <a-menu-item @click="openEdit(admin)">
+                          <a-icon type="edit"></a-icon>
+                          <span>{{ i18n "edit" }}</span>
+                        </a-menu-item>
+                        <a-menu-item v-if="admin.inboundCount > 0" @click="openReassign(admin)">
+                          <a-icon type="swap"></a-icon>
+                          <span>{{ i18n "pages.admins.reassign" }}</span>
+                        </a-menu-item>
+                        <a-menu-item :disabled="admin.id === currentAdminId" @click="delAdmin(admin)">
+                          <span :style="{ color: admin.id === currentAdminId ? undefined : 'var(--error)' }">
+                            <a-icon type="delete"></a-icon>
+                            <span>{{ i18n "delete" }}</span>
+                          </span>
+                        </a-menu-item>
+                      </a-menu>
+                    </a-dropdown>
+                  </div>
+                </div>
+
+                <dl class="bo-spec">
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.admins.twoFactor" }}</dt>
+                    <dd class="bo-spec-val" v-if="admin.twoFactorEnable">
+                      <a-icon type="lock" :style="{ color: 'var(--ok)' }"></a-icon>
+                    </dd>
+                    <dd class="bo-spec-val bo-muted" v-else>{{ i18n "none" }}</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.admins.inboundAccess" }}</dt>
+                    <dd class="bo-spec-val bo-muted" v-if="admin.isSuperAdmin">{{ i18n "all" }}</dd>
+                    <dd class="bo-spec-val num" v-else>[[ admin.inboundIds.length ]]</dd>
+                  </div>
+                  <!-- Permission tags are the one field that needs the full width. -->
+                  <div class="bo-spec-row" :style="{ gridColumn: '1 / -1' }">
+                    <dt class="bo-spec-key">{{ i18n "pages.admins.permissions" }}</dt>
+                    <dd class="bo-spec-val bo-muted" v-if="admin.isSuperAdmin">
+                      {{ i18n "pages.admins.superAdminDesc" }}
+                    </dd>
+                    <dd class="bo-spec-val bo-muted" v-else-if="!admin.permissions.length">
+                      {{ i18n "none" }}
+                    </dd>
+                    <dd class="bo-spec-val" v-else>
+                      <a-tag v-for="slug in admin.permissions" :key="slug" :style="{ margin: '2px 4px 2px 0' }">
+                        [[ permLabel(slug) ]]
+                      </a-tag>
+                    </dd>
+                  </div>
+                </dl>
+              </article>
             </div>
 
             <div class="wp-empty" v-else-if="!spinning">

@@ -35,6 +35,39 @@ func (s *UserService) GetFirstUser() (*model.User, error) {
 	return user, nil
 }
 
+// GetAPIActor returns the account Bearer API tokens act as. API tokens are a
+// full-panel credential (mirzabot / scripts), so they must ride a real enabled
+// super-admin row: requirePerm and every ownership gate read session.GetLoginUser,
+// and a token that authenticates but leaves that nil is refused as "login again".
+func (s *UserService) GetAPIActor() (*model.User, error) {
+	db := database.GetDB()
+	if db == nil {
+		return nil, errors.New("database not ready")
+	}
+	user := &model.User{}
+	err := db.Model(model.User{}).
+		Where("enable = ? AND is_super_admin = ? AND is_reseller = ?", true, true, false).
+		Order("id asc").
+		First(user).Error
+	if err == nil {
+		return user, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	// Extremely defensive fallback: an install that somehow lost the super-admin
+	// flag still needs a Bearer token to reach the API. Prefer any enabled
+	// non-reseller admin over failing closed on a working token.
+	err = db.Model(model.User{}).
+		Where("enable = ? AND is_reseller = ?", true, false).
+		Order("id asc").
+		First(user).Error
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 func (s *UserService) CheckUser(username string, password string, twoFactorCode string) (*model.User, error) {
 	db := database.GetDB()
 

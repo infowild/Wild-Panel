@@ -4,9 +4,11 @@ import (
 	"crypto/subtle"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/database"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
+	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
 	"github.com/mhsanaei/3x-ui/v2/util/crypto"
 	"github.com/mhsanaei/3x-ui/v2/util/random"
@@ -108,12 +110,21 @@ func (s *ApiTokenService) SetEnabled(id int, enabled bool) error {
 }
 
 // Match reports whether presented plaintext matches any enabled stored hash.
+// A transient SQLite lock (common while the traffic job is writing) must not
+// look like a bad token: mirzabot treats a failed auth as "panel disconnected"
+// and would flap on every busy tick. One short retry covers the usual lock window.
 func (s *ApiTokenService) Match(presented string) bool {
+	presented = strings.TrimSpace(presented)
 	if presented == "" {
 		return false
 	}
-	var rows []*model.ApiToken
-	if err := database.GetDB().Model(&model.ApiToken{}).Where("enabled = ?", true).Find(&rows).Error; err != nil {
+	rows, err := s.loadEnabled()
+	if err != nil {
+		time.Sleep(40 * time.Millisecond)
+		rows, err = s.loadEnabled()
+	}
+	if err != nil {
+		logger.Warning("api token match: ", err)
 		return false
 	}
 	presentedHash := []byte(crypto.HashTokenSHA256(presented))
@@ -124,4 +135,14 @@ func (s *ApiTokenService) Match(presented string) bool {
 		}
 	}
 	return matched
+}
+
+func (s *ApiTokenService) loadEnabled() ([]*model.ApiToken, error) {
+	db := database.GetDB()
+	if db == nil {
+		return nil, errors.New("database not ready")
+	}
+	var rows []*model.ApiToken
+	err := db.Model(&model.ApiToken{}).Where("enabled = ?", true).Find(&rows).Error
+	return rows, err
 }
