@@ -1,23 +1,24 @@
 {{define "settings/xray/outbounds"}}
-<a-space direction="vertical" size="middle">
-    <a-row>
-        <a-col :xs="12" :sm="12" :lg="12">
-            <a-space direction="horizontal" size="small">
-                <a-button type="primary" icon="plus" @click="addOutbound">
-                    <span v-if="!isMobile">{{ i18n
-                        "pages.xray.outbound.addOutbound" }}</span>
-                </a-button>
-                <a-button type="primary" icon="cloud"
-                    @click="showWarp()">WARP</a-button>
-                <a-button type="primary" icon="api"
-                    @click="showNord()">NordVPN</a-button>
-                <!-- No SSH or VPN Tunnel button: both are protocols in the Add
-                     Outbound picker now, which is where an operator looks for
-                     one. WARP and NordVPN stay because neither is a protocol,
-                     they are account setup flows for a specific provider. -->
-            </a-space>
-        </a-col>
-        <a-col :xs="12" :sm="12" :lg="12" :style="{ textAlign: 'right' }">
+<div class="xr-panel">
+    <!-- Creation on the leading edge, traffic-counter maintenance on the
+         trailing one, so adding a route and resetting a meter never sit in the
+         same visual group. -->
+    <div class="xr-toolbar">
+        <div class="xr-toolbar__main">
+            <a-button type="primary" icon="plus" @click="addOutbound">
+                <span v-if="!isMobile">{{ i18n
+                    "pages.xray.outbound.addOutbound" }}</span>
+            </a-button>
+            <a-button icon="cloud"
+                @click="showWarp()">WARP</a-button>
+            <a-button icon="api"
+                @click="showNord()">NordVPN</a-button>
+            <!-- No SSH or VPN Tunnel button: both are protocols in the Add
+                 Outbound picker now, which is where an operator looks for
+                 one. WARP and NordVPN stay because neither is a protocol,
+                 they are account setup flows for a specific provider. -->
+        </div>
+        <div class="xr-toolbar__aux">
             <a-button-group>
                 <a-button icon="sync" @click="refreshOutboundTraffic()"
                     :loading="refreshing"></a-button>
@@ -32,8 +33,9 @@
                     <a-button icon="retweet"></a-button>
                 </a-popconfirm>
             </a-button-group>
-        </a-col>
-    </a-row>
+        </div>
+    </div>
+    <div class="xr-datagrid xr-datagrid--wide">
     <a-table :columns="outboundColumns" bordered :row-key="r => r.key"
         :data-source="outboundData"
         :scroll="isMobile ? {} : { x: 800 }" :pagination="false"
@@ -183,5 +185,6 @@
             <span v-else>-</span>
         </template>
     </a-table>
-</a-space>
+    </div>
+</div>
 {{end}}

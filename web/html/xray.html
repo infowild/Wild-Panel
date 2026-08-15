@@ -26,110 +26,193 @@
           <a-row v-if="!loadingStates.fetched">
             <div :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
           </a-row>
-          <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
-            <a-col>
-              <a-card hoverable>
-                <a-row
-                  :style="{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }">
-                  <a-col :xs="24" :sm="10" :style="{ padding: '4px' }">
-                    <a-space direction="horizontal">
-                      <a-button type="primary" :disabled="saveBtnDisable"
-                        @click="updateXraySetting">
-                        {{ i18n "pages.xray.save" }}
-                      </a-button>
-                      <a-button type="danger" :disabled="!saveBtnDisable"
-                        @click="restartXray">
-                        {{ i18n "pages.xray.restart" }}
-                      </a-button>
-                      <a-popover v-if="restartResult"
-                        :overlay-class-name="themeSwitcher.currentTheme">
-                        <span slot="title">{{ i18n
-                          "pages.index.xrayErrorPopoverTitle" }}</span>
-                        <template slot="content">
-                          <span :style="{ maxWidth: '400px' }"
-                            v-for="line in restartResult.split('\n')">[[ line
-                            ]]</span>
-                        </template>
-                        <a-icon type="question-circle"></a-icon>
-                      </a-popover>
-                    </a-space>
-                  </a-col>
-                  <a-col :xs="24" :sm="14">
-                    <template>
-                      <div>
-                        <a-back-top
-                          :target="() => document.querySelector('.bo-main')"
-                          visibility-height="200"></a-back-top>
-                        <a-alert type="warning"
-                          :style="{ float: 'right', width: 'fit-content' }"
-                          message='{{ i18n "pages.settings.infoDesc" }}'
-                          show-icon>
-                        </a-alert>
-                      </div>
-                    </template>
-                  </a-col>
-                </a-row>
-              </a-card>
-            </a-col>
-            <a-col>
-              <a-tabs default-active-key="tpl-basic"
-                @change="(activeKey) => { this.changePage(activeKey); }"
-                :class="themeSwitcher.currentTheme">
-                <a-tab-pane key="tpl-basic" :style="{ paddingTop: '20px' }">
-                  <template #tab>
-                    <a-icon type="setting"></a-icon>
-                    <span>{{ i18n "pages.xray.basicTemplate"}}</span>
+          <!-- Configuration console: a control bar carrying the page-wide
+               save/restart pair and the core's last result, a section rail on
+               the left, and one configuration section in the workspace on the
+               right. The rail is the same tab strip the page always used, only
+               positioned to the side, so every pane key, the force-render
+               flags and the changePage() hook behave exactly as before. -->
+          <div key="xr-console" class="xr-console" v-else>
+            <a-back-top :target="() => document.querySelector('.bo-main')"
+              visibility-height="200"></a-back-top>
+            <!-- Control bar. Same two page-wide actions and the same disabled
+                 conditions (save while dirty, restart only once saved); the
+                 dirty state they already carry is spelled out instead of being
+                 readable only from which button is greyed, and the core's last
+                 result - which the page already treats as an error whenever it
+                 is non-empty - gets a named trigger rather than a bare
+                 question mark. Pinned under the page header, so the state of
+                 the config and the way to commit it stay reachable from any
+                 section. -->
+            <div class="xr-actionbar">
+              <div class="xr-actionbar__meta">
+                <span class="xr-actionbar__state"
+                  :class="saveBtnDisable ? 'is-clean' : 'is-dirty'">
+                  <i class="xr-actionbar__dot"></i>
+                  <span v-if="saveBtnDisable">All changes saved</span>
+                  <span v-else>Unsaved changes</span>
+                </span>
+                <span class="xr-actionbar__note">{{ i18n "pages.settings.infoDesc" }}</span>
+              </div>
+              <div class="xr-actionbar__actions">
+                <a-popover v-if="restartResult" placement="bottomRight"
+                  :overlay-class-name="themeSwitcher.currentTheme">
+                  <span slot="title">{{ i18n
+                    "pages.index.xrayErrorPopoverTitle" }}</span>
+                  <template slot="content">
+                    <span class="xr-fault__line" :style="{ maxWidth: '400px' }"
+                      v-for="line in restartResult.split('\n')">[[ line
+                      ]]</span>
                   </template>
-                  {{ template "settings/xray/basics" . }}
-                </a-tab-pane>
-                <a-tab-pane key="tpl-routing" :style="{ paddingTop: '20px' }">
-                  <template #tab>
-                    <a-icon type="swap"></a-icon>
-                    <span>{{ i18n "pages.xray.Routings"}}</span>
-                  </template>
-                  {{ template "settings/xray/routing" . }}
-                </a-tab-pane>
-                <a-tab-pane key="tpl-outbound" force-render="true">
-                  <template #tab>
-                    <a-icon type="upload"></a-icon>
-                    <span>{{ i18n "pages.xray.Outbounds"}}</span>
-                  </template>
-                  {{ template "settings/xray/outbounds" . }}
-                </a-tab-pane>
-                <a-tab-pane key="tpl-reverse" :style="{ paddingTop: '20px' }"
-                  force-render="true">
-                  <template #tab>
-                    <a-icon type="import"></a-icon>
-                    <span>{{ i18n "pages.xray.outbound.reverse"}}</span>
-                  </template>
-                  {{ template "settings/xray/reverse" . }}
-                </a-tab-pane>
-                <a-tab-pane key="tpl-balancer" :style="{ paddingTop: '20px' }"
-                  force-render="true">
-                  <template #tab>
-                    <a-icon type="cluster"></a-icon>
-                    <span>{{ i18n "pages.xray.Balancers"}}</span>
-                  </template>
-                  {{ template "settings/xray/balancers" . }}
-                </a-tab-pane>
-                <a-tab-pane key="tpl-dns" :style="{ paddingTop: '20px' }"
-                  force-render="true">
-                  <template #tab>
-                    <a-icon type="database"></a-icon>
-                    <span>DNS</span>
-                  </template>
-                  {{ template "settings/xray/dns" . }}
-                </a-tab-pane>
-                <a-tab-pane key="tpl-advanced" force-render="true">
-                  <template #tab>
-                    <a-icon type="code"></a-icon>
-                    <span>{{ i18n "pages.xray.advancedTemplate"}}</span>
-                  </template>
-                  {{ template "settings/xray/advanced" . }}
-                </a-tab-pane>
-              </a-tabs>
-            </a-col>
-          </a-row>
+                  <button type="button" class="xr-fault">
+                    <a-icon type="warning"></a-icon>
+                    <span>{{ i18n "pages.index.xrayErrorPopoverTitle" }}</span>
+                  </button>
+                </a-popover>
+                <a-button type="danger" :disabled="!saveBtnDisable"
+                  @click="restartXray">
+                  {{ i18n "pages.xray.restart" }}
+                </a-button>
+                <a-button type="primary" :disabled="saveBtnDisable"
+                  @click="updateXraySetting">
+                  {{ i18n "pages.xray.save" }}
+                </a-button>
+              </div>
+            </div>
+            <a-tabs class="xr-tabs" default-active-key="tpl-basic"
+              @change="(activeKey) => { this.changePage(activeKey); }"
+              :class="themeSwitcher.currentTheme"
+              :tab-position="isMobile ? 'top' : 'left'">
+              <a-tab-pane key="tpl-basic">
+                <template #tab>
+                  <a-icon type="setting"></a-icon>
+                  <span>{{ i18n "pages.xray.basicTemplate"}}</span>
+                </template>
+                <section class="xr-sec">
+                  <header class="xr-sec__head">
+                    <div class="xr-sec__headmain">
+                      <h2 class="xr-sec__title">{{ i18n "pages.xray.basicTemplate"}}</h2>
+                      <p class="xr-sec__sub">Domain strategies, traffic counters, logging, blocked and direct routing, and the egress profile.</p>
+                    </div>
+                    <span class="xr-chip is-idle">log: [[ logLevel ]]</span>
+                  </header>
+                  <div class="xr-sec__body">
+                    {{ template "settings/xray/basics" . }}
+                  </div>
+                </section>
+              </a-tab-pane>
+              <a-tab-pane key="tpl-routing">
+                <template #tab>
+                  <a-icon type="swap"></a-icon>
+                  <span>{{ i18n "pages.xray.Routings"}}</span>
+                </template>
+                <section class="xr-sec">
+                  <header class="xr-sec__head">
+                    <div class="xr-sec__headmain">
+                      <h2 class="xr-sec__title">{{ i18n "pages.xray.Routings"}}</h2>
+                      <p class="xr-sec__sub">{{ i18n "pages.xray.RoutingsDesc"}} Rules are matched top to bottom; drag a row to reorder it.</p>
+                    </div>
+                    <span class="xr-chip is-idle">[[ routingRuleData.length ]] rules</span>
+                  </header>
+                  <div class="xr-sec__body">
+                    {{ template "settings/xray/routing" . }}
+                  </div>
+                </section>
+              </a-tab-pane>
+              <a-tab-pane key="tpl-outbound" force-render="true">
+                <template #tab>
+                  <a-icon type="upload"></a-icon>
+                  <span>{{ i18n "pages.xray.Outbounds"}}</span>
+                </template>
+                <section class="xr-sec">
+                  <header class="xr-sec__head">
+                    <div class="xr-sec__headmain">
+                      <h2 class="xr-sec__title">{{ i18n "pages.xray.Outbounds"}}</h2>
+                      <p class="xr-sec__sub">{{ i18n "pages.xray.OutboundsDesc"}} The first outbound is the default route for unmatched traffic.</p>
+                    </div>
+                    <span class="xr-chip is-idle">[[ outboundData.length ]] outbounds</span>
+                  </header>
+                  <div class="xr-sec__body">
+                    {{ template "settings/xray/outbounds" . }}
+                  </div>
+                </section>
+              </a-tab-pane>
+              <a-tab-pane key="tpl-reverse" force-render="true">
+                <template #tab>
+                  <a-icon type="import"></a-icon>
+                  <span>{{ i18n "pages.xray.outbound.reverse"}}</span>
+                </template>
+                <section class="xr-sec">
+                  <header class="xr-sec__head">
+                    <div class="xr-sec__headmain">
+                      <h2 class="xr-sec__title">{{ i18n "pages.xray.outbound.reverse"}}</h2>
+                      <p class="xr-sec__sub">Bridge and portal pairs that let this server reach a network it cannot dial directly.</p>
+                    </div>
+                    <span class="xr-chip is-idle">[[ reverseData.length ]] configured</span>
+                  </header>
+                  <div class="xr-sec__body">
+                    {{ template "settings/xray/reverse" . }}
+                  </div>
+                </section>
+              </a-tab-pane>
+              <a-tab-pane key="tpl-balancer" force-render="true">
+                <template #tab>
+                  <a-icon type="cluster"></a-icon>
+                  <span>{{ i18n "pages.xray.Balancers"}}</span>
+                </template>
+                <section class="xr-sec">
+                  <header class="xr-sec__head">
+                    <div class="xr-sec__headmain">
+                      <h2 class="xr-sec__title">{{ i18n "pages.xray.Balancers"}}</h2>
+                      <p class="xr-sec__sub">Outbound pools a routing rule can target instead of a single outbound, and the observatory that measures them.</p>
+                    </div>
+                    <span class="xr-chip is-idle">[[ balancersData.length ]] pools</span>
+                  </header>
+                  <div class="xr-sec__body">
+                    {{ template "settings/xray/balancers" . }}
+                  </div>
+                </section>
+              </a-tab-pane>
+              <a-tab-pane key="tpl-dns" force-render="true">
+                <template #tab>
+                  <a-icon type="database"></a-icon>
+                  <span>DNS</span>
+                </template>
+                <section class="xr-sec">
+                  <header class="xr-sec__head">
+                    <div class="xr-sec__headmain">
+                      <h2 class="xr-sec__title">DNS</h2>
+                      <p class="xr-sec__sub">Built-in resolver behaviour, upstream servers and the fake DNS pool.</p>
+                    </div>
+                    <span class="xr-chip" :class="enableDNS ? 'is-ok' : 'is-idle'">
+                      [[ enableDNS ? 'Resolver enabled' : 'Resolver disabled' ]]
+                    </span>
+                  </header>
+                  <div class="xr-sec__body">
+                    {{ template "settings/xray/dns" . }}
+                  </div>
+                </section>
+              </a-tab-pane>
+              <a-tab-pane key="tpl-advanced" force-render="true">
+                <template #tab>
+                  <a-icon type="code"></a-icon>
+                  <span>{{ i18n "pages.xray.advancedTemplate"}}</span>
+                </template>
+                <section class="xr-sec xr-sec--editor">
+                  <header class="xr-sec__head">
+                    <div class="xr-sec__headmain">
+                      <h2 class="xr-sec__title">{{ i18n "pages.xray.advancedTemplate"}}</h2>
+                      <p class="xr-sec__sub">{{ i18n "pages.xray.TemplateDesc"}} Edits are kept only while the document stays valid JSON.</p>
+                    </div>
+                    <span class="xr-chip is-idle">JSON</span>
+                  </header>
+                  <div class="xr-sec__body">
+                    {{ template "settings/xray/advanced" . }}
+                  </div>
+                </section>
+              </a-tab-pane>
+            </a-tabs>
+          </div>
         </transition>
       </a-spin>
 {{template "page/shell_end" . }}

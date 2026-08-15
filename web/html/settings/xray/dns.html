@@ -76,10 +76,15 @@
     <template v-if="enableDNS">
         <a-collapse-panel key="2" header='DNS'>
             <template v-if="dnsServers.length > 0">
-                <a-space direction="vertical" size="middle">
-                    <a-button type="primary" icon="plus" @click="addDNSServer()">
-                        <span>{{ i18n "pages.xray.dns.add" }}</span>
-                    </a-button>
+                <div class="xr-panel">
+                    <div class="xr-toolbar">
+                        <div class="xr-toolbar__main">
+                            <a-button type="primary" icon="plus" @click="addDNSServer()">
+                                <span>{{ i18n "pages.xray.dns.add" }}</span>
+                            </a-button>
+                        </div>
+                    </div>
+                    <div class="xr-datagrid">
                     <a-table :columns="dnsColumns" bordered :row-key="r => r.key" :data-source="dnsServers"
                         :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
                         :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}` }'>
@@ -113,24 +118,32 @@
                             <span v-if="typeof dns == 'object'">[[ dns.expectIPs.join(",") ]]</span>
                         </template>
                     </a-table>
-                </a-space>
+                    </div>
+                </div>
             </template>
             <template v-else>
-                <a-empty description='{{ i18n "emptyDnsDesc" }}' :style="{ margin: '10px' }">
-                    <a-button-group>
-                        <a-button type="primary" icon="plus" @click="addDNSServer()">
-                            <span>{{ i18n "pages.xray.dns.add" }}</span>
-                        </a-button>
-                        <a-button type="primary" icon="menu" @click="openDNSPresets()"></a-button>
-                    </a-button-group>
-                </a-empty>
+                <div class="xr-empty">
+                    <a-empty description='{{ i18n "emptyDnsDesc" }}'>
+                        <a-button-group>
+                            <a-button type="primary" icon="plus" @click="addDNSServer()">
+                                <span>{{ i18n "pages.xray.dns.add" }}</span>
+                            </a-button>
+                            <a-button type="primary" icon="menu" @click="openDNSPresets()"></a-button>
+                        </a-button-group>
+                    </a-empty>
+                </div>
             </template>
         </a-collapse-panel>
         <a-collapse-panel key="3" header='Fake DNS'>
             <template v-if="fakeDns && fakeDns.length > 0">
-                <a-space direction="vertical" size="middle">
-                    <a-button type="primary" icon="plus" @click="addFakedns()">{{ i18n "pages.xray.fakedns.add"
-                        }}</a-button>
+                <div class="xr-panel">
+                    <div class="xr-toolbar">
+                        <div class="xr-toolbar__main">
+                            <a-button type="primary" icon="plus" @click="addFakedns()">{{ i18n "pages.xray.fakedns.add"
+                                }}</a-button>
+                        </div>
+                    </div>
+                    <div class="xr-datagrid">
                     <a-table :columns="fakednsColumns" bordered :row-key="r => r.key" :data-source="fakeDns"
                         :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
                         :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}` }'>
@@ -154,14 +167,17 @@
                             </a-dropdown>
                         </template>
                     </a-table>
-                </a-space>
+                    </div>
+                </div>
             </template>
             <template v-else>
-                <a-empty description='{{ i18n "emptyFakeDnsDesc" }}' :style="{ margin: '20px' }">
-                    <a-button type="primary" icon="plus" @click="addFakedns()" :style="{ marginTop: '10px' }">
-                        <span>{{ i18n "pages.xray.fakedns.add" }}</span>
-                    </a-button>
-                </a-empty>
+                <div class="xr-empty">
+                    <a-empty description='{{ i18n "emptyFakeDnsDesc" }}'>
+                        <a-button type="primary" icon="plus" @click="addFakedns()">
+                            <span>{{ i18n "pages.xray.fakedns.add" }}</span>
+                        </a-button>
+                    </a-empty>
+                </div>
             </template>
         </a-collapse-panel>
     </template>

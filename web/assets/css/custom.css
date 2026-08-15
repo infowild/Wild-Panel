@@ -2141,17 +2141,10 @@ li.ant-calendar-time-picker-select-option-selected {
   margin-block-end:12px;
 }
 
-@media (min-width:769px) {
-  .xray-page .ant-layout-content {
-    margin:24px 16px;
-  }
-}
-
+/* The Xray page's own chrome now lives with the rest of the console in
+   components.css (.xray-page section). What is left here is the narrow-width
+   table density, which the console has no opinion about. */
 @media (max-width:768px) {
-  .xray-page .ant-tabs-nav .ant-tabs-tab {
-    margin:0;
-    padding:12px .5rem;
-  }
   .xray-page .ant-table-thead>tr>th,
   .xray-page .ant-table-tbody>tr>td {
     padding:10px 0;
@@ -2168,10 +2161,6 @@ li.ant-calendar-time-picker-select-option-selected {
 
 .xray-page .ant-list-item>li {
   padding:10px 20px!important;
-}
-
-.xray-page .ant-collapse-content-box .ant-alert {
-  margin-block-end:12px;
 }
 
 .dark .ant-descriptions-bordered .ant-descriptions-item-label {

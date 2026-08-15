@@ -1,6 +1,14 @@
 {{define "settings/xray/routing"}}
-<a-space direction="vertical" size="middle">
-    <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
+<div class="xr-panel">
+    <div class="xr-toolbar">
+        <div class="xr-toolbar__main">
+            <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
+        </div>
+    </div>
+    <!-- The rule table is the widest thing on the page. It is given its own
+         scroll frame so a long rule set moves inside the panel instead of
+         widening the console. -->
+    <div class="xr-datagrid xr-datagrid--wide">
     <a-table-sortable :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered :row-key="r => r.key"
         :data-source="routingRuleData" :scroll="isMobile ? {} : { x: 1000 }" :pagination="false" :indent-size="0"
         v-on:onSort="replaceRule">
@@ -119,5 +127,6 @@
             </a-popover>
         </template>
     </a-table-sortable>
-</a-space>
+    </div>
+</div>
 {{end}}

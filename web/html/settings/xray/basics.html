@@ -417,13 +417,16 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel key="6"
+    <!-- The one destructive control in this section, kept out of the routine
+         blocks above and marked as maintenance rather than editing. -->
+    <a-collapse-panel key="6" class="xr-block--danger"
         header='{{ i18n "pages.settings.resetDefaultConfig"}}'>
-        <a-space direction="horizontal" :style="{ padding: '0 20px' }">
+        <div class="xr-dangerzone">
+            <p class="xr-dangerzone__note">Replaces the whole template with the shipped default. Every outbound, routing rule, balancer and DNS entry configured here is discarded.</p>
             <a-button type="danger" @click="resetXrayConfigToDefault">
                 <span>{{ i18n "pages.settings.resetDefaultConfig" }}</span>
             </a-button>
-        </a-space>
+        </div>
     </a-collapse-panel>
 </a-collapse>
 {{end}}

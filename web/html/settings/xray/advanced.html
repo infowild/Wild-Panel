@@ -1,14 +1,30 @@
 {{define "settings/xray/advanced"}}
-<a-space direction="vertical" size="small" :style="{ marginTop: '20px' }">
-    <a-list-item-meta title='{{ i18n "pages.xray.Template"}}'
-        description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
-    <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" :style="{ margin: '10px 0' }"
-        :size="isMobile ? 'small' : ''">
-        <a-radio-button value="xraySetting">{{ i18n "pages.xray.completeTemplate"}}</a-radio-button>
-        <a-radio-button value="inboundSettings">{{ i18n "pages.xray.Inbounds" }}</a-radio-button>
-        <a-radio-button value="outboundSettings">{{ i18n "pages.xray.Outbounds" }}</a-radio-button>
-        <a-radio-button value="routingRuleSettings">{{ i18n "pages.xray.Routings" }}</a-radio-button>
-    </a-radio-group>
-    <textarea :style="{ position: 'absolute', left: '-800px' }" id="xraySetting"></textarea>
-</a-space>
+<!-- Raw config workspace. The editor shell is new; the editor is not. The
+     textarea keeps its id and its off-screen inline style, because changeCode()
+     finds it by id and hands it to CodeMirror.fromTextArea, which injects its
+     own DOM as the textarea's next sibling - so the editor lands inside the
+     surface below without the page knowing anything about this markup. -->
+<div class="xr-editor">
+    <div class="xr-editor__head">
+        <!-- Config context, not a second copy of the section description: what
+             this surface is and what the core will be handed. -->
+        <div class="xr-editor__ident">
+            <span class="xr-editor__label">{{ i18n "pages.xray.Template"}}</span>
+            <span class="xr-editor__hint">application/json</span>
+        </div>
+        <!-- The document selector: which slice of the config the editor is
+             pointed at. Same v-model and same @change as before, so the same
+             CodeMirror teardown/rebuild runs on every switch. -->
+        <a-radio-group class="xr-editor__docs" v-model="advSettings" @change="changeCode" button-style="solid"
+            :size="isMobile ? 'small' : ''">
+            <a-radio-button value="xraySetting">{{ i18n "pages.xray.completeTemplate"}}</a-radio-button>
+            <a-radio-button value="inboundSettings">{{ i18n "pages.xray.Inbounds" }}</a-radio-button>
+            <a-radio-button value="outboundSettings">{{ i18n "pages.xray.Outbounds" }}</a-radio-button>
+            <a-radio-button value="routingRuleSettings">{{ i18n "pages.xray.Routings" }}</a-radio-button>
+        </a-radio-group>
+    </div>
+    <div class="xr-editor__surface">
+        <textarea :style="{ position: 'absolute', left: '-800px' }" id="xraySetting"></textarea>
+    </div>
+</div>
 {{end}}
