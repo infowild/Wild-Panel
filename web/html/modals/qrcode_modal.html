@@ -2,49 +2,94 @@
 <a-modal id="qrcode-modal" v-model="qrModal.visible" :closable="true" :class="themeSwitcher.currentTheme"
   width="fit-content" :dialog-style="isMobile ? { top: '18px' } : {}" :footer="null">
   <template #title>
-    <a-space direction="horizontal">
-      <span>[[ qrModal.title ]]</span>
-      <a-popover :overlay-class-name="themeSwitcher.currentTheme" trigger="click" placement="bottom">
-        <template slot="content">
-          <a-space direction="vertical">
-            <template v-for="(row, index) in qrModal.qrcodes">
-              <b>[[ row.remark ]]</b>
-              <a-space direction="horizontal">
-                <a-switch size="small" :checked="row.useIPv4" @click="toggleIPv4(index)"></a-switch>
-                <span>{{ i18n "useIPv4ForHost" }}</span>
-              </a-space>
-            </template>
-          </a-space>
-        </template>
-        <a-icon type="setting"></a-icon>
-      </a-popover>
-    </a-space>
+    <div class="wca-head">
+      <div class="wca-head__id">
+        <span class="wca-head__title">[[ qrModal.title ]]</span>
+        <span class="wca-head__sub">[[ qrModal.client && qrModal.client.email ? qrModal.client.email + ' · ' +
+          qrModal.dbInbound.remark : qrModal.dbInbound.remark ]]</span>
+      </div>
+      <div class="wca-head__aside">
+        <span class="wca-badge wca-badge--accent" v-if="qrModal.dbInbound.protocol">[[ qrModal.dbInbound.protocol
+          ]]</span>
+      </div>
+    </div>
   </template>
-  <tr-qr-modal class="qr-modal">
+  <tr-qr-modal class="wca">
     <template v-if="app.subSettings?.enable && qrModal.subId">
-      <tr-qr-box class="qr-box">
-        <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}}</span></a-tag>
-        <tr-qr-bg class="qr-bg-sub">
-          <tr-qr-bg-inner class="qr-bg-sub-inner">
+      <tr-qr-box class="wca-card">
+        <div class="wca-card__qr">
+          <div class="wca-qr">
             <canvas @click="copy(genSubLink(qrModal.client.subId))" id="qrCode-sub" class="qr-cv"></canvas>
-          </tr-qr-bg-inner>
-        </tr-qr-bg>
+          </div>
+        </div>
+        <div class="wca-card__info">
+          <div class="wca-card__head">
+            <span class="wca-badge wca-badge--info">{{ i18n "pages.settings.subSettings"}}</span>
+          </div>
+          <div class="wca-copyrow">
+            <span class="wca-copyrow__label">Subscription link</span>
+            <div class="wca-copyrow__field">
+              <code class="wca-code">[[ genSubLink(qrModal.client.subId) ]]</code>
+              <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                @click="copy(genSubLink(qrModal.client.subId))">
+                <a-icon type="copy"></a-icon>
+              </button>
+            </div>
+          </div>
+        </div>
       </tr-qr-box>
-      <tr-qr-box class="qr-box" v-if="app.subSettings.subJsonEnable">
-        <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}} Json</span></a-tag>
-        <tr-qr-bg class="qr-bg-sub">
-          <tr-qr-bg-inner class="qr-bg-sub-inner">
+      <tr-qr-box class="wca-card" v-if="app.subSettings.subJsonEnable">
+        <div class="wca-card__qr">
+          <div class="wca-qr">
             <canvas @click="copy(genSubJsonLink(qrModal.client.subId))" id="qrCode-subJson" class="qr-cv"></canvas>
-          </tr-qr-bg-inner>
-        </tr-qr-bg>
+          </div>
+        </div>
+        <div class="wca-card__info">
+          <div class="wca-card__head">
+            <span class="wca-badge wca-badge--info">{{ i18n "pages.settings.subSettings"}} Json</span>
+          </div>
+          <div class="wca-copyrow">
+            <span class="wca-copyrow__label">Json link</span>
+            <div class="wca-copyrow__field">
+              <code class="wca-code">[[ genSubJsonLink(qrModal.client.subId) ]]</code>
+              <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                @click="copy(genSubJsonLink(qrModal.client.subId))">
+                <a-icon type="copy"></a-icon>
+              </button>
+            </div>
+          </div>
+        </div>
       </tr-qr-box>
     </template>
     <template v-for="(row, index) in qrModal.qrcodes">
-      <tr-qr-box class="qr-box">
-        <a-tag color="green" class="qr-tag"><span>[[ row.remark ]]</span></a-tag>
-        <tr-qr-bg class="qr-bg">
-          <canvas @click="copy(row.link)" :id="'qrCode-'+index" class="qr-cv"></canvas>
-        </tr-qr-bg>
+      <tr-qr-box class="wca-card">
+        <div class="wca-card__qr">
+          <div class="wca-qr">
+            <canvas @click="copy(row.link)" :id="'qrCode-'+index" class="qr-cv"></canvas>
+          </div>
+          <div class="wca-qr-meta">
+            <span class="wca-qr-meta__hint">[[ qrModal.dbInbound.address ]]:[[ qrModal.dbInbound.port ]]</span>
+          </div>
+        </div>
+        <div class="wca-card__info">
+          <div class="wca-card__head">
+            <div class="wca-qr-meta__name qr-tag"><span>[[ row.remark ]]</span></div>
+          </div>
+          <div class="wca-copyrow">
+            <span class="wca-copyrow__label">Connection link</span>
+            <div class="wca-copyrow__field">
+              <code class="wca-code">[[ row.link ]]</code>
+              <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                @click="copy(row.link)">
+                <a-icon type="copy"></a-icon>
+              </button>
+            </div>
+          </div>
+          <div class="wca-hosts__row">
+            <span class="wca-hosts__name">{{ i18n "useIPv4ForHost" }}</span>
+            <a-switch size="small" :checked="row.useIPv4" @click="toggleIPv4(index)"></a-switch>
+          </div>
+        </div>
       </tr-qr-box>
     </template>
   </tr-qr-modal>
@@ -57,42 +102,26 @@
     border-radius: 1rem;
     overflow-x: hidden;
   }
-  
-  /* QR code transition effects */
-  .qr-cv {
-    transition: all 0.3s ease-in-out;
+
+  /* The canvas is redrawn by QRious on every host toggle, so nothing here may
+     animate the code itself: opacity, blur and fractional scale all cost
+     scan reliability on a phone camera. The acknowledgement is drawn on the
+     plate's border instead, which is outside the quiet zone. */
+  #qrcode-modal .wca-qr:has(.qr-flash) {
+    animation: qr-flash-animation 0.6s ease-in-out;
   }
-  
-  .qr-transition-enter-active, .qr-transition-leave-active {
-    transition: opacity 0.3s, transform 0.3s;
-  }
-  
-  .qr-transition-enter, .qr-transition-leave-to {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  
-  .qr-transition-enter-to, .qr-transition-leave {
-    opacity: 1;
-    transform: scale(1);
-  }
-  
-  .qr-flash {
-    animation: qr-flash-animation 0.6s;
-  }
-  
+
   @keyframes qr-flash-animation {
     0% {
-      opacity: 1;
-      transform: scale(1);
+      border-color: var(--border);
     }
-    50% {
-      opacity: 0.5;
-      transform: scale(0.95);
+
+    35% {
+      border-color: var(--accent);
     }
+
     100% {
-      opacity: 1;
-      transform: scale(1);
+      border-color: var(--border);
     }
   }
 </style>

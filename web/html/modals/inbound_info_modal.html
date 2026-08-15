@@ -1,544 +1,483 @@
 {{define "modals/inboundInfoModal"}}
-<a-modal id="inbound-info-modal" v-model="infoModal.visible" title='{{ i18n "pages.inbounds.details"}}' :closable="true"
+<a-modal id="inbound-info-modal" v-model="infoModal.visible" :closable="true"
   :mask-closable="true" :footer="null" width="600px" :class="themeSwitcher.currentTheme">
-  <a-row>
-    <a-col :xs="24" :md="12">
-      <table>
-        <tr>
-          <td>{{ i18n "protocol" }}</td>
-          <td>
-            <a-tag color="purple">[[ dbInbound.protocol ]]</a-tag>
-          </td>
-        </tr>
-        <tr>
-          <td>{{ i18n "pages.inbounds.address" }}</td>
-          <td>
-            <a-tooltip :title="[[ dbInbound.address ]]">
-              <a-tag class="info-large-tag">[[ dbInbound.address ]]</a-tag>
-            </a-tooltip>
-          </td>
-        </tr>
-        <tr>
-          <td>{{ i18n "pages.inbounds.port" }}</td>
-          <td>
-            <a-tag>[[ dbInbound.port ]]</a-tag>
-          </td>
-        </tr>
-        <tr v-if="infoModal.inbound && infoModal.inbound.settings && Array.isArray(infoModal.inbound.settings.externalProxy) && infoModal.inbound.settings.externalProxy.length">
-          <td>External Proxy</td>
-          <td>
-            <a-tag v-for="(ep, i) in infoModal.inbound.settings.externalProxy" :key="i" color="blue" :style="{ marginBottom: '4px' }">
-              [[ ep.dest ]]:[[ ep.port || dbInbound.port ]][[ ep.remark ? ' (' + ep.remark + ')' : '' ]]
-            </a-tag>
-          </td>
-        </tr>
-      </table>
-    </a-col>
-    <a-col :xs="24" :md="12">
-      <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
-        <table>
-          <tr>
-            <td>{{ i18n "transmission" }}</td>
-            <td>
-              <a-tag color="green">[[ inbound.network ]]</a-tag>
-            </td>
-          </tr>
-          <template v-if="inbound.isTcp || inbound.isWs || inbound.isHttpupgrade || inbound.isXHTTP">
-            <tr>
-              <td>{{ i18n "host" }}</td>
-              <td v-if="inbound.host">
-                <a-tooltip :title="[[ inbound.host ]]">
-                  <a-tag class="info-large-tag">[[ inbound.host ]]</a-tag>
-                </a-tooltip>
-              </td>
-              <td v-else>
-                <a-tag color="orange">{{ i18n "none" }}</a-tag>
-              </td>
-            </tr>
-            </tr>
-            <tr>
-              <td>{{ i18n "path" }}</td>
-              <td v-if="inbound.path">
-                <a-tooltip :title="[[ inbound.path ]]">
-                  <a-tag class="info-large-tag">[[ inbound.path ]]</a-tag>
-                </a-tooltip>
-              <td v-else>
-                <a-tag color="orange">{{ i18n "none" }}</a-tag>
-              </td>
-            </tr>
-          </template>
-          <template v-if="inbound.isXHTTP">
-            <tr>
-              <td>Mode</td>
-              <td>
-                <a-tag>[[ inbound.stream.xhttp.mode ]]</a-tag>
-              </td>
-            </tr>
-          </template>
-          <template v-if="inbound.isGrpc">
-            <tr>
-              <td>grpc serviceName</td>
-              <td>
-                <a-tooltip :title="[[ inbound.serviceName ]]">
-                  <a-tag class="info-large-tag">[[ inbound.serviceName
-                    ]]</a-tag>
-                </a-tooltip>
-            <tr>
-              <td>grpc multiMode</td>
-              <td>
-                <a-tag>[[ inbound.stream.grpc.multiMode ]]</a-tag>
-              </td>
-            </tr>
-          </template>
-        </table>
-      </template>
-    </a-col>
-    <template v-if="dbInbound.hasLink()">
-      {{ i18n "security" }}
-      <a-tag :color="inbound.stream.security == 'none' ? 'red' : 'green'">[[
-        inbound.stream.security ]]</a-tag>
-      <br />
-      <td>Authentication</td>
-      <a-tag v-if="inbound.settings.selectedAuth" color="green">[[
-        inbound.settings.selectedAuth ? inbound.settings.selectedAuth : ''
-        ]]</a-tag>
-      <a-tag v-else color="red">{{ i18n "none" }}</a-tag>
-      <br />
-      {{ i18n "encryption" }}
-      <a-tag class="info-large-tag" :color="inbound.settings.encryption ? 'green' : 'red'">[[
-        inbound.settings.encryption ? inbound.settings.encryption : ''
-        ]]</a-tag>
-      <a-tooltip title='{{ i18n "copy" }}'>
-        <a-button size="small" icon="snippets" @click="copy(inbound.settings.encryption)"></a-button>
-      </a-tooltip>
-      <br />
-      <template v-if="inbound.stream.security != 'none'">
-        {{ i18n "domainName" }}
-        <a-tag v-if="inbound.serverName" color="green">[[ inbound.serverName
-          ? inbound.serverName : '' ]]</a-tag>
-        <a-tag v-else color="orange">{{ i18n "none" }}</a-tag>
-      </template>
-    </template>
-    <table v-if="dbInbound.isSS" :style="{ marginBottom: '10px', width: '100%' }">
-      <tr>
-        <td>{{ i18n "encryption" }}</td>
-        <td>
-          <a-tag color="green">[[ inbound.settings.method ]]</a-tag>
-        </td>
-      </tr>
-      <tr v-if="inbound.isSS2022">
-        <td>{{ i18n "password" }}</td>
-        <td>
-          <a-tooltip :title="[[ inbound.settings.password  ]]">
-            <a-tag class="info-large-tag">[[ inbound.settings.password
-              ]]</a-tag>
-          </a-tooltip>
-        </td>
-      </tr>
-      <tr>
-        <td>{{ i18n "pages.inbounds.network" }}</td>
-        <td>
-          <a-tag color="green">[[ inbound.settings.network ]]</a-tag>
-        </td>
-      </tr>
-    </table>
-    <template v-if="infoModal.clientSettings">
-      <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
-      <table :style="{ marginBottom: '10px' }">
-        <tr>
-          <td>{{ i18n "pages.inbounds.email" }}</td>
-          <td v-if="infoModal.clientSettings.email">
-            <a-tag color="green">[[ infoModal.clientSettings.email
-              ]]</a-tag>
-          </td>
-          <td v-else>
-            <a-tag color="red">{{ i18n "none" }}</a-tag>
-          </td>
-        </tr>
-        <tr v-if="infoModal.clientSettings.id">
-          <td>ID</td>
-          <td>
-            <a-tag>[[ infoModal.clientSettings.id ]]</a-tag>
-          </td>
-        </tr>
-        <tr v-if="dbInbound.isVMess">
-          <td>{{ i18n "security" }}</td>
-          <td>
-            <a-tag>[[ infoModal.clientSettings.security ]]</a-tag>
-          </td>
-        </tr>
-        <tr v-if="infoModal.inbound.canEnableTlsFlow()">
-          <td>Flow</td>
-          <td v-if="infoModal.clientSettings.flow">
-            <a-tag>[[ infoModal.clientSettings.flow ]]</a-tag>
-          </td>
-          <td v-else>
-            <a-tag color="orange">{{ i18n "none" }}</a-tag>
-          </td>
-        </tr>
-        <tr v-if="infoModal.clientSettings.password">
-          <td>{{ i18n "password" }}</td>
-          <td>
-            <a-tooltip :title="[[ infoModal.clientSettings.password  ]]">
-              <a-tag class="info-large-tag">[[
-                infoModal.clientSettings.password ]]</a-tag>
-            </a-tooltip>
-          </td>
-        </tr>
-        <tr>
-          <td>{{ i18n "status" }}</td>
-          <td>
-            <a-tag v-if="isFrozen" color="blue">{{ i18n "pages.client.frozen"
-              }}</a-tag>
-            <a-tag v-else-if="isDepleted" color="red">{{ i18n "depleted"
-              }}</a-tag>
-            <a-tag v-else-if="isEnable" color="green">{{ i18n "enabled"
-              }}</a-tag>
-            <a-tag v-else>{{ i18n "disabled" }}</a-tag>
-          </td>
-        </tr>
-        <tr v-if="infoModal.clientStats">
-          <td>{{ i18n "usage" }}</td>
-          <td>
-            <a-tag color="green">[[
-              SizeFormatter.sizeFormat(infoModal.clientStats.up +
-              infoModal.clientStats.down) ]]</a-tag>
-            <a-tag>↑ [[ SizeFormatter.sizeFormat(infoModal.clientStats.up)
-              ]] / [[ SizeFormatter.sizeFormat(infoModal.clientStats.down)
-              ]] ↓</a-tag>
-          </td>
-        </tr>
-        <tr>
-          <td>{{ i18n "pages.inbounds.createdAt" }}</td>
-          <td>
-            <template v-if="infoModal.clientSettings && infoModal.clientSettings.created_at">
-              <a-tag>[[
-                IntlUtil.formatDate(infoModal.clientSettings.created_at)
-                ]]</a-tag>
-            </template>
-            <template v-else>
-              <a-tag>-</a-tag>
-            </template>
-          </td>
-        </tr>
-        <tr>
-          <td>{{ i18n "pages.inbounds.updatedAt" }}</td>
-          <td>
-            <template v-if="infoModal.clientSettings && infoModal.clientSettings.updated_at">
-              <a-tag>[[
-                IntlUtil.formatDate(infoModal.clientSettings.updated_at)
-                ]]</a-tag>
-            </template>
-            <template v-else>
-              <a-tag>-</a-tag>
-            </template>
-          </td>
-        </tr>
-        <tr>
-          <td>{{ i18n "lastOnline" }}</td>
-          <td>
-            <a-tag>[[ app.formatLastOnline(infoModal.clientSettings &&
-              infoModal.clientSettings.email ?
-              infoModal.clientSettings.email : '') ]]</a-tag>
-          </td>
-        </tr>
-        <tr v-if="infoModal.clientSettings.comment">
-          <td>{{ i18n "comment" }}</td>
-          <td>
-            <a-tooltip :title="[[ infoModal.clientSettings.comment  ]]">
-              <a-tag class="info-large-tag">[[
-                infoModal.clientSettings.comment ]]</a-tag>
-            </a-tooltip>
-          </td>
-        </tr>
-        <tr v-if="app.ipLimitEnable">
-          <td>{{ i18n "pages.inbounds.IPLimit" }}</td>
-          <td>
-            <a-tag>[[ infoModal.clientSettings.limitIp ]]</a-tag>
-          </td>
-        </tr>
-        <tr v-if="app.ipLimitEnable && infoModal.clientSettings.limitIp > 0">
-          <td>{{ i18n "pages.inbounds.IPLimitlog" }}</td>
-          <td>
-            <div style="max-height: 150px; overflow-y: auto; text-align: left;">
-              <div v-if="infoModal.clientIpsArray && infoModal.clientIpsArray.length > 0">
-                <a-tag v-for="(ipInfo, idx) in infoModal.clientIpsArray" :key="idx" color="blue"
-                  style="margin: 2px 0; display: block; font-family: monospace; font-size: 11px;">
-                  [[ formatIpInfo(ipInfo) ]]
-                </a-tag>
+  <template slot="title">
+    <div class="wca-head">
+      <div class="wca-head__id">
+        <span class="wca-head__title">{{ i18n "pages.inbounds.details"}}</span>
+        <span class="wca-head__sub">[[ infoModal.clientSettings && infoModal.clientSettings.email ?
+          infoModal.clientSettings.email + ' · ' + dbInbound.remark : dbInbound.remark ]]</span>
+      </div>
+      <div class="wca-head__aside">
+        <span class="wca-badge wca-badge--accent" v-if="dbInbound.protocol">[[ dbInbound.protocol ]]</span>
+      </div>
+    </div>
+  </template>
+
+  <div class="wca">
+    <!-- ENDPOINT + CONNECTION STACK ------------------------------------- -->
+    <div class="wca-split">
+        <section class="wca-sec">
+          <div class="wca-sec__head">
+            <span class="wca-sec__title">Endpoint</span>
+          </div>
+          <div class="wca-sec__body">
+            <div class="wca-kv">
+              <span class="wca-kv__k">{{ i18n "protocol" }}</span>
+              <span class="wca-kv__v">[[ dbInbound.protocol ]]</span>
+              <span class="wca-kv__k">{{ i18n "pages.inbounds.address" }}</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ dbInbound.address ]]</span>
+              <span class="wca-kv__k">{{ i18n "pages.inbounds.port" }}</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ dbInbound.port ]]</span>
+              <template
+                v-if="infoModal.inbound && infoModal.inbound.settings && Array.isArray(infoModal.inbound.settings.externalProxy) && infoModal.inbound.settings.externalProxy.length">
+                <span class="wca-kv__k">External Proxy</span>
+                <span class="wca-kv__v wca-kv__v--tags">
+                  <span class="wca-badge wca-badge--info wca-badge--label"
+                    v-for="(ep, i) in infoModal.inbound.settings.externalProxy" :key="i">
+                    [[ ep.dest ]]:[[ ep.port || dbInbound.port ]][[ ep.remark ? ' (' + ep.remark + ')' : '' ]]
+                  </span>
+                </span>
+              </template>
+            </div>
+          </div>
+        </section>
+
+        <section class="wca-sec" v-if="dbInbound.isSS">
+          <div class="wca-sec__head">
+            <span class="wca-sec__title">{{ i18n "encryption" }}</span>
+          </div>
+          <div class="wca-sec__body">
+            <div class="wca-kv">
+              <span class="wca-kv__k">{{ i18n "encryption" }}</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.method ]]</span>
+              <template v-if="inbound.isSS2022">
+                <span class="wca-kv__k">{{ i18n "password" }}</span>
+                <code class="wca-code wca-code--inline wca-code--secret">[[ inbound.settings.password ]]</code>
+              </template>
+              <span class="wca-kv__k">{{ i18n "pages.inbounds.network" }}</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.network ]]</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="wca-sec"
+          v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS || dbInbound.hasLink()">
+          <div class="wca-sec__head">
+            <span class="wca-sec__title">Transport &amp; Security</span>
+          </div>
+          <div class="wca-sec__body">
+            <div class="wca-kv" v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+              <span class="wca-kv__k">{{ i18n "transmission" }}</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ inbound.network ]]</span>
+              <template v-if="inbound.isTcp || inbound.isWs || inbound.isHttpupgrade || inbound.isXHTTP">
+                <span class="wca-kv__k">{{ i18n "host" }}</span>
+                <span class="wca-kv__v wca-kv__v--mono" v-if="inbound.host">[[ inbound.host ]]</span>
+                <span class="wca-kv__v wca-kv__v--none" v-else>{{ i18n "none" }}</span>
+                <span class="wca-kv__k">{{ i18n "path" }}</span>
+                <span class="wca-kv__v wca-kv__v--mono" v-if="inbound.path">[[ inbound.path ]]</span>
+                <span class="wca-kv__v wca-kv__v--none" v-else>{{ i18n "none" }}</span>
+              </template>
+              <template v-if="inbound.isXHTTP">
+                <span class="wca-kv__k">Mode</span>
+                <span class="wca-kv__v wca-kv__v--mono">[[ inbound.stream.xhttp.mode ]]</span>
+              </template>
+              <template v-if="inbound.isGrpc">
+                <span class="wca-kv__k">grpc serviceName</span>
+                <span class="wca-kv__v wca-kv__v--mono">[[ inbound.serviceName ]]</span>
+                <span class="wca-kv__k">grpc multiMode</span>
+                <span class="wca-kv__v wca-kv__v--mono">[[ inbound.stream.grpc.multiMode ]]</span>
+              </template>
+            </div>
+
+            <template v-if="dbInbound.hasLink()">
+            <div class="wca-subhead">{{ i18n "security" }}</div>
+            <div class="wca-kv">
+              <span class="wca-kv__k">{{ i18n "security" }}</span>
+              <span class="wca-kv__v">
+                <span class="wca-badge"
+                  :class="inbound.stream.security == 'none' ? 'wca-badge--danger' : 'wca-badge--ok'">[[
+                  inbound.stream.security ]]</span>
+              </span>
+              <span class="wca-kv__k">Authentication</span>
+              <span class="wca-kv__v" v-if="inbound.settings.selectedAuth">
+                <span class="wca-badge wca-badge--ok">[[ inbound.settings.selectedAuth ?
+                  inbound.settings.selectedAuth : '' ]]</span>
+              </span>
+              <span class="wca-kv__v wca-kv__v--none" v-else>{{ i18n "none" }}</span>
+              <template v-if="inbound.stream.security != 'none'">
+                <span class="wca-kv__k">{{ i18n "domainName" }}</span>
+                <span class="wca-kv__v wca-kv__v--mono" v-if="inbound.serverName">[[ inbound.serverName ?
+                  inbound.serverName : '' ]]</span>
+                <span class="wca-kv__v wca-kv__v--none" v-else>{{ i18n "none" }}</span>
+              </template>
+            </div>
+            <div class="wca-copyrow">
+              <span class="wca-copyrow__label">{{ i18n "encryption" }}</span>
+              <div class="wca-copyrow__field">
+                <code class="wca-code wca-code--inline wca-code--secret">[[ inbound.settings.encryption ?
+                  inbound.settings.encryption : '' ]]</code>
+                <button type="button" class="wca-copy" title='{{ i18n "copy" }}'
+                  @click="copy(inbound.settings.encryption)">
+                  <a-icon type="copy"></a-icon>
+                </button>
               </div>
-              <a-tag v-else>[[ infoModal.clientIps || 'No IP Record'
-                ]]</a-tag>
             </div>
-            <div style="margin-top: 5px;">
-              <a-icon type="sync" :spin="refreshing" @click="refreshIPs" :style="{ margin: '0 5px' }"></a-icon>
-              <a-tooltip>
-                <template slot="title">
-                  <span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
-                </template>
-                <a-icon type="delete" @click="clearClientIps"></a-icon>
-              </a-tooltip>
-            </div>
-          </td>
-        </tr>
-      </table>
-      <table :style="{ display: 'inline-table', marginBlock: '10px', width: '100%', textAlign: 'center' }">
-        <tr>
-          <th>{{ i18n "remained" }}</th>
-          <th>{{ i18n "pages.inbounds.totalFlow" }}</th>
-          <th>{{ i18n "pages.inbounds.expireDate" }}</th>
-        </tr>
-        <tr>
-          <td>
-            <a-tag v-if="infoModal.clientStats && infoModal.clientSettings.totalGB > 0"
-              :color="statsColor(infoModal.clientStats)"> [[ getRemStats()
-              ]] </a-tag>
-          </td>
-          <td>
-            <a-tag v-if="infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)"> [[
-              SizeFormatter.sizeFormat(infoModal.clientSettings.totalGB) ]]
-            </a-tag>
-            <a-tag v-else color="purple" class="infinite-tag">
-              <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
-                <path
-                  d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
-                  fill="currentColor"></path>
-              </svg>
-            </a-tag>
-          </td>
-          <td>
-            <template v-if="infoModal.clientSettings.expiryTime > 0">
-              <a-tag
-                :color="ColorUtils.usageColor(new Date().getTime(), app.expireDiff, infoModal.clientSettings.expiryTime)">
-                [[ IntlUtil.formatDate(infoModal.clientSettings.expiryTime)
-                ]]
-              </a-tag>
             </template>
-            <a-tag v-else-if="infoModal.clientSettings.expiryTime < 0" color="green">[[
-              infoModal.clientSettings.expiryTime /
-              -86400000 ]] {{ i18n "pages.client.days" }}
-            </a-tag>
-            <a-tag v-else color="purple" class="infinite-tag">
-              <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
-                <path
-                  d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
-                  fill="currentColor"></path>
-              </svg>
-            </a-tag>
-          </td>
-        </tr>
-      </table>
-      <template v-if="app.subSettings.enable && infoModal.clientSettings.subId">
-        <a-divider>Subscription URL</a-divider>
-        <tr-info-row class="tr-info-row">
-          <tr-info-title class="tr-info-title">
-            <a-tag color="purple">Subscription Link</a-tag>
-            <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button size="small" icon="snippets" @click="copy(infoModal.subLink)"></a-button>
+          </div>
+        </section>
+    </div>
+
+    <!-- CLIENT ----------------------------------------------------------- -->
+    <template v-if="infoModal.clientSettings">
+      <section class="wca-sec">
+        <div class="wca-sec__head">
+          <span class="wca-sec__title">{{ i18n "pages.inbounds.client" }}</span>
+          <span class="wca-badge wca-badge--info" v-if="isFrozen">{{ i18n "pages.client.frozen" }}</span>
+          <span class="wca-badge wca-badge--danger" v-else-if="isDepleted">{{ i18n "depleted" }}</span>
+          <span class="wca-badge wca-badge--ok" v-else-if="isEnable">{{ i18n "enabled" }}</span>
+          <span class="wca-badge" v-else>{{ i18n "disabled" }}</span>
+        </div>
+        <div class="wca-sec__body">
+          <div class="wca-kv wca-kv--pair">
+            <span class="wca-kv__k">{{ i18n "pages.inbounds.email" }}</span>
+            <span class="wca-kv__v" v-if="infoModal.clientSettings.email">[[ infoModal.clientSettings.email ]]</span>
+            <span class="wca-kv__v wca-kv__v--none" v-else>{{ i18n "none" }}</span>
+            <template v-if="infoModal.clientSettings.id">
+              <span class="wca-kv__k">ID</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ infoModal.clientSettings.id ]]</span>
+            </template>
+            <template v-if="dbInbound.isVMess">
+              <span class="wca-kv__k">{{ i18n "security" }}</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ infoModal.clientSettings.security ]]</span>
+            </template>
+            <template v-if="infoModal.inbound.canEnableTlsFlow()">
+              <span class="wca-kv__k">Flow</span>
+              <span class="wca-kv__v wca-kv__v--mono" v-if="infoModal.clientSettings.flow">[[
+                infoModal.clientSettings.flow ]]</span>
+              <span class="wca-kv__v wca-kv__v--none" v-else>{{ i18n "none" }}</span>
+            </template>
+            <template v-if="infoModal.clientSettings.password">
+              <span class="wca-kv__k">{{ i18n "password" }}</span>
+              <code class="wca-code wca-code--inline wca-code--secret">[[ infoModal.clientSettings.password ]]</code>
+            </template>
+            <template v-if="infoModal.clientStats">
+              <span class="wca-kv__k">{{ i18n "usage" }}</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ SizeFormatter.sizeFormat(infoModal.clientStats.up +
+                infoModal.clientStats.down) ]] · ↑ [[ SizeFormatter.sizeFormat(infoModal.clientStats.up) ]] / [[
+                SizeFormatter.sizeFormat(infoModal.clientStats.down) ]] ↓</span>
+            </template>
+            <span class="wca-kv__k">{{ i18n "pages.inbounds.createdAt" }}</span>
+            <span class="wca-kv__v wca-kv__v--mono"
+              v-if="infoModal.clientSettings && infoModal.clientSettings.created_at">[[
+              IntlUtil.formatDate(infoModal.clientSettings.created_at) ]]</span>
+            <span class="wca-kv__v wca-kv__v--none" v-else>-</span>
+            <span class="wca-kv__k">{{ i18n "pages.inbounds.updatedAt" }}</span>
+            <span class="wca-kv__v wca-kv__v--mono"
+              v-if="infoModal.clientSettings && infoModal.clientSettings.updated_at">[[
+              IntlUtil.formatDate(infoModal.clientSettings.updated_at) ]]</span>
+            <span class="wca-kv__v wca-kv__v--none" v-else>-</span>
+            <span class="wca-kv__k">{{ i18n "lastOnline" }}</span>
+            <span class="wca-kv__v wca-kv__v--mono">[[ app.formatLastOnline(infoModal.clientSettings &&
+              infoModal.clientSettings.email ? infoModal.clientSettings.email : '') ]]</span>
+            <template v-if="app.ipLimitEnable">
+              <span class="wca-kv__k">{{ i18n "pages.inbounds.IPLimit" }}</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ infoModal.clientSettings.limitIp ]]</span>
+            </template>
+            <template v-if="infoModal.clientSettings.comment">
+              <span class="wca-kv__k">{{ i18n "comment" }}</span>
+              <span class="wca-kv__v">[[ infoModal.clientSettings.comment ]]</span>
+            </template>
+          </div>
+
+          <div class="wca-subhead">{{ i18n "usage" }}</div>
+          <div class="wca-metrics">
+            <div class="wca-metric">
+              <span class="wca-metric__k">{{ i18n "remained" }}</span>
+              <span class="wca-metric__v" v-if="infoModal.clientStats && infoModal.clientSettings.totalGB > 0"
+                :class="'wca-metric__v--' + statsColor(infoModal.clientStats)">[[ getRemStats() ]]</span>
+              <span class="wca-metric__v" v-else>-</span>
+            </div>
+            <div class="wca-metric">
+              <span class="wca-metric__k">{{ i18n "pages.inbounds.totalFlow" }}</span>
+              <span class="wca-metric__v" v-if="infoModal.clientSettings.totalGB > 0"
+                :class="'wca-metric__v--' + statsColor(infoModal.clientStats)">[[
+                SizeFormatter.sizeFormat(infoModal.clientSettings.totalGB) ]]</span>
+              <span class="wca-metric__v wca-metric__v--purple" v-else>
+                <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
+                  <path
+                    d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
+                    fill="currentColor"></path>
+                </svg>
+              </span>
+            </div>
+            <div class="wca-metric">
+              <span class="wca-metric__k">{{ i18n "pages.inbounds.expireDate" }}</span>
+              <span class="wca-metric__v" v-if="infoModal.clientSettings.expiryTime > 0"
+                :class="'wca-metric__v--' + ColorUtils.usageColor(new Date().getTime(), app.expireDiff, infoModal.clientSettings.expiryTime)">[[
+                IntlUtil.formatDate(infoModal.clientSettings.expiryTime) ]]</span>
+              <span class="wca-metric__v wca-metric__v--green" v-else-if="infoModal.clientSettings.expiryTime < 0">[[
+                infoModal.clientSettings.expiryTime / -86400000 ]] {{ i18n "pages.client.days" }}</span>
+              <span class="wca-metric__v wca-metric__v--purple" v-else>
+                <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
+                  <path
+                    d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
+                    fill="currentColor"></path>
+                </svg>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- IP ACTIVITY ---------------------------------------------------- -->
+      <section class="wca-sec" v-if="app.ipLimitEnable && infoModal.clientSettings.limitIp > 0">
+        <div class="wca-sec__head">
+          <span class="wca-sec__title">{{ i18n "pages.inbounds.IPLimitlog" }}</span>
+          <span class="wca-sec__acts">
+            <a-icon type="sync" :spin="refreshing" @click="refreshIPs"></a-icon>
+            <a-tooltip>
+              <template slot="title">
+                <span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
+              </template>
+              <a-icon type="delete" @click="clearClientIps"></a-icon>
             </a-tooltip>
-          </tr-info-title>
-          <a :href="[[ infoModal.subLink ]]" target="_blank">[[
-            infoModal.subLink ]]</a>
-        </tr-info-row>
-        <tr-info-row class="tr-info-row" v-if="app.subSettings.subJsonEnable">
-          <tr-info-title class="tr-info-title">
-            <a-tag color="purple">Json Link</a-tag>
-            <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button size="small" icon="snippets" @click="copy(infoModal.subJsonLink)"></a-button>
-            </a-tooltip>
-          </tr-info-title>
-          <a :href="[[ infoModal.subJsonLink ]]" target="_blank">[[
-            infoModal.subJsonLink ]]</a>
-        </tr-info-row>
-      </template>
-      <template v-if="app.tgBotEnable && infoModal.clientSettings.tgId">
-        <a-divider>Telegram ChatID</a-divider>
-        <tr-info-row class="tr-info-row">
-          <tr-info-title class="tr-info-title">
-            <a-tag color="blue">[[ infoModal.clientSettings.tgId ]]</a-tag>
-            <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button size="small" icon="snippets" @click="copy(infoModal.clientSettings.tgId)"></a-button>
-            </a-tooltip>
-          </tr-info-title>
-        </tr-info-row>
-      </template>
-      <template v-if="dbInbound.hasLink()">
-        <a-divider>URL</a-divider>
-        <tr-info-row v-for="(link,index) in infoModal.links" class="tr-info-row">
-          <tr-info-title class="tr-info-title">
-            <a-tag class="tr-info-tag" color="green">[[ link.remark
-              ]]</a-tag>
-            <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button :style="{ minWidth: '24px' }" size="small" icon="snippets" @click="copy(link.link)"></a-button>
-            </a-tooltip>
-          </tr-info-title>
-          <code>[[ link.link ]]</code>
-        </tr-info-row>
-      </template>
+          </span>
+        </div>
+        <div class="wca-sec__body">
+          <div class="wca-log">
+            <template v-if="infoModal.clientIpsArray && infoModal.clientIpsArray.length > 0">
+              <div class="wca-log__row" v-for="(ipInfo, idx) in infoModal.clientIpsArray" :key="idx">
+                [[ formatIpInfo(ipInfo) ]]
+              </div>
+            </template>
+            <div class="wca-log__empty" v-else>[[ infoModal.clientIps || 'No IP Record' ]]</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONNECTION ------------------------------------------------------ -->
+      <section class="wca-sec"
+        v-if="(app.subSettings.enable && infoModal.clientSettings.subId) || (app.tgBotEnable && infoModal.clientSettings.tgId) || dbInbound.hasLink()">
+        <div class="wca-sec__head">
+          <span class="wca-sec__title">Connection</span>
+        </div>
+        <div class="wca-sec__body">
+          <template v-if="app.subSettings.enable && infoModal.clientSettings.subId">
+            <div class="wca-copyrow">
+              <span class="wca-copyrow__label">
+                <span>Subscription Link</span>
+                <a class="wca-act" :href="infoModal.subLink" target="_blank">
+                  <a-icon type="link"></a-icon>
+                  <span>Open</span>
+                </a>
+              </span>
+              <div class="wca-copyrow__field">
+                <code class="wca-code">[[ infoModal.subLink ]]</code>
+                <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                  @click="copy(infoModal.subLink)">
+                  <a-icon type="copy"></a-icon>
+                </button>
+              </div>
+            </div>
+            <div class="wca-copyrow" v-if="app.subSettings.subJsonEnable">
+              <span class="wca-copyrow__label">
+                <span>Json Link</span>
+                <a class="wca-act" :href="infoModal.subJsonLink" target="_blank">
+                  <a-icon type="link"></a-icon>
+                  <span>Open</span>
+                </a>
+              </span>
+              <div class="wca-copyrow__field">
+                <code class="wca-code">[[ infoModal.subJsonLink ]]</code>
+                <button type="button" class="wca-copy" title='{{ i18n "copy" }}' @click="copy(infoModal.subJsonLink)">
+                  <a-icon type="copy"></a-icon>
+                </button>
+              </div>
+            </div>
+          </template>
+          <template v-if="app.tgBotEnable && infoModal.clientSettings.tgId">
+            <div class="wca-copyrow">
+              <span class="wca-copyrow__label">Telegram ChatID</span>
+              <div class="wca-copyrow__field">
+                <code class="wca-code wca-code--inline">[[ infoModal.clientSettings.tgId ]]</code>
+                <button type="button" class="wca-copy" title='{{ i18n "copy" }}'
+                  @click="copy(infoModal.clientSettings.tgId)">
+                  <a-icon type="copy"></a-icon>
+                </button>
+              </div>
+            </div>
+          </template>
+          <template v-if="dbInbound.hasLink()">
+            <div class="wca-subhead">URL</div>
+            <div class="wca-copyrow" v-for="(link,index) in infoModal.links">
+              <span class="wca-copyrow__label">
+                <span class="wca-badge wca-badge--ok wca-badge--label">[[ link.remark ]]</span>
+              </span>
+              <div class="wca-copyrow__field">
+                <code class="wca-code">[[ link.link ]]</code>
+                <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                  @click="copy(link.link)">
+                  <a-icon type="copy"></a-icon>
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </section>
     </template>
+
+    <!-- INBOUND-LEVEL PROTOCOLS ------------------------------------------ -->
     <template v-else>
-      <template v-if="dbInbound.isSS && !inbound.isSSMultiUser">
-        <a-divider>URL</a-divider>
-        <tr-info-row v-for="(link,index) in infoModal.links" class="tr-info-row">
-          <tr-info-title class="tr-info-title">
-            <a-tag class="tr-info-tag" color="green">[[ link.remark
-              ]]</a-tag>
-            <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button :style="{ minWidth: '24px' }" size="small" icon="snippets" @click="copy(link.link)"></a-button>
-            </a-tooltip>
-          </tr-info-title>
-          <code>[[ link.link ]]</code>
-        </tr-info-row>
+      <section class="wca-sec" v-if="dbInbound.isSS && !inbound.isSSMultiUser">
+        <div class="wca-sec__head">
+          <span class="wca-sec__title">URL</span>
+        </div>
+        <div class="wca-sec__body">
+          <div class="wca-copyrow" v-for="(link,index) in infoModal.links">
+            <span class="wca-copyrow__label">
+              <span class="wca-badge wca-badge--ok wca-badge--label">[[ link.remark ]]</span>
+            </span>
+            <div class="wca-copyrow__field">
+              <code class="wca-code">[[ link.link ]]</code>
+              <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                @click="copy(link.link)">
+                <a-icon type="copy"></a-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="wca-sec" v-if="inbound.protocol == Protocols.TUNNEL">
+        <div class="wca-sec__head">
+          <span class="wca-sec__title">{{ i18n "pages.inbounds.targetAddress" }}</span>
+        </div>
+        <div class="wca-sec__body">
+          <div class="wca-kv wca-kv--pair">
+            <span class="wca-kv__k">{{ i18n "pages.inbounds.targetAddress" }}</span>
+            <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.address ]]</span>
+            <span class="wca-kv__k">{{ i18n "pages.inbounds.destinationPort" }}</span>
+            <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.port ]]</span>
+            <span class="wca-kv__k">{{ i18n "pages.inbounds.network" }}</span>
+            <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.network ]]</span>
+            <span class="wca-kv__k">FollowRedirect</span>
+            <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.followRedirect ]]</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="wca-sec" v-if="dbInbound.isMixed">
+        <div class="wca-sec__head">
+          <span class="wca-sec__title">{{ i18n "password" }} Auth</span>
+        </div>
+        <div class="wca-sec__body">
+          <div class="wca-kv wca-kv--pair">
+            <span class="wca-kv__k">{{ i18n "password" }} Auth</span>
+            <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.auth ]]</span>
+            <span class="wca-kv__k">{{ i18n "pages.inbounds.enable" }} udp</span>
+            <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.udp]]</span>
+            <span class="wca-kv__k">IP</span>
+            <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.ip ]]</span>
+          </div>
+          <template v-if="inbound.settings.auth == 'password'">
+            <div class="wca-subhead">{{ i18n "username" }} / {{ i18n "password" }}</div>
+            <div class="wca-kv wca-kv--pair">
+              <template v-for="account,index in inbound.settings.accounts">
+                <span class="wca-kv__k">[[ index ]] {{ i18n "username" }}</span>
+                <span class="wca-kv__v wca-kv__v--mono">[[ account.user ]]</span>
+                <span class="wca-kv__k">{{ i18n "password" }}</span>
+                <code class="wca-code wca-code--inline wca-code--secret">[[ account.pass ]]</code>
+              </template>
+            </div>
+          </template>
+        </div>
+      </section>
+
+      <section class="wca-sec" v-if="dbInbound.isHTTP">
+        <div class="wca-sec__head">
+          <span class="wca-sec__title">{{ i18n "username" }} / {{ i18n "password" }}</span>
+        </div>
+        <div class="wca-sec__body">
+          <div class="wca-kv wca-kv--pair">
+            <template v-for="account,index in inbound.settings.accounts">
+              <span class="wca-kv__k">[[ index ]] {{ i18n "username" }}</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ account.user ]]</span>
+              <span class="wca-kv__k">{{ i18n "password" }}</span>
+              <code class="wca-code wca-code--inline wca-code--secret">[[ account.pass ]]</code>
+            </template>
+          </div>
+        </div>
+      </section>
+
+      <template v-if="dbInbound.isWireguard">
+        <section class="wca-sec">
+          <div class="wca-sec__head">
+            <span class="wca-sec__title">{{ i18n "pages.xray.wireguard.publicKey" }}</span>
+          </div>
+          <div class="wca-sec__body">
+            <div class="wca-kv">
+              <span class="wca-kv__k">{{ i18n "pages.xray.wireguard.secretKey" }}</span>
+              <code class="wca-code wca-code--inline wca-code--secret">[[ inbound.settings.secretKey ]]</code>
+              <span class="wca-kv__k">{{ i18n "pages.xray.wireguard.publicKey" }}</span>
+              <code class="wca-code wca-code--inline">[[ inbound.settings.pubKey ]]</code>
+              <span class="wca-kv__k">MTU</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.mtu ]]</span>
+              <span class="wca-kv__k">No Kernel Tun</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ inbound.settings.noKernelTun ]]</span>
+            </div>
+          </div>
+        </section>
+        <section class="wca-sec" v-for="(peer, index) in inbound.settings.peers">
+          <div class="wca-sec__head">
+            <span class="wca-sec__title">Peer [[ index + 1 ]]</span>
+          </div>
+          <div class="wca-sec__body">
+            <div class="wca-kv">
+              <span class="wca-kv__k">{{ i18n "pages.xray.wireguard.secretKey" }}</span>
+              <code class="wca-code wca-code--inline wca-code--secret">[[ peer.privateKey ]]</code>
+              <span class="wca-kv__k">{{ i18n "pages.xray.wireguard.publicKey" }}</span>
+              <code class="wca-code wca-code--inline">[[ peer.publicKey ]]</code>
+              <span class="wca-kv__k">{{ i18n "pages.xray.wireguard.psk" }}</span>
+              <code class="wca-code wca-code--inline wca-code--secret">[[ peer.psk ]]</code>
+              <span class="wca-kv__k">{{ i18n "pages.xray.wireguard.allowedIPs" }}</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ peer.allowedIPs.join(",") ]]</span>
+              <span class="wca-kv__k">Keep Alive</span>
+              <span class="wca-kv__v wca-kv__v--mono">[[ peer.keepAlive ]]</span>
+            </div>
+            <div class="wca-subhead">Config</div>
+            <div class="wca-copyrow">
+              <span class="wca-copyrow__label">peer-[[ index + 1 ]].conf</span>
+              <div class="wca-copyrow__field">
+                <code class="wca-code wca-code--block">[[ infoModal.links[index] ]]</code>
+                <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                  @click="copy(infoModal.links[index])">
+                  <a-icon type="copy"></a-icon>
+                </button>
+              </div>
+              <div class="wca-acts">
+                <button type="button" class="wca-act"
+                  @click="FileManager.downloadTextFile(infoModal.links[index], `peer-${index + 1}.conf`)">
+                  <a-icon type="download"></a-icon>
+                  <span>{{ i18n "download" }}</span>
+                </button>
+              </div>
+            </div>
+            <div class="wca-copyrow">
+              <span class="wca-copyrow__label">Link</span>
+              <div class="wca-copyrow__field">
+                <code class="wca-code">[[ infoModal.wireguardLinks[index] ]]</code>
+                <button type="button" class="wca-copy" title='{{ i18n "copy" }}'
+                  @click="copy(infoModal.wireguardLinks[index])">
+                  <a-icon type="copy"></a-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
       </template>
-      <table v-if="inbound.protocol == Protocols.TUNNEL" class="tr-info-table">
-        <tr>
-          <th>{{ i18n "pages.inbounds.targetAddress" }}</th>
-          <th>{{ i18n "pages.inbounds.destinationPort" }}</th>
-          <th>{{ i18n "pages.inbounds.network" }}</th>
-          <th>FollowRedirect</th>
-        </tr>
-        <tr>
-          <td>
-            <a-tag color="green">[[ inbound.settings.address ]]</a-tag>
-          </td>
-          <td>
-            <a-tag color="green">[[ inbound.settings.port ]]</a-tag>
-          </td>
-          <td>
-            <a-tag color="green">[[ inbound.settings.network ]]</a-tag>
-          </td>
-          <td>
-            <a-tag color="green">[[ inbound.settings.followRedirect
-              ]]</a-tag>
-          </td>
-        </tr>
-      </table>
-      <table v-if="dbInbound.isMixed" class="tr-info-table">
-        <tr>
-          <th>{{ i18n "password" }} Auth</th>
-          <th>{{ i18n "pages.inbounds.enable" }} udp</th>
-          <th>IP</th>
-        </tr>
-        <tr>
-          <td>
-            <a-tag color="green">[[ inbound.settings.auth ]]</a-tag>
-          </td>
-          <td>
-            <a-tag color="green">[[ inbound.settings.udp]]</a-tag>
-          </td>
-          <td>
-            <a-tag color="green">[[ inbound.settings.ip ]]</a-tag>
-          </td>
-        </tr>
-        <template v-if="inbound.settings.auth == 'password'">
-          <tr>
-            <td></td>
-            <td>{{ i18n "username" }}</td>
-            <td>{{ i18n "password" }}</td>
-          </tr>
-          <tr v-for="account,index in inbound.settings.accounts">
-            <td>[[ index ]]</td>
-            <td>
-              <a-tag color="green">[[ account.user ]]</a-tag>
-            </td>
-            <td>
-              <a-tag color="green">[[ account.pass ]]</a-tag>
-            </td>
-          </tr>
-        </template>
-      </table>
-      <table v-if="dbInbound.isHTTP" class="tr-info-table">
-        <tr>
-          <th></th>
-          <th>{{ i18n "username" }}</th>
-          <th>{{ i18n "password" }}</th>
-        </tr>
-        <tr v-for="account,index in inbound.settings.accounts">
-          <td>[[ index ]]</td>
-          <td>
-            <a-tag color="green">[[ account.user ]]</a-tag>
-          </td>
-          <td>
-            <a-tag color="green">[[ account.pass ]]</a-tag>
-          </td>
-        </tr>
-      </table>
-      <table v-if="dbInbound.isWireguard" class="tr-info-table">
-        <tr class="client-table-odd-row">
-          <td>{{ i18n "pages.xray.wireguard.secretKey" }}</td>
-          <td>[[ inbound.settings.secretKey ]]</td>
-        </tr>
-        <tr>
-          <td>{{ i18n "pages.xray.wireguard.publicKey" }}</td>
-          <td>[[ inbound.settings.pubKey ]]</td>
-        </tr>
-        <tr class="client-table-odd-row">
-          <td>MTU</td>
-          <td>[[ inbound.settings.mtu ]]</td>
-        </tr>
-        <tr>
-          <td>No Kernel Tun</td>
-          <td>[[ inbound.settings.noKernelTun ]]</td>
-        </tr>
-        <template v-for="(peer, index) in inbound.settings.peers">
-          <tr>
-            <td colspan="2">
-              <a-divider>Peer [[ index + 1 ]]</a-divider>
-            </td>
-          </tr>
-          <tr class="client-table-odd-row">
-            <td>{{ i18n "pages.xray.wireguard.secretKey" }}</td>
-            <td>[[ peer.privateKey ]]</td>
-          </tr>
-          <tr>
-            <td>{{ i18n "pages.xray.wireguard.publicKey" }}</td>
-            <td>[[ peer.publicKey ]]</td>
-          </tr>
-          <tr class="client-table-odd-row">
-            <td>{{ i18n "pages.xray.wireguard.psk" }}</td>
-            <td>[[ peer.psk ]]</td>
-          </tr>
-          <tr>
-            <td>{{ i18n "pages.xray.wireguard.allowedIPs" }}</td>
-            <td>[[ peer.allowedIPs.join(",") ]]</td>
-          </tr>
-          <tr class="client-table-odd-row">
-            <td>Keep Alive</td>
-            <td>[[ peer.keepAlive ]]</td>
-          </tr>
-          <tr>
-            <td colspan="2">
-              <tr-info-row class="tr-info-row">
-                <tr-info-title class="tr-info-title">
-                  <a-tag color="blue">Config</a-tag>
-                  <a-tooltip title='{{ i18n "copy" }}'>
-                    <a-button :style="{ minWidth: '24px' }" size="small" icon="snippets"
-                      @click="copy(infoModal.links[index])"></a-button>
-                  </a-tooltip>
-                  <a-tooltip title='{{ i18n "download" }}'>
-                    <a-button :style="{ minWidth: '24px' }" size="small" icon="download"
-                      @click="FileManager.downloadTextFile(infoModal.links[index], `peer-${index + 1}.conf`)"></a-button>
-                  </a-tooltip>
-                </tr-info-title>
-                <div v-html="infoModal.links[index].replaceAll(`\n`,`<br />`)"
-                  :style="{ borderRadius: '1rem', padding: '0.5rem' }" class="client-table-odd-row">
-                </div>
-                <a-divider orientation="center">Link</a-divider>
-                <tr-info-title class="tr-info-title">
-                  <a-tag color="green">Link</a-tag>
-                  <a-tooltip title='{{ i18n "copy" }}'>
-                    <a-button :style="{ minWidth: '24px' }" size="small" icon="snippets"
-                      @click="copy(infoModal.wireguardLinks[index])"></a-button>
-                  </a-tooltip>
-                </tr-info-title>
-                <code :style="{ display: 'block', whiteSpace: 'normal', wordBreak: 'break-all' }">[[ infoModal.wireguardLinks[index] ]]</code>
-              </tr-info-row>
-            </td>
-          </tr>
-        </template>
-      </table>
     </template>
-    </template>
+  </div>
 </a-modal>
 <script>
   function refreshIPs(email) {

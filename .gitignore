@@ -54,14 +54,25 @@ corebundle/core/*
 !corebundle/core/.gitkeep
 
 # Runtime state + local working dirs (regenerate on run/test — never commit).
-# vpn-ui.db holds panel credentials; the old x-ui.db rule missed it post-rebrand.
+# vpn-ui.db / wild-panel.db hold panel credentials; SQLite sidecars stay local too.
 /vpn-ui.db
+/vpn-ui.db-shm
+/vpn-ui.db-wal
+/wild-panel.db
+/wild-panel.db-shm
+/wild-panel.db-wal
 /bino/
 /host_logs/
 /test_unit/test_subject/
 /test_unit/results/
 __pycache__/
 *.pyc
+
+# Local UI harness scratch, probe reports, and screenshot dumps (root only).
+/.tmp-*
+
+# Local backup of the Go preview helper — keep on disk, never commit.
+/web/dev_preview.go.bak
 
 # Local-only project notes — keep on disk, never commit.
 /MEMORY.md

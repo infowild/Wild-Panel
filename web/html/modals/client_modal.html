@@ -1,8 +1,13 @@
 {{define "modals/clientsModal"}}
+<!--
+    The `:title` prop is deliberately absent: ant-design-vue 1.x renders the
+    prop in preference to the slot, so a title="" dialog is the only way the
+    custom header below gets drawn at all. clientModal.title is printed inside
+    it, so the caller's API is unchanged.
+-->
 <a-modal
     id="client-modal"
     v-model="clientModal.visible"
-    :title="clientModal.title"
     @ok="clientModal.ok"
     :confirm-loading="clientModal.confirmLoading"
     :closable="true"
@@ -11,8 +16,38 @@
     :ok-text="clientModal.okText"
     cancel-text='{{ i18n "close" }}'
 >
+    <template slot="title">
+        <div class="wpc-head">
+            <div class="wpc-head__id">
+                <span class="wpc-head__title">[[ clientModal.title ]]</span>
+                <!-- The account being worked on, as soon as there is one to
+                     name; the scope of the dialog until then. -->
+                <span class="wpc-head__sub" v-if="client && client.email"
+                    >[[ client.email ]]</span
+                >
+                <span class="wpc-head__sub" v-else
+                    >Identity, access, quota and lifecycle</span
+                >
+            </div>
+            <!-- Enable is here rather than in the form because it is the one
+                 setting an operator should be able to see and flip without
+                 scrolling. form/client still declares the same switch for the
+                 inbound dialog, which has no header of its own to hold it;
+                 #client-modal hides that row (.wcl-enable in ant-bridge.css).
+                 Both bind client.enable, so they cannot disagree. -->
+            <div class="wpc-head__aside" v-if="client">
+                <span class="wpc-head__toggle">
+                    <span class="wpc-head__toggle-label"
+                        >{{ i18n "pages.inbounds.enable" }}</span
+                    >
+                    <a-switch v-model="client.enable"></a-switch>
+                </span>
+            </div>
+        </div>
+    </template>
     <template v-if="isEdit">
         <a-tag
+            class="wcl-alert"
             v-if="isExpiry || isTrafficExhausted"
             color="red"
             :style="{ marginBottom: '10px', display: 'block', textAlign: 'center' }"

@@ -1,8 +1,23 @@
 {{define "modals/textModal"}}
-<a-modal id="text-modal" v-model="txtModal.visible" :title="txtModal.title" :closable="true"
+<a-modal id="text-modal" v-model="txtModal.visible" :closable="true"
     :class="themeSwitcher.currentTheme">
-    <a-input :style="{ overflowY: 'auto' }" type="textarea" v-model="txtModal.content"
-        :autosize="{ minRows: 10, maxRows: 20}"></a-input>
+    <template slot="title">
+        <div class="wca-head">
+            <div class="wca-head__id">
+                <span class="wca-head__title">[[ txtModal.title ]]</span>
+                <span class="wca-head__sub" v-if="!ObjectUtil.isEmpty(txtModal.fileName)">[[ txtModal.fileName
+                    ]]</span>
+            </div>
+        </div>
+    </template>
+    <div class="wca">
+        <section class="wca-sec">
+            <div class="wca-sec__body">
+                <a-input :style="{ overflowY: 'auto' }" type="textarea" v-model="txtModal.content"
+                    :autosize="{ minRows: 10, maxRows: 20}"></a-input>
+            </div>
+        </section>
+    </div>
     <template slot="footer">
         <a-button v-if="!ObjectUtil.isEmpty(txtModal.fileName)" icon="download"
             @click="FileManager.downloadTextFile(txtModal.content, txtModal.fileName)">

@@ -1,68 +1,88 @@
 {{define "modals/sshConfigModal"}}
-<a-modal id="ssh-config-modal" v-model="sshConfigModal.visible" :title="sshConfigModal.title"
+<a-modal id="ssh-config-modal" v-model="sshConfigModal.visible"
   :closable="true" :mask-closable="true" :class="themeSwitcher.currentTheme" :footer="null" :width="640">
+  <template slot="title">
+    <div class="wca-head">
+      <div class="wca-head__id">
+        <span class="wca-head__title">SSH Config</span>
+        <span class="wca-head__sub">[[ sshConfigModal.email ]]</span>
+      </div>
+      <div class="wca-head__aside">
+        <span class="wca-badge wca-badge--accent">ssh</span>
+      </div>
+    </div>
+  </template>
   <a-spin :spinning="sshConfigModal.loading">
-    <div v-if="!sshConfigModal.loading && sshConfigModal.configs.length === 0"
-      :style="{ color: '#888', textAlign: 'center', padding: '24px' }">
-      No SSH configuration is available for this account yet.
-    </div>
-    <div v-for="(cfg, index) in sshConfigModal.configs" :key="index" class="ssh-cfg-item">
-      <div class="ssh-cfg-head">
-        <b>SSH Config</b>
-        <a-tag v-if="cfg.remark" color="blue" :style="{ marginInlineStart: '8px' }">[[ cfg.remark ]]</a-tag>
+    <div class="wca">
+      <div class="wca-empty" v-if="!sshConfigModal.loading && sshConfigModal.configs.length === 0">
+        No SSH configuration is available for this account yet.
       </div>
-      <div class="ssh-cfg-body">
-        <div class="ssh-cfg-text">
-          <div v-if="cfg.link" :style="{ color: '#888', fontSize: '12px', marginBottom: '4px' }">Share link (scan or import)</div>
-          <a-input v-if="cfg.link" :value="cfg.link" read-only
-            :style="{ fontFamily: 'monospace', fontSize: '12px', marginBottom: '12px' }">
-            <a-icon v-if="cfg.link" slot="addonAfter" type="copy" :style="{ cursor: 'pointer' }" @click="copy(cfg.link)"></a-icon>
-          </a-input>
-          <div :style="{ color: '#888', fontSize: '12px', marginBottom: '4px' }">Connection details</div>
-          <a-textarea :value="cfg.plain" read-only :auto-size="{ minRows: 4, maxRows: 12 }"
-            :style="{ fontFamily: 'monospace', fontSize: '12px' }"></a-textarea>
-          <a-space :style="{ marginTop: '8px' }">
-            <a-button size="small" @click="copy(cfg.plain)">
-              <a-icon type="copy"></a-icon> Copy
-            </a-button>
-            <a-button size="small" @click="download(cfg, 'plain')">
-              <a-icon type="download"></a-icon> Download
-            </a-button>
-          </a-space>
-
-          <div :style="{ color: '#888', fontSize: '12px', margin: '12px 0 4px' }">sing-box outbound</div>
-          <a-textarea :value="cfg.singbox" read-only :auto-size="{ minRows: 6, maxRows: 20 }"
-            :style="{ fontFamily: 'monospace', fontSize: '12px' }"></a-textarea>
-          <a-space :style="{ marginTop: '8px' }">
-            <a-button size="small" @click="copy(cfg.singbox)">
-              <a-icon type="copy"></a-icon> Copy
-            </a-button>
-            <a-button size="small" @click="download(cfg, 'singbox')">
-              <a-icon type="download"></a-icon> Download
-            </a-button>
-          </a-space>
+      <template v-for="(cfg, index) in sshConfigModal.configs">
+        <div class="wca-card" :key="index">
+          <div class="wca-card__qr">
+            <div class="wca-qr wca-qr--sm">
+              <canvas :id="'sshQr-' + index" class="qr-cv" @click="copy(cfg.link || cfg.plain)"></canvas>
+            </div>
+          </div>
+          <div class="wca-card__info">
+            <div class="wca-card__head">
+              <span class="wca-badge wca-badge--label" v-if="cfg.remark">[[ cfg.remark ]]</span>
+            </div>
+            <div class="wca-copyrow" v-if="cfg.link">
+              <span class="wca-copyrow__label">Share link (scan or import)</span>
+              <div class="wca-copyrow__field">
+                <code class="wca-code">[[ cfg.link ]]</code>
+                <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                  @click="copy(cfg.link)">
+                  <a-icon type="copy"></a-icon>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="ssh-cfg-qr">
-          <canvas :id="'sshQr-' + index" @click="copy(cfg.link || cfg.plain)"></canvas>
-        </div>
-      </div>
+        <section class="wca-sec" :key="'d' + index">
+          <div class="wca-sec__head">
+            <span class="wca-sec__title">Connection details</span>
+          </div>
+          <div class="wca-sec__body">
+            <div class="wca-copyrow">
+              <span class="wca-copyrow__label">Plain</span>
+              <div class="wca-copyrow__field">
+                <code class="wca-code wca-code--block">[[ cfg.plain ]]</code>
+                <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                  @click="copy(cfg.plain)">
+                  <a-icon type="copy"></a-icon>
+                </button>
+              </div>
+              <div class="wca-acts">
+                <button type="button" class="wca-act" @click="download(cfg, 'plain')">
+                  <a-icon type="download"></a-icon>
+                  <span>{{ i18n "download" }}</span>
+                </button>
+              </div>
+            </div>
+            <div class="wca-copyrow">
+              <span class="wca-copyrow__label">sing-box outbound</span>
+              <div class="wca-copyrow__field">
+                <code class="wca-code wca-code--block">[[ cfg.singbox ]]</code>
+                <button type="button" class="wca-copy" title='{{ i18n "copy" }}' @click="copy(cfg.singbox)">
+                  <a-icon type="copy"></a-icon>
+                </button>
+              </div>
+              <div class="wca-acts">
+                <button type="button" class="wca-act" @click="download(cfg, 'singbox')">
+                  <a-icon type="download"></a-icon>
+                  <span>{{ i18n "download" }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </template>
+      {{ template "component/aSubBlock" "ssh" }}
     </div>
-    {{ template "component/aSubBlock" "ssh" }}
   </a-spin>
 </a-modal>
-
-<style>
-  .ssh-cfg-item { padding: 14px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.2); }
-  .ssh-cfg-item:last-child { border-bottom: none; }
-  .ssh-cfg-head { margin-bottom: 8px; }
-  .ssh-cfg-body { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
-  .ssh-cfg-text { flex: 1 1 300px; min-width: 260px; }
-  .ssh-cfg-qr { flex: 0 0 auto; }
-  .ssh-cfg-qr canvas {
-    width: 172px; height: 172px; cursor: pointer;
-    background: #fff; border-radius: 8px; padding: 6px;
-  }
-</style>
 
 <script>
   const sshConfigModal = {

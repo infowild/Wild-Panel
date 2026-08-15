@@ -1802,24 +1802,6 @@ html[data-theme-animations='off'] .log-live-dot { animation:none; }
 .log-msg { color:var(--text); }
 .log-empty { color:var(--text-3); padding:6px 0; }
 
-/* Subscription block inside the per-protocol config modals (component/aSubBlock).
-   Same two-column shape as the config rows those modals already use: text on the
-   left, QR on the right, wrapping to one column when there is no room. The QR keeps
-   a white plate in both themes because that is what scanners need. */
-.cfg-sub-block {
-  padding:14px 0;
-  border-block-start:1px solid var(--border);
-  margin-block-start:4px;
-}
-.cfg-sub-head { margin-block-end:8px; }
-.cfg-sub-body { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; }
-.cfg-sub-text { flex:1 1 300px; min-width:260px; }
-.cfg-sub-qr { flex:0 0 auto; display:flex; gap:8px; }
-.cfg-sub-qr canvas {
-  width:172px; height:172px; cursor:pointer;
-  background:#fff; border-radius:var(--radius-sm); padding:6px;
-}
-
 /* ================================================================== *
  * Inbounds operational workspace (.inbounds-page)
  *

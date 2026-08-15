@@ -1,51 +1,55 @@
 {{define "modals/awgConfigModal"}}
-<a-modal id="awg-config-modal" v-model="awgConfigModal.visible" :title="awgConfigModal.title"
+<a-modal id="awg-config-modal" v-model="awgConfigModal.visible"
   :closable="true" :mask-closable="true" :class="themeSwitcher.currentTheme" :footer="null" :width="640">
+  <template slot="title">
+    <div class="wca-head">
+      <div class="wca-head__id">
+        <span class="wca-head__title">AmneziaWG Config</span>
+        <span class="wca-head__sub">[[ awgConfigModal.email ]]</span>
+      </div>
+      <div class="wca-head__aside">
+        <span class="wca-badge wca-badge--accent">amneziawg</span>
+      </div>
+    </div>
+  </template>
   <a-spin :spinning="awgConfigModal.loading">
-    <div v-if="!awgConfigModal.loading && awgConfigModal.devices.length === 0"
-      :style="{ color: '#888', textAlign: 'center', padding: '24px' }">
-      No AmneziaWG configuration is available for this account yet.
-    </div>
-    <div v-for="(dev, index) in awgConfigModal.devices" :key="index" class="wg-cfg-device">
-      <div class="wg-cfg-head">
-        <b>AmneziaWG Config</b>
-        <a-tag color="green" :style="{ marginInlineStart: '8px' }">[[ dev.ip ]]</a-tag>
-        <a-tag v-if="dev.remark" color="blue" :style="{ marginInlineStart: '8px' }">[[ dev.remark ]]</a-tag>
+    <div class="wca">
+      <div class="wca-empty" v-if="!awgConfigModal.loading && awgConfigModal.devices.length === 0">
+        No AmneziaWG configuration is available for this account yet.
       </div>
-      <div class="wg-cfg-body">
-        <div class="wg-cfg-text">
-          <a-textarea :value="dev.config" read-only :auto-size="{ minRows: 8, maxRows: 20 }"
-            :style="{ fontFamily: 'monospace', fontSize: '12px' }"></a-textarea>
-          <a-space :style="{ marginTop: '8px' }">
-            <a-button size="small" @click="copy(dev.config)">
-              <a-icon type="copy"></a-icon> Copy
-            </a-button>
-            <a-button size="small" @click="download(dev)">
-              <a-icon type="download"></a-icon> Download
-            </a-button>
-          </a-space>
+      <div v-for="(dev, index) in awgConfigModal.devices" :key="index" class="wca-card">
+        <div class="wca-card__qr">
+          <div class="wca-qr wca-qr--sm">
+            <canvas :id="'awgQr-' + index" class="qr-cv" @click="copy(dev.config)"></canvas>
+          </div>
         </div>
-        <div class="wg-cfg-qr">
-          <canvas :id="'awgQr-' + index" @click="copy(dev.config)"></canvas>
+        <div class="wca-card__info">
+          <div class="wca-card__head">
+            <span class="wca-badge wca-badge--ok">[[ dev.ip ]]</span>
+            <span class="wca-badge wca-badge--label" v-if="dev.remark">[[ dev.remark ]]</span>
+          </div>
+          <div class="wca-copyrow">
+            <span class="wca-copyrow__label">Tunnel profile</span>
+            <div class="wca-copyrow__field">
+              <code class="wca-code wca-code--block">[[ dev.config ]]</code>
+              <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                @click="copy(dev.config)">
+                <a-icon type="copy"></a-icon>
+              </button>
+            </div>
+            <div class="wca-acts">
+              <button type="button" class="wca-act" @click="download(dev)">
+                <a-icon type="download"></a-icon>
+                <span>{{ i18n "download" }}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+      {{ template "component/aSubBlock" "awg" }}
     </div>
-    {{ template "component/aSubBlock" "awg" }}
   </a-spin>
 </a-modal>
-
-<style>
-  .wg-cfg-device { padding: 14px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.2); }
-  .wg-cfg-device:last-child { border-bottom: none; }
-  .wg-cfg-head { margin-bottom: 8px; }
-  .wg-cfg-body { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
-  .wg-cfg-text { flex: 1 1 300px; min-width: 260px; }
-  .wg-cfg-qr { flex: 0 0 auto; }
-  .wg-cfg-qr canvas {
-    width: 172px; height: 172px; cursor: pointer;
-    background: #fff; border-radius: 8px; padding: 6px;
-  }
-</style>
 
 <script>
   const awgConfigModal = {

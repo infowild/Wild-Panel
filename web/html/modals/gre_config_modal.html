@@ -8,100 +8,103 @@
   recipe, both rendered server-side so what the operator reads is exactly what the data
   plane built.
 -->
-<a-modal id="gre-config-modal" v-model="greConfigModal.visible" :title="greConfigModal.title"
-         :closable="true" :mask-closable="false" :footer="null" width="720px" class="gre-cfg-modal">
+<a-modal id="gre-config-modal" v-model="greConfigModal.visible"
+         :closable="true" :mask-closable="false" :footer="null" width="720px"
+         :class="['gre-cfg-modal', themeSwitcher.currentTheme]">
+  <template slot="title">
+    <div class="wca-head">
+      <div class="wca-head__id">
+        <span class="wca-head__title">GRE Setup</span>
+        <span class="wca-head__sub">[[ greConfigModal.email ]]</span>
+      </div>
+      <div class="wca-head__aside">
+        <span class="wca-badge wca-badge--accent">gre</span>
+      </div>
+    </div>
+  </template>
   <a-spin :spinning="greConfigModal.loading">
-    <div v-if="!greConfigModal.loading && greConfigModal.peers.length === 0"
-         :style="{ padding: '24px 0', textAlign: 'center', color: '#888' }">
-      This account has no peer slots yet. Add the customer's router IP on the client, or
-      leave it blank for a dynamic address, then save the inbound.
-    </div>
-    <div v-for="(peer, index) in greConfigModal.peers" :key="index" class="gre-cfg-peer">
-      <a-divider v-if="greConfigModal.peers.length > 1">
-        [[ peer.remark || ('Peer ' + (peer.peerIndex + 1)) ]]
-      </a-divider>
-      <a-row :gutter="8" :style="{ marginBottom: '8px' }">
-        <a-col :xs="24" :md="12" :style="{ marginBottom: '8px' }">
-          <div :style="{ marginBottom: '4px', color: '#888' }">Server address (their "remote")</div>
-          <a-input :value="peer.serverIp" read-only @click="copy(peer.serverIp)"></a-input>
-        </a-col>
-        <a-col :xs="24" :md="12" :style="{ marginBottom: '8px' }">
-          <div :style="{ marginBottom: '4px', color: '#888' }">Their tunnel address</div>
-          <a-input :value="peer.innerIp" read-only @click="copy(peer.innerIp)"></a-input>
-        </a-col>
-        <a-col :xs="24" :md="12" :style="{ marginBottom: '8px' }">
-          <div :style="{ marginBottom: '4px', color: '#888' }">Gateway (their default route)</div>
-          <a-input :value="peer.gatewayIp" read-only @click="copy(peer.gatewayIp)"></a-input>
-        </a-col>
-        <a-col :xs="24" :md="12" :style="{ marginBottom: '8px' }">
-          <div :style="{ marginBottom: '4px', color: '#888' }">Their public IP</div>
-          <a-input
-            :value="peer.dynamic ? 'dynamic (learned)' : peer.peerIp"
-            read-only
-          ></a-input>
-        </a-col>
-      </a-row>
-      <a-alert
-        v-if="peer.mode === 'raw'"
-        type="warning"
-        show-icon
-        :style="{ marginBottom: '8px' }"
-        message="Unencrypted: this tunnel carries cleartext."
-      ></a-alert>
-      <a-alert
-        v-else-if="peer.mode === 'ipsec'"
-        type="success"
-        show-icon
-        :style="{ marginBottom: '8px' }"
-        message="IPsec required: bare GRE from this customer will be dropped."
-      ></a-alert>
-      <a-alert
-        v-else
-        type="info"
-        show-icon
-        :style="{ marginBottom: '8px' }"
-        message="IPsec optional: both encrypted and bare GRE are accepted."
-      ></a-alert>
-      <a-form-item v-if="peer.ipsecPsk" :style="{ marginBottom: '8px' }">
-        <div :style="{ marginBottom: '4px', color: '#888' }">IPsec pre-shared key</div>
-        <a-input :value="peer.ipsecPsk" read-only @click="copy(peer.ipsecPsk)"></a-input>
-      </a-form-item>
-      <!-- One section per platform rather than a single blob: the customer runs exactly one
-           of them, and RouterOS syntax pasted into a shell (or the reverse) fails in ways
-           that look like the tunnel is broken. -->
-      <div :style="{ marginBottom: '4px', color: '#888' }">
-        MikroTik RouterOS setup (click to copy)
+    <div class="wca">
+      <div class="wca-empty" v-if="!greConfigModal.loading && greConfigModal.peers.length === 0">
+        This account has no peer slots yet. Add the customer's router IP on the client, or
+        leave it blank for a dynamic address, then save the inbound.
       </div>
-      <a-textarea
-        :value="peer.configMikrotik"
-        read-only
-        :auto-size="{ minRows: 6, maxRows: 22 }"
-        @click="copy(peer.configMikrotik)"
-        :style="{ fontFamily: 'monospace', fontSize: '12px' }"
-      ></a-textarea>
-      <a-button
-        type="primary"
-        :style="{ marginTop: '8px' }"
-        @click="download(peer, 'mikrotik')"
-      >Download .txt</a-button>
-
-      <div :style="{ margin: '16px 0 4px', color: '#888' }">
-        Linux setup (click to copy)
-      </div>
-      <a-textarea
-        :value="peer.configLinux"
-        read-only
-        :auto-size="{ minRows: 6, maxRows: 22 }"
-        @click="copy(peer.configLinux)"
-        :style="{ fontFamily: 'monospace', fontSize: '12px' }"
-      ></a-textarea>
-      <a-button
-        type="primary"
-        :style="{ marginTop: '8px' }"
-        @click="download(peer, 'linux')"
-      >Download .txt</a-button>
+      <section v-for="(peer, index) in greConfigModal.peers" :key="index" class="wca-sec">
+        <div class="wca-sec__head">
+          <span class="wca-sec__title">[[ peer.remark || ('Peer ' + (peer.peerIndex + 1)) ]]</span>
+          <span class="wca-badge wca-badge--warn" v-if="peer.mode === 'raw'">unencrypted</span>
+          <span class="wca-badge wca-badge--ok" v-else-if="peer.mode === 'ipsec'">ipsec required</span>
+          <span class="wca-badge wca-badge--info" v-else>ipsec optional</span>
+        </div>
+        <div class="wca-sec__body">
+          <div class="wca-kv wca-kv--pair">
+            <span class="wca-kv__k">Server address</span>
+            <span class="wca-kv__v wca-kv__v--mono wca-kv__v--copy" @click="copy(peer.serverIp)">[[ peer.serverIp
+              ]]</span>
+            <span class="wca-kv__k">Tunnel address</span>
+            <span class="wca-kv__v wca-kv__v--mono wca-kv__v--copy" @click="copy(peer.innerIp)">[[ peer.innerIp
+              ]]</span>
+            <span class="wca-kv__k">Gateway</span>
+            <span class="wca-kv__v wca-kv__v--mono wca-kv__v--copy" @click="copy(peer.gatewayIp)">[[ peer.gatewayIp
+              ]]</span>
+            <span class="wca-kv__k">Their public IP</span>
+            <span class="wca-kv__v wca-kv__v--mono">[[ peer.dynamic ? 'dynamic (learned)' : peer.peerIp ]]</span>
+          </div>
+          <a-alert v-if="peer.mode === 'raw'" type="warning" show-icon :style="{ marginTop: '14px' }"
+            message="Unencrypted: this tunnel carries cleartext."></a-alert>
+          <a-alert v-else-if="peer.mode === 'ipsec'" type="success" show-icon :style="{ marginTop: '14px' }"
+            message="IPsec required: bare GRE from this customer will be dropped."></a-alert>
+          <a-alert v-else type="info" show-icon :style="{ marginTop: '14px' }"
+            message="IPsec optional: both encrypted and bare GRE are accepted."></a-alert>
+          <div class="wca-copyrow" v-if="peer.ipsecPsk">
+            <span class="wca-copyrow__label">IPsec pre-shared key</span>
+            <div class="wca-copyrow__field">
+              <code class="wca-code wca-code--inline wca-code--secret">[[ peer.ipsecPsk ]]</code>
+              <button type="button" class="wca-copy" title='{{ i18n "copy" }}' @click="copy(peer.ipsecPsk)">
+                <a-icon type="copy"></a-icon>
+              </button>
+            </div>
+          </div>
+          <!-- One section per platform rather than a single blob: the customer runs exactly one
+               of them, and RouterOS syntax pasted into a shell (or the reverse) fails in ways
+               that look like the tunnel is broken. -->
+          <div class="wca-subhead">Router setup</div>
+          <div class="wca-copyrow">
+            <span class="wca-copyrow__label">MikroTik RouterOS</span>
+            <div class="wca-copyrow__field">
+              <code class="wca-code wca-code--block" @click="copy(peer.configMikrotik)">[[ peer.configMikrotik
+                ]]</code>
+              <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                @click="copy(peer.configMikrotik)">
+                <a-icon type="copy"></a-icon>
+              </button>
+            </div>
+            <div class="wca-acts">
+              <button type="button" class="wca-act" @click="download(peer, 'mikrotik')">
+                <a-icon type="download"></a-icon>
+                <span>Download .txt</span>
+              </button>
+            </div>
+          </div>
+          <div class="wca-copyrow">
+            <span class="wca-copyrow__label">Linux</span>
+            <div class="wca-copyrow__field">
+              <code class="wca-code wca-code--block" @click="copy(peer.configLinux)">[[ peer.configLinux ]]</code>
+              <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
+                @click="copy(peer.configLinux)">
+                <a-icon type="copy"></a-icon>
+              </button>
+            </div>
+            <div class="wca-acts">
+              <button type="button" class="wca-act" @click="download(peer, 'linux')">
+                <a-icon type="download"></a-icon>
+                <span>Download .txt</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+      {{ template "component/aSubBlock" "gre" }}
     </div>
-    {{ template "component/aSubBlock" "gre" }}
   </a-spin>
 </a-modal>
 
