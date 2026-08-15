@@ -138,6 +138,11 @@ type ResellerProfile struct {
 	// for display), and a unit mismatch on this pair is free traffic.
 	AllowanceBytes int64 `json:"allowanceBytes" gorm:"default:0"`
 	SpentBytes     int64 `json:"spentBytes" gorm:"default:0"`
+	// UsageBytes is the reseller-local consumption meter shown on the Resellers
+	// page. Traffic collectors increment it with raw client deltas. Resetting this
+	// meter never changes ClientTraffic, inbound totals, node baselines, allowance,
+	// or spent allocation; it is deliberately a separate accounting plane.
+	UsageBytes int64 `json:"usageBytes" gorm:"default:0"`
 	// Unlimited skips the balance CHECK but not the accrual: SpentBytes keeps
 	// climbing, so an admin who later sets a limit correctly accounts for what
 	// this reseller already sold. Stored explicitly rather than overloading

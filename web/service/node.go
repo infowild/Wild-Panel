@@ -649,16 +649,21 @@ func mergeClientDelta(tx *gorm.DB, nodeId int, email string, up, down, allTime i
 			// No local client with this email — still update baseline so we do not
 			// replay a huge delta if the account is added later.
 		} else {
+			usageDelta := dUp + dDown
 			updates := map[string]any{
 				"up":   ct.Up + dUp,
 				"down": ct.Down + dDown,
 			}
 			if dAll > 0 {
 				updates["all_time"] = ct.AllTime + dAll
+				usageDelta = dAll
 			} else if dUp+dDown > 0 {
 				updates["all_time"] = ct.AllTime + dUp + dDown
 			}
 			if err := tx.Model(&ct).Updates(updates).Error; err != nil {
+				return err
+			}
+			if err := addResellerUsage(tx, map[string]int64{email: usageDelta}); err != nil {
 				return err
 			}
 			// Keep the parent inbound totals in step for the overview cards.

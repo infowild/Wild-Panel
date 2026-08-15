@@ -145,6 +145,8 @@ var knownMissing = keySet(
 	"pages.resellers.deleteCascadeDesc",
 	"pages.resellers.allowOverviewManage", "pages.resellers.allowOverviewManageDesc",
 	"pages.resellers.emptyTitle", "pages.resellers.emptyDesc",
+	"pages.resellers.allocated", "pages.resellers.usage",
+	"pages.resellers.resetUsage", "pages.resellers.resetUsageConfirm",
 	"pages.admins.accessOverview", "pages.admins.manageOverview",
 	"pages.admins.emptyTitle", "pages.admins.emptyDesc",
 	"pages.admins.manageNodes",

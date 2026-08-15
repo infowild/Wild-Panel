@@ -2868,6 +2868,7 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	// away: the bytes were collected, the source counter was reset, and nobody was charged.
 	// Callers that must not double-report the same bytes de-duplicate before they get here
 	// (see the relay handling in web/job/xray_traffic_job.go).
+	usageByEmail := make(map[string]int64, len(dbClientTraffics))
 	for dbTraffic_index := range dbClientTraffics {
 		moved := int64(0)
 		for traffic_index := range traffics {
@@ -2888,6 +2889,7 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 				// and survives the resets that up/down don't.
 				dbClientTraffics[dbTraffic_index].AllTime += (rawUp + rawDown)
 				moved += rawUp + rawDown
+				usageByEmail[dbClientTraffics[dbTraffic_index].Email] += rawUp + rawDown
 			}
 		}
 		// Online is a property of the client, not of each record: marked once here so a
@@ -2908,9 +2910,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	err = tx.Save(dbClientTraffics).Error
 	if err != nil {
 		logger.Warning("AddClientTraffic update data ", err)
+		return err
 	}
-
-	return nil
+	return addResellerUsage(tx, usageByEmail)
 }
 
 func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.ClientTraffic) ([]*xray.ClientTraffic, error) {

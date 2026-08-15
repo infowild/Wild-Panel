@@ -158,9 +158,12 @@ func foldClientTraffic(email string, up, down int64) {
 		// startup backfill (MigrationRequirements) sets all_time = up+down for any
 		// row still at 0, which for a client whose traffic only ever arrived through
 		// this path would seed the lifetime record with MULTIPLIED bytes.
-		return tx.Exec(
+		if err := tx.Exec(
 			"UPDATE client_traffics SET up = up + ?, down = down + ?, all_time = COALESCE(all_time, 0) + ? WHERE email = ?",
-			billedUp, billedDown, up+down, email).Error
+			billedUp, billedDown, up+down, email).Error; err != nil {
+			return err
+		}
+		return addResellerUsage(tx, map[string]int64{email: up + down})
 	})
 	if err != nil {
 		logger.Warning("fold client traffic for ", email, ": ", err)

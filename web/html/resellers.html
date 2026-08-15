@@ -57,6 +57,10 @@
                             <a-icon type="plus-circle"></a-icon>
                             <span>{{ i18n "pages.resellers.recharge" }}</span>
                           </a-menu-item>
+                          <a-menu-item @click="resetUsage(reseller)">
+                            <a-icon type="reload"></a-icon>
+                            <span>{{ i18n "pages.resellers.resetUsage" }}</span>
+                          </a-menu-item>
                           <!-- A reseller that still owns accounts opens a modal asking whether to
                                delete the accounts too or hand them to the admin; a childless one
                                deletes straight away. -->
@@ -78,7 +82,7 @@
                     <template v-if="reseller.unlimited">
                       <div class="bo-rs-bal-val">{{ i18n "pages.resellers.unlimited" }}</div>
                       <div class="bo-rs-bal-label">
-                        {{ i18n "pages.resellers.used" }}: [[ fmtBytes(reseller.spentBytes) ]]
+                        {{ i18n "pages.resellers.allocated" }}: [[ fmtBytes(reseller.spentBytes) ]]
                       </div>
                     </template>
                     <template v-else>
@@ -90,12 +94,18 @@
                         :status="usedPercent(reseller) >= 100 ? 'exception' : 'normal'"
                         :style="{ marginTop: '6px' }"></a-progress>
                       <div class="bo-rs-bal-label">
+                        {{ i18n "pages.resellers.allocated" }}:
                         [[ fmtBytes(reseller.spentBytes) ]] / [[ fmtBytes(reseller.allowanceBytes) ]]
                       </div>
                     </template>
                   </div>
 
                   <dl class="bo-spec">
+                    <div class="bo-spec-row">
+                      <span class="bo-spec-ico bo-spec-ico--kernel"><svg class="bo-icon bo-icon-14" aria-hidden="true"><use href="#bo-i-gauge"></use></svg></span>
+                      <dt class="bo-spec-key">{{ i18n "pages.resellers.usage" }}</dt>
+                      <dd class="bo-spec-val num">[[ fmtBytes(reseller.usageBytes) ]]</dd>
+                    </div>
                     <div class="bo-spec-row">
                       <span class="bo-spec-ico bo-spec-ico--panel"><svg class="bo-icon bo-icon-14" aria-hidden="true"><use href="#bo-i-list"></use></svg></span>
                       <dt class="bo-spec-key">{{ i18n "pages.resellers.accounts" }}</dt>
@@ -344,6 +354,17 @@
           this.recharge.visible = false;
           await this.loadResellers();
         }
+      },
+      resetUsage(reseller) {
+        this.$confirm({
+          title: '{{ i18n "pages.resellers.resetUsage" }}',
+          content: '{{ i18n "pages.resellers.resetUsageConfirm" }}',
+          okType: 'danger',
+          onOk: async () => {
+            const msg = await HttpUtil.post('/panel/resellers/resetUsage/' + reseller.id);
+            if (msg && msg.success) await this.loadResellers();
+          },
+        });
       },
       delReseller(reseller) {
         // Still owns accounts: ask whether to delete them too or hand them back to

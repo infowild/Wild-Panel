@@ -163,6 +163,14 @@
         <a-select-option value="selected">{{ i18n "pages.nodes.syncSelected" }}</a-select-option>
       </a-select>
     </a-form-item>
+    <!-- Without this the "selected" mode has an empty allowlist and AllowsTag
+         rejects every inbound, so the node silently syncs nothing. Free-entry
+         tags: the operator names inbound tags, which may not exist locally yet. -->
+    <a-form-item v-if="form.inboundSyncMode === 'selected'"
+      label='{{ i18n "pages.nodes.syncSelected" }}'>
+      <a-select mode="tags" v-model="form.inboundTags" :token-separators="[',', ' ']"
+        :dropdown-class-name="themeSwitcher.currentTheme"></a-select>
+    </a-form-item>
     <a-form-item>
       <a-checkbox v-model="form.enable">{{ i18n "enabled" }}</a-checkbox>
       <a-checkbox v-model="form.allowPrivateAddress" :style="{ marginInlineStart: '16px' }">
@@ -175,8 +183,12 @@
     <span v-if="testResult" :style="{ marginInlineStart: '12px', color: 'var(--ok)' }">[[ testResult ]]</span>
   </a-form>
 </a-modal>
+{{template "page/shell_end" . }}
 
-{{template "page/body_scripts" . }}
+{{template "page/body_scripts" .}}
+{{template "component/aSidebar" .}}
+{{template "component/aThemeSwitch" .}}
+
 <script>
   const app = new Vue({
     delimiters: ['[[', ']]'],
@@ -199,6 +211,7 @@
         name: '', remark: '', scheme: 'https', address: '', port: 2053,
         basePath: '/', apiToken: '', enable: true, allowPrivateAddress: false,
         tlsVerifyMode: 'verify', pinnedCertSha256: '', inboundSyncMode: 'all',
+        inboundTags: [],
       },
     },
     computed: {
@@ -222,6 +235,7 @@
           name: '', remark: '', scheme: 'https', address: '', port: 2053,
           basePath: '/', apiToken: '', enable: true, allowPrivateAddress: false,
           tlsVerifyMode: 'verify', pinnedCertSha256: '', inboundSyncMode: 'all',
+          inboundTags: [],
         };
       },
       async loadNodes(showSpin) {
@@ -251,6 +265,7 @@
           tlsVerifyMode: node.tlsVerifyMode || 'verify',
           pinnedCertSha256: node.pinnedCertSha256 || '',
           inboundSyncMode: node.inboundSyncMode || 'all',
+          inboundTags: Array.isArray(node.inboundTags) ? node.inboundTags.slice() : [],
         };
         this.testResult = '';
         this.modalVisible = true;
@@ -321,4 +336,3 @@
   });
 </script>
 {{ template "page/body_end" .}}
-{{ template "page/shell_end" . }}

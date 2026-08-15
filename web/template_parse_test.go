@@ -77,6 +77,56 @@ func TestEditedTemplatesParse(t *testing.T) {
 	}
 }
 
+// TestPageShellStructure enforces the wiring every shell page depends on. All of
+// these are structurally valid Go templates, so nothing else in the suite catches
+// them — they fail in the browser as a blank page, which is how the Nodes page
+// shipped white:
+//
+//   - "page/shell_end" must close <div id="app"> BEFORE "page/body_scripts".
+//     Emitted after the scripts, the inline `new Vue({el:'#app'})` block sits
+//     inside the element Vue is asked to compile; Vue 2 refuses a <script> in a
+//     template, and the v-cloak on #app then keeps the whole page hidden.
+//   - "page/shell_start" renders <a-sidebar>, so the page must register it via
+//     "component/aSidebar" or Vue hits an unknown custom element.
+//   - `themeSwitcher` is declared by "component/aThemeSwitch"; referencing it
+//     without that include is a ReferenceError while building the Vue data object.
+func TestPageShellStructure(t *testing.T) {
+	entries, err := fs.ReadDir(htmlFS, "html")
+	if err != nil {
+		t.Fatalf("read html dir: %v", err)
+	}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".html") {
+			continue
+		}
+		name := "html/" + e.Name()
+		raw, err := htmlFS.ReadFile(name)
+		if err != nil {
+			t.Fatalf("read %s: %v", name, err)
+		}
+		src := string(raw)
+
+		if strings.Contains(src, `"page/shell_start"`) {
+			shellEnd := strings.Index(src, `"page/shell_end"`)
+			if shellEnd < 0 {
+				t.Errorf("%s opens the app shell but never emits page/shell_end", e.Name())
+				continue
+			}
+			if scripts := strings.Index(src, `"page/body_scripts"`); scripts >= 0 && shellEnd > scripts {
+				t.Errorf("%s emits page/shell_end after page/body_scripts; the Vue mount script "+
+					"ends up inside #app and the page renders blank", e.Name())
+			}
+			if !strings.Contains(src, `"component/aSidebar"`) {
+				t.Errorf("%s uses the app shell (which renders <a-sidebar>) but does not include component/aSidebar", e.Name())
+			}
+		}
+
+		if strings.Contains(src, "themeSwitcher") && !strings.Contains(src, `"component/aThemeSwitch"`) {
+			t.Errorf("%s references themeSwitcher but does not include component/aThemeSwitch", e.Name())
+		}
+	}
+}
+
 // TestSidebarLogoSrcResolves renders the sidebar component with data and asserts the
 // brand logo <img> src is prefixed with base_path. The mark lives in the nested
 // "component/sidebar/content" template, which must be included WITH data ({{template

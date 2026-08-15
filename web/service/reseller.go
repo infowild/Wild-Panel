@@ -444,8 +444,9 @@ func applyToSettings(data *model.Inbound, profile *model.ResellerProfile, q Char
 	// day for as long as it exists, charged once. Every other way of giving an
 	// account more traffic goes through Quote; this one bypassed it entirely.
 	//
-	// Resellers top up manually instead, which IS priced, and a reset they ask
-	// for by hand is priced too (PrepareClientReset).
+	// Resellers top up manually instead, which IS priced. A hand reset of Up/Down
+	// is ownership-checked by PrepareClientReset but deliberately NOT priced:
+	// usage counters and SpentBytes / ChargedBytes are separate ledgers.
 	delete(cm, "reset")
 	clients[0] = cm
 	settings["clients"] = clients
@@ -874,6 +875,7 @@ type ResellerView struct {
 
 	AllowanceBytes int64 `json:"allowanceBytes"`
 	SpentBytes     int64 `json:"spentBytes"`
+	UsageBytes     int64 `json:"usageBytes"`
 	AvailableBytes int64 `json:"availableBytes"`
 	Unlimited      bool  `json:"unlimited"`
 
@@ -992,6 +994,7 @@ func (s *ResellerService) GetResellers(caller *model.User) ([]ResellerView, erro
 			TwoFactorEnable:     u.TwoFactorEnable,
 			AllowanceBytes:      p.AllowanceBytes,
 			SpentBytes:          p.SpentBytes,
+			UsageBytes:          p.UsageBytes,
 			AvailableBytes:      available,
 			Unlimited:           p.Unlimited,
 			DaysPerGB:           p.DaysPerGB,
@@ -1239,6 +1242,56 @@ func (s *ResellerService) Recharge(caller *model.User, id int, deltaBytes int64)
 	}
 	return database.GetDB().Model(&model.ResellerProfile{}).
 		Where("user_id = ?", id).Update("allowance_bytes", next).Error
+}
+
+// ResetUsage clears only the reseller-local usage meter displayed on their
+// management card. It intentionally does not touch the authoritative panel
+// traffic (ClientTraffic / inbound totals), node traffic baselines, allowance,
+// spent allocation, or per-client counters.
+func (s *ResellerService) ResetUsage(caller *model.User, id int) error {
+	if _, _, err := s.manageable(caller, id); err != nil {
+		return err
+	}
+	return database.GetDB().Model(&model.ResellerProfile{}).
+		Where("user_id = ?", id).Update("usage_bytes", 0).Error
+}
+
+// addResellerUsage adds raw measured traffic to each owning reseller's private
+// usage meter. Admin-owned emails have no ResellerClient row and are ignored.
+// Grouping by reseller makes a traffic tick one atomic UPDATE per reseller
+// instead of one write per client.
+func addResellerUsage(tx *gorm.DB, usageByEmail map[string]int64) error {
+	if tx == nil || len(usageByEmail) == 0 {
+		return nil
+	}
+	emails := make([]string, 0, len(usageByEmail))
+	for email, delta := range usageByEmail {
+		if strings.TrimSpace(email) != "" && delta > 0 {
+			emails = append(emails, email)
+		}
+	}
+	if len(emails) == 0 {
+		return nil
+	}
+
+	var owners []model.ResellerClient
+	if err := tx.Model(&model.ResellerClient{}).
+		Where("email IN (?)", emails).Find(&owners).Error; err != nil {
+		return err
+	}
+	byReseller := make(map[int]int64, len(owners))
+	for _, owner := range owners {
+		if delta := usageByEmail[owner.Email]; delta > 0 {
+			byReseller[owner.UserId] += delta
+		}
+	}
+	for userID, delta := range byReseller {
+		if err := tx.Model(&model.ResellerProfile{}).Where("user_id = ?", userID).
+			UpdateColumn("usage_bytes", gorm.Expr("COALESCE(usage_bytes, 0) + ?", delta)).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Delete modes decide the fate of a reseller's accounts when it still owns some.

@@ -140,6 +140,7 @@ func (a *ResellerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/update/:id", a.update)
 	g.POST("/del/:id", a.del)
 	g.POST("/recharge/:id", a.recharge)
+	g.POST("/resetUsage/:id", a.resetUsage)
 }
 
 func (a *ResellerController) list(c *gin.Context) {
@@ -291,4 +292,20 @@ func (a *ResellerController) recharge(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.resellers.recharge"), nil)
+}
+
+// resetUsage clears only the reseller card's private usage meter. It never
+// invokes an inbound/client traffic reset, so the main panel's authoritative
+// counters and the reseller's allowance ledger remain unchanged.
+func (a *ResellerController) resetUsage(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.resellers.resetUsage"), err)
+		return
+	}
+	if err := a.resellerService.ResetUsage(session.GetLoginUser(c), id); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.resellers.resetUsage"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.resellers.resetUsage"), nil)
 }
