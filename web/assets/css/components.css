@@ -2016,6 +2016,18 @@ body.dark .bo-shell.inbounds-page {
 .inbounds-page .ib-bar .ant-radio-button-wrapper {
   height:var(--ib-ctl); line-height:calc(var(--ib-ctl) - 2px);
 }
+/* Radius parity across the bar. The buttons, tool squares and segment well were
+   already on --radius-sm; the search field and the filter group kept ant's default,
+   so three different corner radii met along one row. Logical corners so the
+   filter group's open ends stay on the correct side in RTL. */
+.inbounds-page .ib-bar .ant-input-affix-wrapper,
+.inbounds-page .ib-bar .ant-input { border-radius:var(--radius-sm); }
+.inbounds-page .ib-bar .ant-radio-group > .ant-radio-button-wrapper:first-child {
+  border-start-start-radius:var(--radius-sm); border-end-start-radius:var(--radius-sm);
+}
+.inbounds-page .ib-bar .ant-radio-group > .ant-radio-button-wrapper:last-child {
+  border-start-end-radius:var(--radius-sm); border-end-end-radius:var(--radius-sm);
+}
 .inbounds-page .ib-bar .ant-btn:focus-visible,
 .inbounds-page .ib-bar .ant-radio-button-wrapper:focus-within {
   outline:2px solid var(--accent); outline-offset:1px;
@@ -2182,7 +2194,7 @@ body.dark .bo-shell.inbounds-page {
    the border. */
 .inbounds-page .ib-grid { --ib-edge:18px; }
 .inbounds-page .ib-grid--cozy .ant-table-thead > tr > th { padding:10px 12px; }
-.inbounds-page .ib-grid--cozy .ant-table-tbody > tr > td { padding:15px 12px; vertical-align:middle; }
+.inbounds-page .ib-grid--cozy .ant-table-tbody > tr > td { padding:16px 12px; vertical-align:middle; }
 .inbounds-page .ib-grid--compact { --ib-edge:14px; }
 .inbounds-page .ib-grid--compact .ant-table-thead > tr > th { padding:8px 10px; }
 .inbounds-page .ib-grid--compact .ant-table-tbody > tr > td { padding:11px 10px; vertical-align:middle; }
@@ -2455,7 +2467,7 @@ body.dark .bo-shell.inbounds-page {
 .inbounds-page .ib-rowbtn {
   display:inline-flex; align-items:center; justify-content:center;
   width:32px; height:32px; padding:0; border:none;
-  background:transparent; color:var(--text-3);
+  background:transparent; color:var(--ib-meta);
   border-radius:var(--radius-sm); cursor:pointer;
   transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
@@ -2479,7 +2491,7 @@ body.dark .bo-shell.inbounds-page {
 }
 .inbounds-page .ib-rowbtn .anticon { font-size:15px; }
 .inbounds-page .sortable-icon {
-  color:var(--text-3); font-size:14px;
+  color:var(--ib-meta); font-size:14px;
   padding:4px; border-radius:var(--radius-sm);
 }
 .inbounds-page .sortable-icon:hover { color:var(--text); background:var(--surface-3); }
@@ -2503,13 +2515,17 @@ body.dark .bo-shell.inbounds-page {
 [dir="rtl"] .inbounds-page .ant-table-expanded-row > td {
   box-shadow:inset -2px 0 0 var(--accent);
 }
+/* The inset top hairline is what makes the panel read as sitting *in* the well
+   rather than pasted over it: the border alone gives a flat outline, and one line
+   of catch-light along the top edge is enough to imply the recess. Cheaper than a
+   heavier shadow and it does not darken the rows underneath. */
 .inbounds-page .ib-ws {
   margin:12px var(--ib-edge, 18px) 14px;
   background:var(--surface-2);
   border:1px solid var(--border-hover);
   border-radius:var(--radius-md);
   overflow:hidden;
-  box-shadow:var(--shadow-sm);
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / .04), var(--shadow-sm);
 }
 .inbounds-page .ib-ws-head {
   display:flex; align-items:center; justify-content:space-between; gap:12px;
