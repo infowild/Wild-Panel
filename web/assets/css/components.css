@@ -2814,18 +2814,31 @@ body:not(.dark) .inbounds-page .ib-idz--off .ib-idz-name {
 .bo-shell.settings-page {
   --set-nav-w:248px;
   --set-gap:18px;
-  --set-block-gap:14px;
+  --set-block-gap:16px;
   /* Sticky offset for the rail: the topbar is sticky at 0 and ~45px tall. */
   --set-rail-top:54px;
+  /* Outer gutter and the width the console is allowed to reach. The cap only
+     bites past ~1950px of viewport; below that the console simply takes the
+     content box, so a 1920 screen is not left with a column of dead space. */
+  --set-pad:24px;
+  --set-max:1880px;
+  /* Internal separators. The shared --divider is tuned for cards that already
+     carry a border; a console that is mostly rows needs it a step firmer to
+     keep the row rhythm readable without turning into a table grid. */
+  --set-divider:rgba(15,23,42,.085);
 }
+body.dark .bo-shell.settings-page { --set-divider:rgba(255,255,255,.075); }
 html:not([data-theme='ultra-dark']) body.dark .bo-shell.settings-page { --bg:#08090B; }
 body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
 
-.settings-page .bo-content { display:flex; flex-direction:column; min-height:calc(100vh - 64px); }
+.settings-page .bo-content {
+  display:flex; flex-direction:column; min-height:calc(100vh - 64px);
+  padding-inline:var(--set-pad);
+}
 .settings-page .set-console {
   display:flex; flex-direction:column;
   flex:1 1 auto; min-height:0;
-  max-width:1720px; width:100%;
+  max-width:var(--set-max); width:100%; margin-inline:auto;
 }
 
 /* ---- two zones ------------------------------------------------------------
@@ -2867,13 +2880,14 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
  * both themes and does not depend on colour alone. */
 .settings-page .set-tabs .ant-tabs-tab {
   display:flex; align-items:center; gap:10px;
-  margin:0 0 2px; padding:9px 11px;
+  margin:0 0 3px; padding:10px 11px; min-height:38px;
   border-radius:var(--radius-sm);
   font-size:13px; font-weight:var(--fw-medium);
   line-height:18px; text-align:left; color:var(--text-2);
   position:relative;
   transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
+.settings-page .set-tabs .ant-tabs-tab:last-child { margin-bottom:0; }
 .settings-page .set-tabs .ant-tabs-tab > span:last-child {
   min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
@@ -2897,11 +2911,11 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
  * Title, one line of scope, and a state chip read from data the page already
  * has, so the operator can tell what this section is doing before reading a
  * single field. */
-.settings-page .set-sec { display:flex; flex-direction:column; gap:14px; padding-bottom:2px; }
+.settings-page .set-sec { display:flex; flex-direction:column; gap:18px; padding-bottom:2px; }
 .settings-page .set-sec__head {
   display:flex; align-items:flex-start; justify-content:space-between;
-  gap:12px; flex-wrap:wrap;
-  padding-bottom:12px; border-bottom:1px solid var(--divider);
+  gap:12px 20px; flex-wrap:wrap;
+  padding-bottom:14px; border-bottom:1px solid var(--set-divider);
 }
 .settings-page .set-sec__headmain { min-width:0; }
 .settings-page .set-sec__title {
@@ -2973,7 +2987,7 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
  * them side by side at any workspace width that can carry them. */
 .settings-page .set-sec__body .ant-list-item {
   display:block; padding:10px 20px;
-  border-bottom:1px solid var(--divider);
+  border-bottom:1px solid var(--set-divider);
 }
 .settings-page .set-sec__body .ant-list-item:last-child { border-bottom:0; }
 .settings-page .set-sec__body .ant-list-item > .ant-space { padding:0 !important; }
@@ -2997,11 +3011,82 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
 .settings-page .set-sec__body .ant-list-item-meta-title {
   margin-bottom:1px; font-size:13px; line-height:19px;
   font-weight:var(--fw-medium); color:var(--text);
+  min-width:0; overflow-wrap:anywhere;
 }
 .settings-page .set-sec__body .ant-list-item-meta-description {
   font-size:11.5px; line-height:16px; color:var(--text-3);
+  min-width:0; overflow-wrap:anywhere;
 }
 .settings-page .set-sec__body .ant-list-item-meta-description i { color:var(--text-2); font-style:normal; }
+/* A switch is the whole control, so its column stops being a 340px box and
+   simply ends where the row ends. Everything on the page still lands on the
+   same right edge, the toggle just no longer floats inside an invisible one. */
+.settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:last-child:has(> .ant-switch) {
+  flex:0 0 auto;
+}
+
+/* ---- field grids ----------------------------------------------------------
+ * Rows above are the right shape for a switch or a single choice, but a run of
+ * them turns a listener, a port and a path into a legacy Label -> Input column
+ * with the control marooned on the far right. Compatible fields are wrapped in
+ * .set-grid instead: the pair sits side by side, the label sits over its own
+ * control, and the control takes the width its value actually needs.
+ *
+ * .set-grid       two fields per line
+ * .set-grid--trio three short numeric fields per line
+ * .set-grid--full one field spanning the workspace (URIs, announcements)
+ *
+ * The wrapper is presentational only - it holds no state, and the settings
+ * rows inside it are the same component with the same bindings as before. */
+.settings-page .set-sec__body .set-grid {
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+  border-bottom:1px solid var(--set-divider);
+}
+.settings-page .set-sec__body .set-grid--trio { grid-template-columns:repeat(3, minmax(0,1fr)); }
+.settings-page .set-sec__body .set-grid--full { grid-template-columns:minmax(0,1fr); }
+/* Fields inside a grid can be conditional (the Clash and JSON blocks); a grid
+   that rendered nothing must not leave a stray rule behind, and neither must
+   the grid in front of it. */
+.settings-page .set-sec__body .set-grid:not(:has(> .ant-list-item)) { display:none; }
+.settings-page .set-sec__body .set-grid:last-child,
+.settings-page .set-sec__body .set-grid:has(+ .set-grid:not(:has(> .ant-list-item))) { border-bottom:0; }
+/* ant centres a list item's children; a form cell wants them on the start edge
+   and full width, so the label rail stays true down the column. */
+.settings-page .set-sec__body .set-grid > .ant-list-item {
+  border-bottom:0;
+  display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
+}
+
+/* One cell: name and helper text on top, control on the baseline shared by the
+   whole line, so two fields of unequal description still align. */
+.settings-page .set-sec__body .set-grid > .ant-list-item > .ant-row {
+  display:flex; flex-direction:column; align-items:stretch; flex:1 1 auto; gap:0;
+}
+.settings-page .set-sec__body .set-grid > .ant-list-item > .ant-row > .ant-col:first-child {
+  flex:0 0 auto; margin-bottom:7px;
+}
+.settings-page .set-sec__body .set-grid > .ant-list-item > .ant-row > .ant-col:last-child {
+  flex:0 0 auto; margin-top:auto;
+  display:block; justify-content:flex-start;
+}
+
+/* Control width follows the value, not the column. Numbers stay compact;
+   hosts, paths and tokens get room; a --full field carries a whole URI. */
+.settings-page .set-sec__body .set-grid > .ant-list-item > .ant-row > .ant-col:last-child > * {
+  max-width:620px; width:100%;
+}
+.settings-page .set-sec__body .set-grid > .ant-list-item > .ant-row > .ant-col:last-child > .ant-input-number {
+  max-width:220px;
+}
+.settings-page .set-sec__body .set-grid > .ant-list-item > .ant-row > .ant-col:last-child > .ant-switch {
+  width:auto;
+}
+.settings-page .set-sec__body .set-grid--full > .ant-list-item > .ant-row > .ant-col:last-child > * {
+  max-width:900px;
+}
+.settings-page .set-sec__body .set-grid > .ant-list-item > .ant-row > .ant-col:last-child > textarea.ant-input {
+  max-width:100%;
+}
 
 /* ---- controls -------------------------------------------------------------
  * One control height across the console so a column of rows reads as a grid. */
@@ -3046,11 +3131,13 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
  * is written out next to them. */
 .settings-page .set-actionbar {
   position:sticky; bottom:0; z-index:6;
-  margin-top:18px;
-  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-  padding:12px 16px;
+  margin-top:20px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px 20px; flex-wrap:wrap;
+  /* The inline padding matches a setting row's, so the state text starts on the
+     same line as every label in the workspace above it. */
+  padding:12px 20px;
   background:var(--surface);
-  border:1px solid var(--border); border-top-color:var(--border-hover);
+  border:1px solid var(--border); border-top-color:var(--border-strong);
   border-radius:var(--radius-lg);
   box-shadow:var(--shadow-md);
 }
@@ -3090,15 +3177,24 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
 /* ---- responsive -----------------------------------------------------------
  * The rail narrows before the workspace does, and hands over to ant's top tab
  * bar at 768 (the page binds tab-position to the existing isMobile flag). */
+@media (min-width:1180px) {
+  .bo-shell.settings-page { --set-pad:24px; }
+}
 @media (min-width:1600px) {
-  .bo-shell.settings-page { --set-nav-w:264px; --set-gap:22px; }
+  .bo-shell.settings-page { --set-nav-w:264px; --set-gap:22px; --set-pad:30px; }
 }
 @media (max-width:1360px) {
   .bo-shell.settings-page { --set-nav-w:224px; --set-gap:16px; }
 }
+/* Below this the workspace can no longer carry two fields of usable width, so
+   every grid becomes a single column of full-width fields. */
 @media (max-width:1180px) {
-  .bo-shell.settings-page { --set-nav-w:200px; --set-gap:14px; --set-block-gap:12px; }
+  .bo-shell.settings-page { --set-nav-w:200px; --set-gap:14px; --set-block-gap:12px; --set-pad:20px; }
   .settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:last-child { flex-basis:280px; }
+  .settings-page .set-sec__body .set-grid,
+  .settings-page .set-sec__body .set-grid--trio { grid-template-columns:minmax(0,1fr); }
+  .settings-page .set-sec__body .set-grid > .ant-list-item > .ant-row > .ant-col:last-child > * { max-width:100%; }
+  .settings-page .set-sec__body .set-grid > .ant-list-item > .ant-row > .ant-col:last-child > .ant-input-number { max-width:260px; }
 }
 @media (max-width:1024px) {
   .settings-page .set-sec__body .ant-list-item > .ant-row { align-items:flex-start; }
@@ -3109,6 +3205,7 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
   .settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:last-child > .ant-switch { margin-inline-start:0; }
 }
 @media (max-width:768px) {
+  .bo-shell.settings-page { --set-pad:14px; }
   .settings-page .set-tabs.ant-tabs-top > .ant-tabs-bar {
     border:1px solid var(--border); border-radius:var(--radius-lg);
     background:var(--surface); padding:4px; margin-bottom:14px;

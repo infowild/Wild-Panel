@@ -4,13 +4,15 @@
         <a-alert v-if="serviceState.available === false" type="warning" show-icon banner
             message='{{ i18n "pages.settings.service.noSystemd" }}' :style="{ marginBottom: '16px' }"></a-alert>
 
-        <a-setting-list-item paddings="small">
-            <template #title>{{ i18n "pages.settings.service.name" }}</template>
-            <template #description>{{ i18n "pages.settings.service.nameDesc" }}</template>
-            <template #control>
-                <a-input v-model="serviceState.name" placeholder="wild-panel"></a-input>
-            </template>
-        </a-setting-list-item>
+        <div class="set-grid">
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.service.name" }}</template>
+                <template #description>{{ i18n "pages.settings.service.nameDesc" }}</template>
+                <template #control>
+                    <a-input v-model="serviceState.name" placeholder="wild-panel"></a-input>
+                </template>
+            </a-setting-list-item>
+        </div>
 
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.service.enable" }}</template>
