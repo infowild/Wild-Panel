@@ -28,6 +28,29 @@
                  exactly as before. -->
             <div key="set-console" class="set-console" v-else>
               <a-back-top :target="() => document.querySelector('.bo-main')" visibility-height="200"></a-back-top>
+              <!-- Action bar. Same two page-wide actions, same disabled
+                   conditions (save while dirty, restart only once saved); the
+                   dirty state they already carry is spelled out instead of
+                   being readable only from which button is greyed. It leads the
+                   workspace and stays pinned under the page header while the
+                   sections scroll, so the state of the page and the way to
+                   commit it are both readable from anywhere on it. -->
+              <div class="set-actionbar">
+                <div class="set-actionbar__meta">
+                  <span class="set-actionbar__state" :class="saveBtnDisable ? 'is-clean' : 'is-dirty'">
+                    <i class="set-actionbar__dot"></i>
+                    <span v-if="saveBtnDisable">All changes saved</span>
+                    <span v-else>Unsaved changes</span>
+                  </span>
+                  <span class="set-actionbar__note">{{ i18n "pages.settings.infoDesc" }}</span>
+                </div>
+                <div class="set-actionbar__actions">
+                  <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n
+                    "pages.settings.restartPanel" }}</a-button>
+                  <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n
+                    "pages.settings.save" }}</a-button>
+                </div>
+              </div>
               <a-tabs class="set-tabs" default-active-key="1" :tab-position="isMobile ? 'top' : 'left'">
                 <a-tab-pane key="1">
                   <template #tab>
@@ -150,26 +173,6 @@
                   </section>
                 </a-tab-pane>
               </a-tabs>
-              <!-- Pinned action bar. Same two page-wide actions, same disabled
-                   conditions (save while dirty, restart only once saved); the
-                   dirty state they already carry is now spelled out instead of
-                   being readable only from which button is greyed. -->
-              <div class="set-actionbar">
-                <div class="set-actionbar__meta">
-                  <span class="set-actionbar__state" :class="saveBtnDisable ? 'is-clean' : 'is-dirty'">
-                    <i class="set-actionbar__dot"></i>
-                    <span v-if="saveBtnDisable">All changes saved</span>
-                    <span v-else>Unsaved changes</span>
-                  </span>
-                  <span class="set-actionbar__note">{{ i18n "pages.settings.infoDesc" }}</span>
-                </div>
-                <div class="set-actionbar__actions">
-                  <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n
-                    "pages.settings.restartPanel" }}</a-button>
-                  <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n
-                    "pages.settings.save" }}</a-button>
-                </div>
-              </div>
             </div>
           </template>
         </transition>

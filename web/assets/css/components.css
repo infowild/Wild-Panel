@@ -2815,8 +2815,13 @@ body:not(.dark) .inbounds-page .ib-idz--off .ib-idz-name {
   --set-nav-w:248px;
   --set-gap:18px;
   --set-block-gap:16px;
-  /* Sticky offset for the rail: the topbar is sticky at 0 and ~45px tall. */
-  --set-rail-top:54px;
+  /* Sticky stack, top down: the page topbar is sticky at 0 and ~45px tall, the
+     action bar parks directly under it, and the section rail parks under both.
+     Deriving the rail offset from the other two keeps them from colliding. */
+  --set-topbar:45px;
+  --set-actionbar-h:48px;
+  --set-actionbar-gap:14px;
+  --set-rail-top:calc(var(--set-topbar) + var(--set-actionbar-h) + var(--set-actionbar-gap));
   /* Outer gutter and the width the console is allowed to reach. The cap only
      bites past ~1950px of viewport; below that the console simply takes the
      content box, so a 1920 screen is not left with a column of dead space. */
@@ -2835,6 +2840,9 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
   display:flex; flex-direction:column; min-height:calc(100vh - 64px);
   padding-inline:var(--set-pad);
 }
+/* Two sticky bars now sit over the top of the scroll port. Without this, tabbing
+   down a section scrolls the focused field to y=0 and parks it behind them. */
+.settings-page .bo-main { scroll-padding-top:var(--set-rail-top); }
 .settings-page .set-console {
   display:flex; flex-direction:column;
   flex:1 1 auto; min-height:0;
@@ -3125,26 +3133,29 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
 .settings-page .set-sec__body .ant-input-password input { font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace); letter-spacing:.02em; }
 
 /* ---- action bar -----------------------------------------------------------
- * Save and restart were a card at the top of the page, out of sight by the
- * time anything had been edited. Pinned to the bottom of the workspace they
- * stay reachable, and the dirty state the page already tracks (saveBtnDisable)
- * is written out next to them. */
+ * Save and restart lead the workspace: the state of the page and the way to
+ * commit it are the first thing read and stay parked under the page header
+ * while the sections scroll, so neither is ever more than a glance away. The
+ * dirty state the page already tracks (saveBtnDisable) is written out next to
+ * them. One quiet surface with a firmer bottom edge - no lift, because it sits
+ * in the page rather than floating over it. */
 .settings-page .set-actionbar {
-  position:sticky; bottom:0; z-index:6;
-  margin-top:20px;
-  display:flex; align-items:center; justify-content:space-between; gap:12px 20px; flex-wrap:wrap;
+  position:sticky; top:var(--set-topbar); z-index:8;
+  margin-bottom:var(--set-actionbar-gap);
+  min-height:var(--set-actionbar-h);
+  display:flex; align-items:center; justify-content:space-between; gap:10px 20px; flex-wrap:nowrap;
   /* The inline padding matches a setting row's, so the state text starts on the
-     same line as every label in the workspace above it. */
-  padding:12px 20px;
+     same line as every label in the workspace below it. */
+  padding:7px 20px;
   background:var(--surface);
-  border:1px solid var(--border); border-top-color:var(--border-strong);
+  border:1px solid var(--border); border-bottom-color:var(--border-hover);
   border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-md);
 }
 .settings-page .set-actionbar__meta {
-  display:flex; align-items:center; gap:6px 14px; flex-wrap:wrap; min-width:0;
+  display:flex; align-items:center; gap:6px 14px; flex-wrap:nowrap; min-width:0;
 }
 .settings-page .set-actionbar__state {
+  flex:0 0 auto;
   display:inline-flex; align-items:center; gap:7px;
   font-size:12.5px; font-weight:var(--fw-medium); color:var(--text-2);
   white-space:nowrap;
@@ -3158,12 +3169,19 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
 .settings-page .set-actionbar__state.is-dirty .set-actionbar__dot {
   background:var(--warn); box-shadow:0 0 0 3px var(--warn-weak);
 }
+/* The note is advice, not state: it gives up its width first so the bar stays
+   one line at the height it advertises, and the state text never truncates. */
 .settings-page .set-actionbar__note {
-  font-size:11.5px; line-height:16px; color:var(--text-3); min-width:0;
+  flex:0 1 auto; min-width:0;
+  font-size:11.5px; line-height:16px; color:var(--text-3);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.settings-page .set-actionbar__actions { display:flex; align-items:center; gap:10px; margin-inline-start:auto; }
-.settings-page .set-actionbar .ant-btn { height:38px; padding:0 18px; border-radius:var(--radius-sm); font-size:13px; }
-.settings-page .set-actionbar .ant-btn-primary { min-width:132px; }
+.settings-page .set-actionbar__actions {
+  flex:0 0 auto;
+  display:flex; align-items:center; gap:10px; margin-inline-start:auto;
+}
+.settings-page .set-actionbar .ant-btn { height:34px; padding:0 16px; border-radius:var(--radius-sm); font-size:13px; }
+.settings-page .set-actionbar .ant-btn-primary { min-width:112px; }
 /* Restart is the maintenance action here: outlined rather than filled, so the
    only solid button on the page is the safe one. */
 .settings-page .set-actionbar .ant-btn-danger {
@@ -3222,8 +3240,18 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
   .settings-page .set-tabs .ant-tabs-nav-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .settings-page .set-sec__title { font-size:16px; }
   .settings-page .set-sec__body .ant-list-item { padding:10px 14px !important; }
-  .settings-page .set-actionbar { padding:10px 12px; }
+  /* The bar stays one compact line: state and both actions are what has to
+     survive here, so the advisory note is the only thing that goes. */
+  .settings-page .set-actionbar { padding:7px 12px; gap:10px 12px; }
   .settings-page .set-actionbar__note { display:none; }
+  .settings-page .set-actionbar .ant-btn { padding:0 12px; }
+  .settings-page .set-actionbar .ant-btn-primary { min-width:0; }
+}
+/* Last resort before the actions would be squeezed: let the bar take two rows
+   rather than push anything off the edge. The rail is a top strip by now, so
+   nothing is parked underneath that could collide with the taller bar. */
+@media (max-width:430px) {
+  .settings-page .set-actionbar { flex-wrap:wrap; }
   .settings-page .set-actionbar__actions { width:100%; }
   .settings-page .set-actionbar .ant-btn { flex:1 1 auto; }
 }
