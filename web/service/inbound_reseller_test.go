@@ -356,7 +356,9 @@ func TestFilterInboundForResellerRedactsAdminConfig(t *testing.T) {
 	}
 }
 
-
+// Settings that will not parse cannot be proven safe to hand over, so they are not
+// handed over. The inbound stays, because the grant is real.
+func TestFilterInboundForResellerMalformedSettings(t *testing.T) {
 	s := &InboundService{}
 	inbound := &model.Inbound{
 		Id:       7,
