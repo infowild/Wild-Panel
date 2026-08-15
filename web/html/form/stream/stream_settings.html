@@ -11,15 +11,15 @@
 -->
 <!-- select stream network -->
 <a-form
+  class="wpc-form wpc-transport"
   :colon="false"
-  :label-col="{ md: {span:8} }"
-  :wrapper-col="{ md: {span:14} }"
+  layout="vertical"
   v-if="inbound.protocol != Protocols.HYSTERIA && inbound.protocol != Protocols.TUIC"
 >
-  <a-form-item label='{{ i18n "transmission" }}'>
+  <a-form-item class="wpc-field--primary" label='{{ i18n "transmission" }}'>
     <a-select
       v-model="inbound.stream.network"
-      :style="{ width: '75%' }"
+      :style="{ width: '100%' }"
       @change="streamNetworkChange"
       :dropdown-class-name="themeSwitcher.currentTheme"
     >
@@ -68,44 +68,45 @@
   </a-form-item>
 </a-form>
 
+<!--
+  Transport-specific configuration, in an inset panel under the selector it belongs
+  to: Transport -> TCP (RAW) -> its settings. The wrapper is a div rather than the
+  <template> it used to be so the inset has something to paint on; the v-if on each
+  is the one that was already there, so exactly one panel renders and an unknown
+  stored transport still renders none.
+-->
 <!-- tcp -->
-<template v-if="inbound.stream.network === 'tcp'">
+<div class="wpc-inset" v-if="inbound.stream.network === 'tcp'">
   {{template "form/streamTCP"}}
-</template>
+</div>
 
 <!-- kcp -->
-<template v-if="inbound.stream.network === 'kcp'">
+<div class="wpc-inset" v-if="inbound.stream.network === 'kcp'">
   {{template "form/streamKCP"}}
-</template>
+</div>
 
 <!-- ws -->
-<template v-if="inbound.stream.network === 'ws'">
+<div class="wpc-inset" v-if="inbound.stream.network === 'ws'">
   {{template "form/streamWS"}}
-</template>
+</div>
 
 <!-- grpc -->
-<template v-if="inbound.stream.network === 'grpc'">
+<div class="wpc-inset" v-if="inbound.stream.network === 'grpc'">
   {{template "form/streamGRPC"}}
-</template>
+</div>
 
 <!-- hysteria -->
-<template v-if="inbound.stream.network === 'hysteria'">
+<div class="wpc-inset" v-if="inbound.stream.network === 'hysteria'">
   {{template "form/streamHysteria"}}
-</template>
+</div>
 
 <!-- httpupgrade -->
-<template v-if="inbound.stream.network === 'httpupgrade'">
+<div class="wpc-inset" v-if="inbound.stream.network === 'httpupgrade'">
   {{template "form/streamHTTPUpgrade"}}
-</template>
+</div>
 
 <!-- xhttp -->
-<template v-if="inbound.stream.network === 'xhttp'">
+<div class="wpc-inset" v-if="inbound.stream.network === 'xhttp'">
   {{template "form/streamXHTTP"}}
-</template>
-
-<!-- sockopt -->
-<template> {{template "form/streamSockopt"}} </template>
-
-<!-- finalmask -->
-<template> {{template "form/streamFinalMask"}} </template>
+</div>
 {{end}}

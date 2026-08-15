@@ -1,8 +1,36 @@
 {{define "modals/inboundModal"}}
-<a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title" :dialog-style="{ top: '20px' }"
+<a-modal id="inbound-modal" v-model="inModal.visible" :dialog-style="{ top: '20px' }"
     @ok="inModal.ok" :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
     :ok-button-props="{ props: { disabled: !modalFormValid } }"
     :class="themeSwitcher.currentTheme" :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'>
+    <!--
+      Modal header. inModal.title is still the only source of the heading text;
+      it moved from the :title prop into this slot because ant 1.x resolves the
+      prop FIRST and never looks at the slot while one is set, so with both
+      declared the header rendered as the bare string and nothing below it. Same
+      value, same reactivity, same caller contract (inModal.show({title})).
+
+      Beside it sit the two pieces of state an operator wants visible while
+      scrolling a long form: which protocol is being configured, and whether the
+      inbound is enabled. The Enabled switch is the same v-model the base form
+      carried — it lives here rather than in the body so it is never scrolled
+      out of reach.
+    -->
+    <template slot="title">
+        <div class="wpc-head">
+            <div class="wpc-head__id">
+                <span class="wpc-head__title">[[ inModal.title ]]</span>
+                <span class="wpc-head__sub">Configure listener, access, transport and security</span>
+            </div>
+            <div class="wpc-head__aside">
+                <span class="wpc-head__proto">[[ ProtocolLabels[inbound.protocol] || inbound.protocol ]]</span>
+                <span class="wpc-head__toggle">
+                    <span class="wpc-head__toggle-label">{{ i18n "enable" }}</span>
+                    <a-switch v-model="dbInbound.enable"></a-switch>
+                </span>
+            </div>
+        </div>
+    </template>
     {{template "form/inbound"}}
 </a-modal>
 <script>

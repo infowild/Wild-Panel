@@ -1006,3 +1006,525 @@ body.dark :is(#inbound-modal,#client-modal) { --fm-help:#8B9099; }
      from the horizontal layout has to be released or it drifts off the field. */
   :is(#inbound-modal,#client-modal) .ant-form-item-label { text-align:start; }
 }
+
+/* ================================================================== *
+ * INBOUND CONFIGURATION WORKSPACE
+ *
+ * SCOPE: `#inbound-modal` only. The client modal keeps the single-column
+ * treatment above; everything from here down describes the two-zone Add/Edit
+ * Inbound workspace and must not leak into it.
+ *
+ * The dialog is a configuration console, not a form: a fixed header carrying
+ * identity and enable state, a scrolling workspace of grouped panels, and a
+ * fixed action bar. Three surfaces carry the whole hierarchy —
+ *
+ *   body      --surface    the workspace ground
+ *   section   --surface-2  a grouped panel of related controls
+ *   inset     --surface-3  configuration owned by the control above it
+ *
+ * with controls painted back on --surface so they read as foreground at every
+ * depth. That ladder is the reason there are no card shadows here: depth is
+ * luminance and a hairline, which survives the light theme without inverting
+ * into a different design.
+ *
+ * Structural classes (.wpc-*) come from form/inbound.html and
+ * form/stream/stream_settings.html. Everything else is drawn on ant's own
+ * markup, so the ~40 protocol, transport and TLS partials inherit the control
+ * system without being touched.
+ * ================================================================== */
+
+#inbound-modal {
+  --fm-ctl-h:38px;
+  --wpc-gap:12px;         /* between controls inside a group  */
+  --wpc-sec-gap:18px;     /* between groups                   */
+  --wpc-sec-pad:16px;
+}
+
+/* ---- shell -------------------------------------------------------------
+ * 1080px sits in the middle of the two-column target: at 24px insets the
+ * workspace is ~1032px, which splits into a 440px core rail and a 570px stack
+ * column - both above the width at which ant's compact input groups start
+ * folding. Below that the dialog tracks the viewport (see responsive).
+ *
+ * The height cap is the smaller of 92vh and "viewport minus the 20px top
+ * offset the template sets inline, doubled", so the dialog never grows a
+ * second scrollbar behind itself on a short screen.
+ */
+#inbound-modal .ant-modal { width:1080px !important; }
+#inbound-modal .ant-modal-content { max-height:min(92vh, calc(100vh - 40px)); }
+#inbound-modal .ant-modal-body { padding:18px var(--fm-pad-x) 22px; }
+
+/* ---- header ----
+ * Compact and banded rather than a hero: one line of identity, one line of
+ * scope, and the two pieces of state worth keeping on screen while the body
+ * scrolls. The inline-end padding is the close button's hit area (52px) plus
+ * breathing room, so the enable switch can never sit under it.
+ */
+#inbound-modal .ant-modal-header {
+  padding:0;
+  background:var(--surface-2);
+  border-bottom:1px solid var(--border);
+}
+#inbound-modal .ant-modal-title {
+  padding:12px var(--fm-pad-x);
+  padding-inline-end:64px;
+  font-size:inherit;
+  line-height:inherit;
+  letter-spacing:normal;
+}
+#inbound-modal .wpc-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px 20px;
+  flex-wrap:wrap;
+}
+#inbound-modal .wpc-head__id { min-width:0; }
+#inbound-modal .wpc-head__title {
+  display:block;
+  font-size:15.5px;
+  font-weight:var(--fw-semibold);
+  line-height:1.3;
+  letter-spacing:-.01em;
+  color:var(--text);
+}
+#inbound-modal .wpc-head__sub {
+  display:block;
+  margin-top:2px;
+  font-size:11.5px;
+  font-weight:var(--fw-normal);
+  line-height:1.4;
+  color:var(--fm-help);
+}
+#inbound-modal .wpc-head__aside {
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex:0 0 auto;
+}
+#inbound-modal .wpc-head__proto {
+  padding:3px 9px;
+  border-radius:var(--radius-pill);
+  background:var(--accent-weak);
+  color:var(--accent);
+  border:1px solid transparent;
+  font-size:11px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+#inbound-modal .wpc-head__toggle {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+#inbound-modal .wpc-head__toggle-label {
+  font-size:11px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--text-2);
+}
+
+/* ---- action bar ----
+ * Its own surface with a hairline above it, no shadow. The dialog is already
+ * a flex column, so this stays put while the workspace scrolls under it.
+ */
+#inbound-modal .ant-modal-footer {
+  padding:14px var(--fm-pad-x);
+  background:var(--surface-2);
+  border-top:1px solid var(--border);
+}
+#inbound-modal .ant-modal-footer .ant-btn { min-width:96px; }
+
+/* ---- workspace grid ----------------------------------------------------
+ * 44 / 56. The core rail holds what the inbound IS; the stack column holds
+ * how it is reached. align-items:start so a short rail does not stretch its
+ * panels to match a tall transport form.
+ *
+ * .wpc--single is set by the template for the protocols that have neither an
+ * xray stream nor stream TLS: their stack column would be one sniffing panel,
+ * and half an empty dialog reads as a rendering fault.
+ */
+#inbound-modal .wpc {
+  display:grid;
+  grid-template-columns:minmax(0,44fr) minmax(0,56fr);
+  gap:var(--wpc-sec-gap);
+  align-items:start;
+}
+#inbound-modal .wpc-col {
+  display:flex;
+  flex-direction:column;
+  gap:var(--wpc-sec-gap);
+  min-width:0;
+}
+#inbound-modal .wpc-col--stack {
+  border-inline-start:1px solid var(--divider);
+  padding-inline-start:var(--wpc-sec-gap);
+}
+#inbound-modal .wpc--single { grid-template-columns:minmax(0,1fr); }
+#inbound-modal .wpc--single .wpc-col--stack {
+  border-inline-start:0;
+  padding-inline-start:0;
+}
+
+/* ---- section panels ----
+ * Grouped, not carded: a hairline, one step of surface, and a small radius.
+ * No shadow and no large corner - a dozen of these stacked would read as a
+ * marketing dashboard rather than a control panel.
+ */
+#inbound-modal .wpc-sec {
+  padding:var(--wpc-sec-pad);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+}
+#inbound-modal .wpc-sec__head {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--divider);
+}
+#inbound-modal .wpc-sec__title {
+  font-size:11.5px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:var(--text);
+}
+#inbound-modal .wpc-sec__hint {
+  font-size:11.5px;
+  line-height:1.45;
+  color:var(--fm-help);
+}
+/* A protocol form that renders nothing for the current protocol (http, tun and
+   the like once their fields are conditioned away) would otherwise leave a
+   heading with a rule under it and no content. */
+#inbound-modal .wpc-sec__body > :first-child { margin-top:0; }
+
+/* ---- vertical labels ---------------------------------------------------
+ * Every partial in this dialog declares :label-col="{md:{span:8}}", which puts
+ * a right-aligned label in a third of the row and the control in the rest.
+ * That split is what made the form read as a 2013 admin panel, and it cannot
+ * be undone per-file without editing ~40 templates and their bindings.
+ *
+ * Releasing the two ant-col children of every form item converts the whole
+ * dialog - authored sections and untouched partials alike - to label-above-
+ * control in one place. Specificity is (1,2,0) against ant's (0,1,0) col
+ * rules, so no !important is needed.
+ */
+#inbound-modal .ant-form-item > .ant-form-item-label,
+#inbound-modal .ant-form-item > .ant-form-item-control-wrapper {
+  display:block;
+  float:none;
+  width:100%;
+  max-width:100%;
+  padding:0;
+}
+#inbound-modal .ant-form-item > .ant-form-item-label {
+  text-align:start;
+  padding-bottom:5px;
+  line-height:1.35;
+}
+#inbound-modal .ant-form-item-label > label {
+  display:block;
+  height:auto;
+  font-size:12.5px;
+  font-weight:var(--fw-medium);
+  line-height:1.35;
+  color:var(--text-2);
+}
+#inbound-modal .ant-form-item { margin-bottom:var(--wpc-gap); }
+#inbound-modal .ant-form:last-child > .ant-form-item:last-child,
+#inbound-modal .wpc-sec__body > :last-child { margin-bottom:0; }
+
+/* ---- control system ----
+ * One height, one radius, one type size for everything an operator tabs
+ * through, so a row of mixed control types reads as one row.
+ */
+#inbound-modal .ant-input:not(textarea),
+#inbound-modal .ant-select-selection--single,
+#inbound-modal .ant-input-number-input,
+#inbound-modal .ant-calendar-picker-input,
+#inbound-modal .ant-time-picker-input { font-size:13px; }
+#inbound-modal .ant-select-selection__rendered { font-size:13px; }
+#inbound-modal .wpc-form .ant-input-number,
+#inbound-modal .wpc-form .ant-select:not(.ant-select-sm),
+#inbound-modal .wpc-form .ant-calendar-picker { width:100%; }
+
+/* The two selectors that decide what the rest of a column even means -
+   Protocol and Transmission - are the anchor of their section: taller, darker
+   label, heavier value. Nothing else in the dialog gets this treatment. */
+#inbound-modal .wpc-field--primary > .ant-form-item-label > label {
+  font-size:12.5px;
+  font-weight:var(--fw-semibold);
+  color:var(--text);
+}
+#inbound-modal .wpc-field--primary .ant-select-selection--single { height:42px; }
+#inbound-modal .wpc-field--primary .ant-select-selection__rendered {
+  line-height:40px;
+  font-size:13.5px;
+  font-weight:var(--fw-medium);
+}
+
+/* ---- mini grids ---- */
+#inbound-modal .wpc-grid {
+  display:grid;
+  gap:10px var(--wpc-gap);
+  align-items:start;
+  margin-bottom:var(--wpc-gap);
+}
+#inbound-modal .wpc-grid--2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+#inbound-modal .wpc-grid > .ant-form-item { margin-bottom:0; min-width:0; }
+#inbound-modal .wpc-span-2 { grid-column:1 / -1; }
+
+/* ---- setting rows ------------------------------------------------------
+ * A binary operational setting is a row, not a field: name and consequence on
+ * the start edge, control on the end edge, on its own bounded surface.
+ *
+ * Two selectors, one treatment. `.wpc-toggle` is declared where this file's
+ * own sections want the row; the :has() clause catches the same shape in the
+ * partials this file does not edit (sniffing's Enabled, OpenVPN's Separate
+ * Ports, and so on) - a form item whose entire control is one switch. Browsers
+ * without :has() fall back to the stacked label-above-switch, which is correct,
+ * just less compact.
+ */
+#inbound-modal .ant-form-item.wpc-toggle,
+#inbound-modal .ant-form-item:has(.ant-form-item-children > .ant-switch:only-child) {
+  display:flex;
+  align-items:center;
+  gap:var(--wpc-gap);
+  padding:8px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+}
+#inbound-modal .ant-form-item.wpc-toggle > .ant-form-item-label,
+#inbound-modal .ant-form-item:has(.ant-form-item-children > .ant-switch:only-child) > .ant-form-item-label {
+  flex:1 1 auto;
+  width:auto;
+  padding:0;
+}
+#inbound-modal .ant-form-item.wpc-toggle > .ant-form-item-control-wrapper,
+#inbound-modal .ant-form-item:has(.ant-form-item-children > .ant-switch:only-child) > .ant-form-item-control-wrapper {
+  flex:0 0 auto;
+  width:auto;
+  line-height:1;
+}
+#inbound-modal .wpc-toggle__ctl {
+  display:inline-flex;
+  align-items:center;
+}
+#inbound-modal .wpc-toggle__hint {
+  display:block;
+  margin-top:2px;
+  font-size:11.5px;
+  font-weight:var(--fw-normal);
+  line-height:1.4;
+  letter-spacing:normal;
+  text-transform:none;
+  color:var(--fm-help);
+}
+
+/* ---- action rows -------------------------------------------------------
+ * Key generation, certificate import and the "add another" buttons were
+ * floating loose in the column: a primary button with a blank label above it
+ * and nothing bounding it, which read as an unfinished field rather than an
+ * action. Same row treatment as a setting - what it does on the start edge,
+ * the control on the end edge - so a generate/clear pair is one object.
+ *
+ * The second selector requires a button INSIDE the a-space, which is what
+ * keeps OpenVPN's switch+port spaces out of this: they are fields, not
+ * actions, and they keep the field layout.
+ */
+#inbound-modal .ant-form-item:has(> .ant-form-item-control-wrapper .ant-form-item-children > .ant-btn:only-child),
+#inbound-modal .ant-form-item:has(> .ant-form-item-control-wrapper .ant-form-item-children > .ant-space .ant-btn) {
+  display:flex;
+  align-items:center;
+  gap:var(--wpc-gap);
+  padding:8px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+}
+#inbound-modal .ant-form-item:has(> .ant-form-item-control-wrapper .ant-form-item-children > .ant-btn:only-child) > .ant-form-item-label,
+#inbound-modal .ant-form-item:has(> .ant-form-item-control-wrapper .ant-form-item-children > .ant-space .ant-btn) > .ant-form-item-label {
+  flex:1 1 auto;
+  width:auto;
+  min-width:0;
+  padding:0;
+}
+#inbound-modal .ant-form-item:has(> .ant-form-item-control-wrapper .ant-form-item-children > .ant-btn:only-child) > .ant-form-item-control-wrapper,
+#inbound-modal .ant-form-item:has(> .ant-form-item-control-wrapper .ant-form-item-children > .ant-space .ant-btn) > .ant-form-item-control-wrapper {
+  flex:0 0 auto;
+  width:auto;
+  margin-inline-start:auto;
+  line-height:1;
+}
+#inbound-modal .ant-form-item .ant-btn {
+  height:32px;
+  border-radius:var(--radius-sm);
+  font-size:12.5px;
+}
+#inbound-modal .ant-form-item .ant-btn-sm { height:26px; }
+
+/* ---- dependent settings ----
+ * Controls that only exist because the row above them is on, drawn one step
+ * further in so the dependency is visible rather than remembered.
+ */
+#inbound-modal .wpc-sub {
+  margin:-2px 0 var(--wpc-gap);
+  padding:12px;
+  background:var(--surface-3);
+  border:1px solid var(--divider);
+  border-start-start-radius:0;
+  border-start-end-radius:0;
+  border-radius:0 0 var(--radius-sm) var(--radius-sm);
+}
+#inbound-modal .wpc-sub > .ant-form-item:last-child,
+#inbound-modal .wpc-sub > .wpc-grid:last-child { margin-bottom:0; }
+#inbound-modal .wpc-sub .ant-form-item.wpc-toggle { background:var(--surface); }
+
+/* Transport-specific configuration, inset under the selector that produced it:
+ * Transport -> TCP (RAW) -> its settings.
+ */
+#inbound-modal .wpc-inset {
+  margin-top:-2px;
+  padding:14px;
+  background:var(--surface-3);
+  border:1px solid var(--divider);
+  border-radius:var(--radius-sm);
+}
+#inbound-modal .wpc-inset > .ant-form:last-child > .ant-form-item:last-child { margin-bottom:0; }
+#inbound-modal .wpc-transport { margin-bottom:10px; }
+
+/* ---- segmented policy selectors ---------------------------------------
+ * Accept/Reject, none/Reality/TLS and the rest are policy choices, so they get
+ * one bounded track with the active segment raised out of it, instead of two
+ * buttons floating in the row. The fill still carries the state (white on the
+ * accent, 4.5:1 in both themes) - the track only says the options belong to
+ * each other.
+ */
+#inbound-modal .ant-radio-group-solid {
+  display:inline-flex;
+  padding:3px;
+  background:var(--surface-3);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  max-width:100%;
+  flex-wrap:wrap;
+  gap:3px;
+}
+#inbound-modal .ant-radio-group-solid > .ant-radio-button-wrapper {
+  height:calc(var(--fm-ctl-h) - 8px);
+  line-height:calc(var(--fm-ctl-h) - 8px);
+  padding:0 14px;
+  background:transparent;
+  border:none;
+  border-radius:calc(var(--radius-sm) - 2px);
+  box-shadow:none;
+  font-size:12.5px;
+  font-weight:var(--fw-medium);
+  color:var(--text-2);
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+/* ant draws the segment separator as a ::before pseudo on every wrapper after
+   the first; a track with gaps has nothing for it to separate. */
+#inbound-modal .ant-radio-group-solid > .ant-radio-button-wrapper::before { display:none; }
+#inbound-modal .ant-radio-group-solid > .ant-radio-button-wrapper:hover {
+  background:var(--surface-hover);
+  border:none;
+  color:var(--text);
+}
+#inbound-modal .ant-radio-group-solid > .ant-radio-button-wrapper-checked,
+#inbound-modal .ant-radio-group-solid > .ant-radio-button-wrapper-checked:hover {
+  background:var(--accent-fill);
+  border:none;
+  color:var(--on-accent);
+  box-shadow:none;
+}
+#inbound-modal .ant-radio-group-solid > .ant-radio-button-wrapper:focus-within {
+  outline:2px solid var(--accent);
+  outline-offset:1px;
+}
+
+/* ---- collapsible groups ----
+ * Client / Access, Ciphers, Sniffing, Sockopt, Masking. Inside a section panel
+ * the old --surface-2 collapse was the same colour as its own container, so it
+ * had no edge at all. Header on --surface-3, content on --surface: the group
+ * reads as a closed drawer shut and as a bounded area open.
+ */
+#inbound-modal .ant-collapse {
+  margin:0 0 var(--wpc-gap);
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  overflow:hidden;
+}
+#inbound-modal .ant-collapse:last-child { margin-bottom:0; }
+#inbound-modal .ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  background:var(--surface-3);
+  padding-block:10px;
+  font-size:12px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--text);
+  transition:background var(--dur-fast) var(--ease);
+}
+#inbound-modal .ant-collapse > .ant-collapse-item > .ant-collapse-header:hover { background:var(--surface-4); }
+#inbound-modal .ant-collapse > .ant-collapse-item > .ant-collapse-header:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:-2px;
+}
+#inbound-modal .ant-collapse-content > .ant-collapse-content-box { padding:14px; }
+/* The first-client block is the one collapse an operator opens on every add,
+   so it is the one that gets an accent edge rather than a neutral one. */
+#inbound-modal .wpc-sec--protocol > .wpc-sec__body > .ant-collapse { border-color:var(--border-strong); }
+
+/* ---- sub-headings inside a section ----
+ * The partials mark their own subdivisions with a text a-divider ("Fallbacks",
+ * "TLS Certificate", "Vision Seed"). Inside a section panel those are now a
+ * level BELOW the section title, so they lose the uppercase treatment and the
+ * generous margins the single-column form gave them.
+ */
+#inbound-modal .ant-divider-horizontal.ant-divider-with-text-center,
+#inbound-modal .ant-divider-horizontal.ant-divider-with-text-left,
+#inbound-modal .ant-divider-horizontal.ant-divider-with-text-right {
+  margin:16px 0 12px;
+  font-size:12px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.01em;
+  text-transform:none;
+  color:var(--text);
+}
+#inbound-modal .ant-divider-inner-text { color:var(--text); padding-inline:10px; }
+
+/* ---- responsive --------------------------------------------------------
+ * Two thresholds, in this order:
+ *   1140px  the 1080px dialog can no longer sit inside the viewport, so it
+ *           starts tracking it instead.
+ *   1060px  the workspace is now under ~1000px, which is the width at which
+ *           the 44/56 split stops holding a usable control column - one
+ *           column from here down.
+ *    760px  the mini-grids inside a section give up their second column.
+ * Nothing scrolls horizontally at any of them: every track is minmax(0,...).
+ */
+@media (max-width:1140px) {
+  #inbound-modal .ant-modal { width:calc(100vw - 32px) !important; }
+}
+@media (max-width:1060px) {
+  #inbound-modal .wpc { grid-template-columns:minmax(0,1fr); }
+  #inbound-modal .wpc-col--stack {
+    border-inline-start:0;
+    padding-inline-start:0;
+  }
+}
+@media (max-width:760px) {
+  #inbound-modal .wpc-grid--2 { grid-template-columns:minmax(0,1fr); }
+  #inbound-modal { --wpc-sec-pad:13px; --wpc-sec-gap:14px; }
+  #inbound-modal .wpc-head__aside { gap:12px; }
+}

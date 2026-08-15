@@ -4,17 +4,25 @@
   :label-col="{ md: {span:8} }"
   :wrapper-col="{ md: {span:14} }"
 >
-  <a-divider :style="{ margin: '5px 0 0' }"></a-divider>
-  <a-form-item label="External Proxy">
-    <a-switch v-model="externalProxy"></a-switch>
-    <a-button
-      icon="plus"
-      v-if="externalProxy"
-      type="primary"
-      :style="{ marginLeft: '10px' }"
-      size="small"
-      @click="inbound.stream.externalProxy.push({forceTls: 'same', dest: '', port: 443, remark: ''})"
-    ></a-button>
+  <!--
+    Switch and add-button share one inline control box so this stays a setting
+    row in both states. Left as two siblings the switch is the item's only
+    child while the list is off and stops being one the moment it is turned on,
+    which flipped the row between the compact and the stacked layout on every
+    toggle (see the :has() rule in ant-bridge.css).
+  -->
+  <a-form-item class="wpc-toggle" label="External Proxy">
+    <span class="wpc-toggle__ctl">
+      <a-switch v-model="externalProxy"></a-switch>
+      <a-button
+        icon="plus"
+        v-if="externalProxy"
+        type="primary"
+        :style="{ marginLeft: '10px' }"
+        size="small"
+        @click="inbound.stream.externalProxy.push({forceTls: 'same', dest: '', port: 443, remark: ''})"
+      ></a-button>
+    </span>
   </a-form-item>
   <a-input-group
     :style="{ margin: '8px 0' }"
