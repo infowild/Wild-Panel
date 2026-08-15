@@ -65,7 +65,8 @@
             message='{{ i18n "pages.settings.security.apiTokenCopyOnce" }}'
             :description="apiTokenPlaintext"></a-alert>
         <a-table style="margin: 12px 20px" :columns="apiTokenColumns" :data-source="apiTokens"
-            :pagination="false" row-key="id" size="small">
+            :pagination="false" row-key="id" size="small"
+            :locale='{ emptyText: `{{ i18n "noData" }}` }'>
             <template slot="enabled" slot-scope="text, record">
                 <a-switch :checked="record.enabled" @change="(v) => setApiTokenEnabled(record, v)"></a-switch>
             </template>

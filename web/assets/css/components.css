@@ -2826,7 +2826,10 @@ body:not(.dark) .inbounds-page .ib-idz--off .ib-idz-name {
      bites past ~1950px of viewport; below that the console simply takes the
      content box, so a 1920 screen is not left with a column of dead space. */
   --set-pad:24px;
-  --set-max:1880px;
+  /* Raised from 1880 to the same ceiling Inbounds uses. The two consoles sit
+     one nav click apart, and stopping this one 360px earlier made Settings
+     look like a narrower product than the page beside it. */
+  --set-max:2240px;
   /* Internal separators. The shared --divider is tuned for cards that already
      carry a border; a console that is mostly rows needs it a step firmer to
      keep the row rhythm readable without turning into a table grid. */
@@ -3290,7 +3293,9 @@ body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
   --xr-actionbar-gap:14px;
   --xr-rail-top:calc(var(--xr-topbar) + var(--xr-actionbar-h) + var(--xr-actionbar-gap));
   --xr-pad:24px;
-  --xr-max:1880px;
+  /* Matches Settings and Inbounds: the editor is the one thing on the panel
+     that genuinely wants every pixel of a wide screen. */
+  --xr-max:2240px;
   --xr-divider:rgba(15,23,42,.085);
 }
 body.dark .bo-shell.xray-page { --xr-divider:rgba(255,255,255,.075); }
@@ -3654,7 +3659,9 @@ body:not(.dark) .bo-shell.xray-page { --bg:#F1F4F7; }
   border:1px dashed var(--border-hover); border-radius:var(--radius-lg);
   background:var(--surface-2);
 }
-.xray-page .xr-empty .ant-empty { margin:0; }
+/* The frame is this element's; the empty inside it only brings the glyph,
+   the line and the action, so its own box is zeroed. */
+.xray-page .xr-empty .ant-empty { margin:0; padding:0; }
 .xray-page .xr-empty .ant-empty-description { font-size:12.5px; color:var(--text-3); margin-bottom:14px; }
 .xray-page .xr-empty .ant-btn { height:34px; border-radius:var(--radius-sm); font-size:13px; }
 
@@ -3801,4 +3808,218 @@ body:not(.dark) .bo-shell.xray-page { --bg:#F1F4F7; }
   .xray-page .xr-actionbar { flex-wrap:wrap; }
   .xray-page .xr-actionbar__actions { width:100%; }
   .xray-page .xr-actionbar .ant-btn { flex:1 1 auto; }
+}
+
+/* ==================================================================
+ * Shared page console (.core-page, .admins-page, .resellers-page)
+ *
+ * Settings and Xray each grew their own console vars because each has a
+ * navigation rail with its own width. These three do not: they are a bar
+ * and a body. So rather than a third and fourth copy of the same block,
+ * one `--pgc-*` scale drives all of them, and each page adds only what is
+ * genuinely its own (the reseller grid, the core tiles).
+ *
+ * What this fixes: every one of these pages opened with a full-width card
+ * that held two small buttons, so the first 90px of the workspace was an
+ * empty box. The bar below is the same height as a button plus its
+ * padding, which is the actual content.
+ * ================================================================== */
+.bo-shell.core-page,
+.bo-shell.admins-page,
+.bo-shell.resellers-page {
+  --pgc-pad:24px;
+  --pgc-max:2240px;
+  --pgc-gap:16px;
+  --pgc-topbar:45px;
+  --pgc-divider:rgba(15,23,42,.085);
+}
+body.dark .bo-shell.core-page,
+body.dark .bo-shell.admins-page,
+body.dark .bo-shell.resellers-page {
+  --pgc-divider:rgba(255,255,255,.075);
+}
+/* Same ground the other consoles sit on, so moving between pages is not a
+   change of background colour. data-theme lives on <html>, never on <body>. */
+html:not([data-theme='ultra-dark']) body.dark .bo-shell.core-page,
+html:not([data-theme='ultra-dark']) body.dark .bo-shell.admins-page,
+html:not([data-theme='ultra-dark']) body.dark .bo-shell.resellers-page { --bg:#08090B; }
+body:not(.dark) .bo-shell.core-page,
+body:not(.dark) .bo-shell.admins-page,
+body:not(.dark) .bo-shell.resellers-page { --bg:#F1F4F7; }
+
+.core-page .bo-content,
+.admins-page .bo-content,
+.resellers-page .bo-content {
+  padding-inline:var(--pgc-pad);
+  padding-bottom:24px;
+}
+/* The console is what actually carries the width. Capped at the same place
+   as Inbounds so a 4K screen does not stretch a spec row to 3000px, but
+   high enough that no ordinary desktop ever sees the cap. */
+.pgc-console {
+  width:100%; max-width:var(--pgc-max); margin-inline:auto;
+  display:flex; flex-direction:column; gap:var(--pgc-gap);
+}
+
+/* ---- page action bar ------------------------------------------------
+ * Reads left to right: what this page is showing, then what you can do to
+ * it. Sticky under the topbar for the same reason the settings bar is -
+ * the primary action should not scroll away from a long list. */
+.pgc-bar {
+  position:sticky; top:var(--pgc-topbar); z-index:8;
+  min-height:48px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px 20px;
+  padding:7px 18px;
+  background:var(--surface);
+  border:1px solid var(--border); border-bottom-color:var(--border-hover);
+  border-radius:var(--radius-lg);
+}
+.pgc-bar__meta { display:flex; align-items:baseline; gap:10px; min-width:0; }
+.pgc-bar__title {
+  margin:0; font-size:14px; font-weight:var(--fw-semibold,600); color:var(--text);
+  white-space:nowrap;
+}
+.pgc-bar__note {
+  flex:0 1 auto; min-width:0;
+  font-size:11.5px; line-height:16px; color:var(--text-3);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.pgc-bar__count {
+  display:inline-flex; align-items:center; height:20px; padding:0 8px;
+  border-radius:var(--radius-pill,999px);
+  background:var(--surface-3); border:1px solid var(--border);
+  font-size:11.5px; font-weight:var(--fw-medium); color:var(--text-2);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.pgc-bar__actions {
+  flex:0 0 auto; display:flex; align-items:center; gap:10px; margin-inline-start:auto;
+}
+.pgc-bar .ant-btn { height:34px; padding:0 16px; border-radius:var(--radius-sm); font-size:13px; }
+.pgc-bar .ant-btn-icon-only { width:34px; padding:0; }
+/* custom.css still paints `.dark .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger)`
+   from the pre-token palette and outranks ant-bridge's neutral button, which is
+   why Refresh came out as a teal fill with a blue border. Restated here at the
+   same specificity but later in the cascade, the way the modals already do it. */
+.pgc-bar .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger) {
+  background:var(--surface-2); border-color:var(--border); color:var(--text-2);
+}
+.pgc-bar .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):hover,
+.pgc-bar .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):focus {
+  background:var(--surface-3); border-color:var(--border-strong); color:var(--text);
+}
+/* Destructive/maintenance work is outlined here too, so the one solid
+   button on the page stays the safe one. */
+.pgc-bar .ant-btn-danger {
+  background:transparent; color:var(--error);
+  border-color:color-mix(in srgb, var(--error) 42%, transparent);
+}
+.pgc-bar .ant-btn-danger:hover:not([disabled]) {
+  background:var(--error-weak); color:var(--error); border-color:var(--error);
+}
+
+/* ---- section ---------------------------------------------------------- */
+.pgc-sec { display:flex; flex-direction:column; gap:12px; }
+.pgc-sec__head {
+  display:flex; align-items:flex-end; justify-content:space-between; gap:10px 16px;
+  flex-wrap:wrap; padding-bottom:10px; border-bottom:1px solid var(--pgc-divider);
+}
+.pgc-sec__title { margin:0; font-size:15px; font-weight:var(--fw-semibold,600); color:var(--text); }
+.pgc-sec__sub { margin:3px 0 0; font-size:12px; color:var(--text-3); line-height:1.5; }
+.pgc-panel {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); overflow:hidden;
+}
+
+/* ---- empty state on these pages -------------------------------------- */
+.pgc-console .wp-empty {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  /* Tall enough to read as a deliberate panel, short enough that an empty
+     page is not a wall of charcoal. */
+  min-height:min(320px, 48vh);
+}
+.pgc-console .wp-empty--framed { background:var(--surface-2); }
+
+/* ---- responsive ------------------------------------------------------- */
+@media (min-width:1600px) {
+  .bo-shell.core-page,
+  .bo-shell.admins-page,
+  .bo-shell.resellers-page { --pgc-pad:30px; --pgc-gap:18px; }
+}
+@media (max-width:1180px) {
+  .bo-shell.core-page,
+  .bo-shell.admins-page,
+  .bo-shell.resellers-page { --pgc-pad:20px; --pgc-gap:14px; }
+}
+@media (max-width:768px) {
+  .bo-shell.core-page,
+  .bo-shell.admins-page,
+  .bo-shell.resellers-page { --pgc-pad:14px; }
+  .pgc-bar { padding:7px 12px; gap:10px 12px; }
+  .pgc-bar__note { display:none; }
+  .pgc-bar .ant-btn { padding:0 12px; }
+}
+/* Last resort: two rows rather than pushing an action off the edge. */
+@media (max-width:520px) {
+  .pgc-bar { flex-wrap:wrap; }
+  .pgc-bar__actions { width:100%; }
+  .pgc-bar__actions .ant-btn:not(.ant-btn-icon-only) { flex:1 1 auto; }
+}
+
+/* ---- Admins: the roster ----------------------------------------------
+ * The table now lives in .pgc-panel, which already draws the frame, so
+ * ant's own outer border would be a second line 1px inside the first. */
+.admins-page .pgc-panel .ant-table-bordered .ant-table-content > .ant-table-body > table,
+.admins-page .pgc-panel .ant-table-bordered .ant-table-body > table { border:0; }
+.admins-page .pgc-panel .ant-table-bordered .ant-table-thead > tr > th:first-child,
+.admins-page .pgc-panel .ant-table-bordered .ant-table-tbody > tr > td:first-child { border-inline-start:0; }
+.admins-page .pgc-panel .ant-table-bordered .ant-table-thead > tr > th:last-child,
+.admins-page .pgc-panel .ant-table-bordered .ant-table-tbody > tr > td:last-child { border-inline-end:0; }
+.admins-page .pgc-panel .ant-table-tbody > tr:last-child > td { border-bottom:0; }
+.admins-page .pgc-panel .ant-table-thead > tr > th {
+  background:var(--surface-2);
+  font-size:12px; font-weight:var(--fw-semibold,600); color:var(--text-2);
+  letter-spacing:.01em;
+}
+/* Permission tags are the widest cell on the page and there can be a dozen
+   of them; give them room to breathe rather than a 2px scatter. */
+.admins-page .pgc-panel .ant-table-tbody .ant-tag { margin:2px 4px 2px 0; }
+/* Several columns are declared at 45-50px, which is narrower than their own
+   headings ("Two-Factor Auth"), and ant's header cell does not wrap on its
+   own - so the label spilled out of the cell it belongs to. Two short lines
+   in the header is the right answer here; the column widths are load-bearing
+   for the row content. */
+.admins-page .pgc-panel .ant-table-thead > tr > th .ant-table-header-column,
+.admins-page .pgc-panel .ant-table-thead > tr > th .ant-table-column-title {
+  white-space:normal; overflow-wrap:break-word; display:block; max-width:100%;
+}
+
+/* ---- Core: retokenise -------------------------------------------------
+ * The page predates the token set and drew its own greens and reds from
+ * ant's old palette, so "healthy" here was a different green from healthy
+ * everywhere else in the panel. Same shapes, panel colours. */
+.core-page .core-kv + .core-kv { border-top:1px solid var(--pgc-divider); }
+.core-page .core-kv-label { opacity:1; color:var(--text-3); }
+.core-page .system-desc { opacity:1; color:var(--text-3); }
+.core-page .sys-tile-state { opacity:1; color:var(--text-3); }
+.core-page .sys-tile { border-radius:var(--radius-md,8px); }
+.core-page .sys-tile-ok { border-color:color-mix(in srgb, var(--ok) 32%, transparent); background:var(--ok-weak); }
+.core-page .sys-tile-bad { border-color:color-mix(in srgb, var(--error) 32%, transparent); background:var(--error-weak); }
+.core-page .module-chip { border-radius:var(--radius-sm,6px); }
+.core-page .module-ok { border-color:color-mix(in srgb, var(--ok) 32%, transparent); background:var(--ok-weak); }
+.core-page .module-bad { border-color:color-mix(in srgb, var(--error) 32%, transparent); background:var(--error-weak); }
+.core-page .sys-section-title { color:var(--text); }
+/* The cards were the only surface on the page without the panel's border, so
+   on the dark ground they floated. */
+.core-page .core-card { border-radius:var(--radius-lg); }
+/* Same custom.css teal-fill override the action bar already defeats. The
+   Logs / Edit config buttons live on every core card and were the last place
+   the old palette still showed. */
+.core-page .core-actions .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger),
+.core-page .ant-card-extra .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger) {
+  background:var(--surface-2); border-color:var(--border); color:var(--text-2);
+}
+.core-page .core-actions .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):hover,
+.core-page .ant-card-extra .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):hover {
+  background:var(--surface-3); border-color:var(--border-strong); color:var(--text);
 }

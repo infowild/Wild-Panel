@@ -40,7 +40,7 @@
         :data-source="outboundData"
         :scroll="isMobile ? {} : { x: 800 }" :pagination="false"
         :indent-size="0"
-        :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}` }'>
+        :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}`, emptyText: `{{ i18n "noData" }}` }'>
         <template slot="action" slot-scope="text, outbound, index">
             <span>[[ index+1 ]]</span>
             <a-dropdown :trigger="['click']">

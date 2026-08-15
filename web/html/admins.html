@@ -5,18 +5,24 @@
 {{template "page/shell_start" . }}
       <a-spin :spinning="spinning" :delay="300" tip='{{ i18n "loading"}}' size="large">
         <transition name="list" appear>
-          <a-row :gutter="[16, 16]" :style="{ margin: 0 }">
-            <a-col :span="24">
-              <a-card hoverable :style="{ marginBottom: '16px' }">
-                <div :style="{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }">
-                  <a-button type="primary" icon="plus" @click="openAdd()">
-                    {{ i18n "pages.admins.add" }}
-                  </a-button>
-                  <a-button icon="reload" @click="loadAdmins(true)"></a-button>
-                </div>
-              </a-card>
+          <div class="pgc-console">
+            <div class="pgc-bar">
+              <div class="pgc-bar__meta">
+                <h2 class="pgc-bar__title">{{ i18n "menu.admins" }}</h2>
+                <span class="pgc-bar__count" v-if="admins.length">[[ admins.length ]]</span>
+              </div>
+              <div class="pgc-bar__actions">
+                <a-button icon="reload" @click="loadAdmins(true)"></a-button>
+                <a-button type="primary" icon="plus" @click="openAdd()">
+                  {{ i18n "pages.admins.add" }}
+                </a-button>
+              </div>
+            </div>
 
-              <a-card hoverable :bodyStyle="{ padding: 0 }">
+            <!-- The table is hidden entirely when there is nothing in it: an
+                 empty grid of column headers explains less than the state
+                 below, and offers no way out of it. -->
+            <div class="pgc-panel" v-if="admins.length">
                 <a-table :columns="columns" :row-key="r => r.id" :data-source="admins"
                   :scroll="isMobile ? {} : { x: 700 }" :pagination="false" bordered
                   :locale='{ emptyText: `{{ i18n "noData" }}` }'>
@@ -81,9 +87,21 @@
                     </a-dropdown>
                   </template>
                 </a-table>
-              </a-card>
-            </a-col>
-          </a-row>
+            </div>
+
+            <div class="wp-empty" v-else-if="!spinning">
+              <div class="wp-empty__icon" aria-hidden="true">
+                <svg class="bo-icon"><use href="#bo-i-user"></use></svg>
+              </div>
+              <p class="wp-empty__title">{{ i18n "pages.admins.emptyTitle" }}</p>
+              <p class="wp-empty__hint">{{ i18n "pages.admins.emptyDesc" }}</p>
+              <div class="wp-empty__cta">
+                <a-button type="primary" icon="plus" @click="openAdd()">
+                  {{ i18n "pages.admins.add" }}
+                </a-button>
+              </div>
+            </div>
+          </div>
         </transition>
       </a-spin>
 {{template "page/shell_end" . }}
@@ -111,7 +129,7 @@
     data: {
       themeSwitcher,
       pageTitle: '{{ i18n "menu.admins"}}',
-      pageClass: '',
+      pageClass: 'admins-page',
       spinning: false,
       admins: [],
       // Permission slugs come from the server rather than a hard-coded copy, so the

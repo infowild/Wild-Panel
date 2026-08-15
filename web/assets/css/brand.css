@@ -89,37 +89,83 @@ body:not(.dark) .wp-mark {
 .wp-btn-primary:active { transform:translateY(0); }
 .wp-btn-primary:disabled { opacity:.55; cursor:not-allowed; transform:none; filter:none; }
 
-/* Branded empty — replaces Ant's default illustration language */
+/* ------------------------------------------------------------------ *
+ * Empty states
+ *
+ * The mark used to be pasted into every ant empty slot, so "no data yet"
+ * and "this is Wild Panel" were the same picture. A logo says nothing
+ * about what is missing or how to fix it, and repeated once per table it
+ * stopped reading as brand at all. The language here is a quiet outlined
+ * glyph in a tinted tile, a title that names what is absent, one line of
+ * help, and - where the operator can actually fix it - the action.
+ *
+ * The glyph is a mask rather than an <img> so it takes its colour from
+ * the theme instead of shipping a light and a dark asset.
+ * ------------------------------------------------------------------ */
 .wp-empty {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:14px; padding:36px 20px; text-align:center;
+  gap:0; padding:44px 24px; text-align:center;
 }
-.wp-empty .wp-mark { width:64px; height:64px; opacity:.92; }
+.wp-empty__icon {
+  width:56px; height:56px; margin-bottom:18px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--radius-xl,14px);
+  background:var(--surface-3);
+  border:1px solid var(--border);
+  color:var(--text-3);
+  flex:0 0 auto;
+}
+.wp-empty__icon .bo-icon,
+.wp-empty__icon .anticon { font-size:24px; width:24px; height:24px; }
 .wp-empty__title {
-  margin:0; font-size:var(--fs-md); font-weight:var(--fw-semibold); color:var(--text);
+  margin:0; font-size:var(--fs-md,15px); font-weight:var(--fw-semibold,600);
+  color:var(--text); line-height:1.4;
 }
 .wp-empty__hint {
-  margin:0; max-width:36ch; font-size:var(--fs-sm); color:var(--text-3); line-height:1.5;
+  margin:8px 0 0; max-width:46ch;
+  font-size:var(--fs-sm); color:var(--text-3); line-height:1.6;
 }
+.wp-empty__cta { margin-top:20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center; }
+/* Sits inside a panel that already has a border: dashed inner frame so the
+   region reads as "reserved for content" rather than as a second card. */
+.wp-empty--framed {
+  border:1px dashed var(--border-strong); border-radius:var(--radius-lg,12px);
+  background:var(--surface-2);
+}
+.wp-empty--compact { padding:28px 20px; }
+.wp-empty--compact .wp-empty__icon { width:44px; height:44px; margin-bottom:14px; }
+.wp-empty--compact .wp-empty__icon .bo-icon,
+.wp-empty--compact .wp-empty__icon .anticon { font-size:20px; width:20px; height:20px; }
 
-/* Global Ant empty: wolf mark instead of Ant SVG box */
+/* Global ant empty: same language, for the tables and selects we do not
+   hand-write an empty state for. No logo, no ant illustration. */
 .ant-empty {
-  margin:24px 0; padding:12px;
+  margin:0; padding:28px 20px;
 }
 .ant-empty-image {
-  height:72px !important;
+  height:44px !important;
   margin-bottom:14px;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(59,130,246,.06), transparent 62%),
-    url(../img/logo.png) center / 56px 56px no-repeat;
-  opacity:.95;
+  position:relative;
+  background:none;
 }
 .ant-empty-image svg,
 .ant-empty-image img { display:none !important; }
+.ant-empty-image::after {
+  content:""; position:absolute; inset:0; margin:auto;
+  width:40px; height:40px;
+  background:var(--text-3); opacity:.55;
+  -webkit-mask:var(--wp-empty-glyph) center / 40px 40px no-repeat;
+  mask:var(--wp-empty-glyph) center / 40px 40px no-repeat;
+}
 .ant-empty-description {
   color:var(--text-3) !important;
   font-size:var(--fs-sm);
   font-weight:var(--fw-medium);
+}
+/* Outlined tray. Declared once here and consumed by the mask above so the
+   glyph is not duplicated per theme or per page. */
+:root {
+  --wp-empty-glyph:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 14.5V18a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3.5'/%3E%3Cpath d='M3 14.5h5l1.2 2h5.6l1.2-2h5'/%3E%3Cpath d='M6.5 4h11l3.5 10.5'/%3E%3Cpath d='M3 14.5 6.5 4'/%3E%3C/svg%3E");
 }
 
 /* Branded loading tip under a-spin */

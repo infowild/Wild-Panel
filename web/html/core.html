@@ -5,29 +5,27 @@
 {{template "page/shell_start" . }}
       <a-spin :spinning="spinning" :delay="300" tip='{{ i18n "loading"}}' size="large">
         <transition name="list" appear>
-        <a-row :gutter="[16, 16]" :style="{ margin: 0 }">
+        <div class="pgc-console">
 
-          <!-- Header -->
-          <a-col :span="24">
-            <a-card hoverable>
-              <a-row type="flex" justify="space-between" align="middle" :gutter="[8,8]">
-                <a-col>
-                  <h2 :style="{ margin: 0 }">{{ i18n "pages.core.title" }}</h2>
-                  <span :style="{ opacity: 0.65 }">{{ i18n "pages.core.subtitle" }}</span>
-                </a-col>
-                <a-col v-if="provisioned">
-                  <a-space>
-                    <a-button type="primary" @click="restartAll">
-                      <a-icon type="reload"></a-icon>Restart All Cores
-                    </a-button>
-                    <a-button @click="loadStatus(true)">
-                      <a-icon type="reload"></a-icon>{{ i18n "pages.core.refresh" }}
-                    </a-button>
-                  </a-space>
-                </a-col>
-              </a-row>
-            </a-card>
-          </a-col>
+          <!-- Header. The page title already sits in the topbar, so this bar
+               carries the subtitle as advice and gives the two whole-host
+               actions a fixed home instead of a card of their own. -->
+          <div class="pgc-bar">
+            <div class="pgc-bar__meta">
+              <h2 class="pgc-bar__title">{{ i18n "pages.core.title" }}</h2>
+              <span class="pgc-bar__note">{{ i18n "pages.core.subtitle" }}</span>
+            </div>
+            <div class="pgc-bar__actions" v-if="provisioned">
+              <a-button @click="loadStatus(true)">
+                <a-icon type="reload"></a-icon>{{ i18n "pages.core.refresh" }}
+              </a-button>
+              <a-button type="primary" @click="restartAll">
+                <a-icon type="reload"></a-icon>Restart All Cores
+              </a-button>
+            </div>
+          </div>
+
+        <a-row :gutter="[16, 16]" :style="{ margin: 0 }">
 
           <!-- Reboot-required banner: persists on the page after the setup modal
                is closed, so the operator can't miss it. -->
@@ -240,6 +238,7 @@
           </a-col>
 
         </a-row>
+        </div>
         </transition>
       </a-spin>
 
@@ -475,7 +474,7 @@
     data: {
       themeSwitcher,
       pageTitle: '{{ i18n "menu.core"}}',
-      pageClass: '',
+      pageClass: 'core-page',
       spinning: false,
       loaded: false,
       provisioned: false,
