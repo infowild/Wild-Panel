@@ -421,7 +421,7 @@ func newResellerFixture(t *testing.T) *resellerFixture {
 		Error; err != nil {
 		t.Fatalf("seed shared inbound: %v", err)
 	}
-	// 2000 bytes on the counters: what a reset would clear, and so what it costs.
+	// 2000 bytes on the counters: what a usage reset clears. Allocation is separate.
 	if err := db.Create(&xray.ClientTraffic{
 		InboundId: f.aliInbound.Id, Email: saraEmail, Enable: false,
 		Up: 1000, Down: 1000, AllTime: 2000, Total: 10 * testGB,
@@ -464,6 +464,39 @@ func (f *resellerFixture) spent(t *testing.T) int64 {
 
 func TestResellerIsolation(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+
+	t.Run("cannot mutate inbound configuration", func(t *testing.T) {
+		f := newResellerFixture(t)
+		db := database.GetDB()
+		before := &model.Inbound{}
+		if err := db.First(before, f.aliInbound.Id).Error; err != nil {
+			t.Fatalf("load inbound: %v", err)
+		}
+
+		for _, p := range []struct {
+			method, path, body string
+		}{
+			{http.MethodPost, "/panel/api/inbounds/add", "remark=hack&port=9999&protocol=vmess&settings={}"},
+			{http.MethodPost, fmt.Sprintf("/panel/api/inbounds/update/%d", f.aliInbound.Id),
+				"remark=hacked&port=1&protocol=vmess&enable=false&settings={}"},
+			{http.MethodPost, fmt.Sprintf("/panel/api/inbounds/del/%d", f.aliInbound.Id), ""},
+			{http.MethodPost, "/panel/api/inbounds/import",
+				url.Values{"data": {`{"remark":"x","port":1,"protocol":"vmess","settings":"{}"}`}}.Encode()},
+		} {
+			w := f.as(t, f.sara, p.method, p.path, p.body)
+			if strings.Contains(w.Body.String(), `"success":true`) {
+				t.Errorf("%s %s succeeded for a reseller: %s", p.method, p.path, w.Body.String())
+			}
+		}
+		after := &model.Inbound{}
+		if err := db.First(after, f.aliInbound.Id).Error; err != nil {
+			t.Fatalf("reload inbound: %v", err)
+		}
+		if after.Remark != before.Remark || after.Port != before.Port || after.Enable != before.Enable {
+			t.Errorf("inbound config changed under a reseller: before remark=%q port=%d enable=%v; after remark=%q port=%d enable=%v",
+				before.Remark, before.Port, before.Enable, after.Remark, after.Port, after.Enable)
+		}
+	})
 
 	t.Run("cannot read an admin's client on a shared inbound", func(t *testing.T) {
 		f := newResellerFixture(t)
@@ -599,14 +632,13 @@ func TestResellerIsolation(t *testing.T) {
 		}
 	})
 
-	// A reset is ALLOWED for a reseller and is a purchase, not an adjustment: the
-	// cleared bytes are bytes the account gets to move a second time against the same
-	// quota, so the balance buys them again. Unpriced, this route is an
-	// unlimited-traffic button (sell 1 GB, reset, repeat), which is why asserting the
-	// balance actually moved matters more than asserting the request succeeded.
-	t.Run("resets their own account and is charged the cleared bytes", func(t *testing.T) {
+	// A reset is ALLOWED for a reseller on accounts they own, and must NOT move
+	// SpentBytes / ChargedBytes / AllowanceBytes. Client usage counters and
+	// reseller allocation are separate ledgers.
+	t.Run("resets their own account without touching the allocation", func(t *testing.T) {
 		f := newResellerFixture(t)
 
+		before := f.spent(t)
 		w := f.as(t, f.sara, http.MethodPost,
 			fmt.Sprintf("/panel/api/inbounds/%d/resetClientTraffic/%s", f.aliInbound.Id, f.saraEmail), "")
 		if !strings.Contains(w.Body.String(), `"success":true`) {
@@ -617,10 +649,8 @@ func TestResellerIsolation(t *testing.T) {
 		if ct.Up != 0 || ct.Down != 0 {
 			t.Errorf("the reset reported success and cleared nothing: up=%d down=%d", ct.Up, ct.Down)
 		}
-		// 1000 up + 1000 down cleared, on top of the 10 GB already committed.
-		if want, got := 10*testGB+2000, f.spent(t); got != want {
-			t.Errorf("spent = %d after a reset that handed the account 2000 bytes back; "+
-				"want %d. An uncharged reset is an unlimited-traffic button", got, want)
+		if got := f.spent(t); got != before {
+			t.Errorf("spent = %d after a usage reset; want it unchanged at %d", got, before)
 		}
 	})
 
@@ -642,34 +672,28 @@ func TestResellerIsolation(t *testing.T) {
 		}
 	})
 
-	// The refusal has to name the gap. "Not enough traffic" leaves a reseller guessing
-	// how much to ask an admin for; what they cannot see is the shortfall.
-	t.Run("a reset they cannot afford is refused, and the error names the shortfall", func(t *testing.T) {
+	// A tight allowance used to refuse a usage reset. Allocation and usage are
+	// separate now: the reset must succeed and the ledger must stay put.
+	t.Run("a usage reset succeeds even when the balance has no headroom", func(t *testing.T) {
 		f := newResellerFixture(t)
-		// 500 bytes of headroom against a 2000 byte reset.
 		if err := database.GetDB().Model(&model.ResellerProfile{}).Where("user_id = ?", f.sara.Id).
 			Update("allowance_bytes", 10*testGB+500).Error; err != nil {
 			t.Fatalf("tighten allowance: %v", err)
 		}
+		before := f.spent(t)
 
 		w := f.as(t, f.sara, http.MethodPost,
 			fmt.Sprintf("/panel/api/inbounds/%d/resetClientTraffic/%s", f.aliInbound.Id, f.saraEmail), "")
-		body := w.Body.String()
-		if strings.Contains(body, `"success":true`) {
-			t.Fatalf("a reset was granted on a balance that cannot pay for it: %s", body)
-		}
-		if !strings.Contains(body, "short") {
-			t.Errorf("the refusal does not name the shortfall, so the reseller cannot tell "+
-				"how much to ask for: %s", body)
+		if !strings.Contains(w.Body.String(), `"success":true`) {
+			t.Fatalf("usage reset refused on a tight balance: %s", w.Body.String())
 		}
 		ct := &xray.ClientTraffic{}
 		database.GetDB().Where("email = ?", f.saraEmail).First(ct)
-		if ct.Up == 0 && ct.Down == 0 {
-			t.Error("the reset was refused and cleared the counters anyway")
+		if ct.Up != 0 || ct.Down != 0 {
+			t.Errorf("counters uncleared: up=%d down=%d", ct.Up, ct.Down)
 		}
-		if got := f.spent(t); got != 10*testGB {
-			t.Errorf("spent = %d; a refused reset must not move the balance (want %d)",
-				got, 10*testGB)
+		if got := f.spent(t); got != before {
+			t.Errorf("spent = %d; want unchanged at %d", got, before)
 		}
 	})
 
@@ -710,7 +734,7 @@ func TestResellerIsolation(t *testing.T) {
 
 		// The bulk resets. A reseller now HOLDS bulkOperation, so the permission bit no
 		// longer closes these and the controller has to. Neither can be scoped to one
-		// reseller's accounts, and a free reset is the unlimited-traffic button again.
+		// reseller's accounts.
 		for _, path := range []string{
 			"/panel/api/inbounds/resetAllTraffics",
 			fmt.Sprintf("/panel/api/inbounds/resetAllClientTraffics/%d", f.aliInbound.Id),

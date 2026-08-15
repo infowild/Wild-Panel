@@ -419,6 +419,10 @@ const (
 	// a reseller shares with admins and with other resellers, so they reach
 	// accounts that are not theirs.
 	msgResellerNoInboundWide = "Resellers cannot run this across a whole inbound: it would reach accounts you do not own."
+	// Inbound create/edit/delete/reorder/import. requirePerm already refuses these
+	// because the role derives no *Inbound bits; denyForReseller at the handler is
+	// belt-and-braces with a clearer error if that ever regresses.
+	msgResellerNoInboundConfig = "Resellers cannot view or change inbound configuration. Add or edit clients on an assigned inbound instead."
 )
 
 // denyForReseller refuses an operation outright when the caller is a reseller, and

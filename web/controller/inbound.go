@@ -407,6 +407,9 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 // The ids arrive as a JSON array in a form field, matching bulkUpdateClients: the
 // panel posts form-urlencoded, which has no faithful encoding for an array.
 func (a *InboundController) reorderInbounds(c *gin.Context) {
+	if denyForReseller(c, msgResellerNoInboundConfig) {
+		return
+	}
 	var body struct {
 		Data string `form:"data" json:"data"`
 	}
@@ -585,6 +588,9 @@ func coreMissingForProtocol(c *gin.Context, protocol model.Protocol) bool {
 
 // addInbound creates a new inbound configuration.
 func (a *InboundController) addInbound(c *gin.Context) {
+	if denyForReseller(c, msgResellerNoInboundConfig) {
+		return
+	}
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
 	if err != nil {
@@ -666,6 +672,9 @@ func (a *InboundController) addInbound(c *gin.Context) {
 
 // delInbound deletes an inbound configuration by its ID.
 func (a *InboundController) delInbound(c *gin.Context) {
+	if denyForReseller(c, msgResellerNoInboundConfig) {
+		return
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundDeleteSuccess"), err)
@@ -735,6 +744,9 @@ func (a *InboundController) delInbound(c *gin.Context) {
 
 // updateInbound updates an existing inbound configuration.
 func (a *InboundController) updateInbound(c *gin.Context) {
+	if denyForReseller(c, msgResellerNoInboundConfig) {
+		return
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
@@ -1291,11 +1303,9 @@ func (a *InboundController) resetClientTraffic(c *gin.Context) {
 	}
 	email := c.Param("email")
 
-	// Allowed for a reseller, and never free. Zeroing the counters lets the account
-	// move its cleared bytes a second time against the same quota, so the reseller is
-	// buying that traffic again and their balance pays for it. Unpriced, this route is
-	// an unlimited-traffic button: sell 1 GB, reset, repeat. Inactive for an admin,
-	// whose resets cost nothing because no balance stands behind them.
+	// Allowed for a reseller on accounts they own. Ownership only: resetting Up/Down
+	// must not charge or refund the reseller ledger (allocation is separate from
+	// usage). Inactive for an admin.
 	ticket, err := resellerService.PrepareClientReset(session.GetLoginUser(c), email)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -1401,6 +1411,9 @@ func (a *InboundController) resetAllClientTraffics(c *gin.Context) {
 
 // importInbound imports an inbound configuration from provided data.
 func (a *InboundController) importInbound(c *gin.Context) {
+	if denyForReseller(c, msgResellerNoInboundConfig) {
+		return
+	}
 	inbound := &model.Inbound{}
 	err := json.Unmarshal([]byte(c.PostForm("data")), inbound)
 	if err != nil {

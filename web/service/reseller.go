@@ -115,14 +115,11 @@ type QuoteInput struct {
 	CurrentExpiry int64
 	NowMillis     int64
 
-	// Reset prices a traffic-counter reset rather than a quota change, and
-	// ClearedBytes is the up+down about to be zeroed.
-	//
-	// A reset is a PURCHASE, not an adjustment. Zeroing the counters lets the
-	// account move ClearedBytes again against the same quota, so the reseller is
-	// buying that traffic a second time and their balance has to pay for it.
-	// Without this a reset would be an unlimited-traffic button: set 1 GB, sell
-	// it, reset, repeat, all for one gigabyte of balance.
+	// Reset marks a client usage-counter reset (Up/Down → 0). ClearedBytes is
+	// retained for callers/tests but must NOT move the reseller ledger: client
+	// usage and reseller allocation are separate concepts. AllowanceBytes /
+	// SpentBytes / ChargedBytes change only on explicit quota adjustments
+	// (create, top-up, deduct, delete refund, admin recharge).
 	Reset        bool
 	ClearedBytes int64
 }
@@ -148,30 +145,20 @@ type ChargeQuote struct {
 // deduct or a delete can only return the UNUSED part of what was charged.
 // Consumed is measured from ClientTraffic.AllTime, which is monotonic across a
 // traffic reset, so resetting an account cannot turn spent bytes back into
-// refundable balance.
+// refundable balance. A Reset itself also leaves SpentBytes / ChargedBytes
+// alone: usage counters and allocation are separate ledgers.
 func Quote(in QuoteInput) (ChargeQuote, error) {
 	p := in.Profile
-	available := AvailableBytes(p)
 
-	// Priced before the quota rules below, and deliberately outside them: a reset
-	// does not change NewTotal, so running it through the zero-quota and minimum
-	// checks would judge it against a quota nobody is editing.
+	// Reset is outside the quota rules on purpose: it does not edit NewTotal, and
+	// it must not touch SpentBytes / ChargedBytes either. Zeroing Up/Down is a
+	// usage-counter operation; the admin-assigned allocation (and what this
+	// account already holds against it) stays put until an explicit quota change.
 	if in.Reset {
-		cleared := in.ClearedBytes
-		if cleared < 0 {
-			cleared = 0
-		}
-		if !p.Unlimited && cleared > available {
-			return ChargeQuote{}, shortBy(cleared, available)
-		}
-		q := ChargeQuote{DeltaSpent: cleared, NewCharged: in.OldCharged + cleared}
-		// AllTimeBase is deliberately NOT advanced by the caller: AllTime is
-		// monotonic across a reset, so consumption keeps counting from the
-		// original charge and the extra bytes show up as the account's new
-		// headroom rather than as a refund.
-		q.ForceExpiry, q.ExpiryTime = forcedExpiry(p, in, q.DeltaSpent)
-		return q, nil
+		return ChargeQuote{DeltaSpent: 0, NewCharged: in.OldCharged}, nil
 	}
+
+	available := AvailableBytes(p)
 
 	// NewTotal is jsonInt64(cm["totalGB"]) straight off the request body, so it is
 	// the caller's to choose. A negative one prices as a NEGATIVE charge, which
@@ -623,18 +610,13 @@ func (s *ResellerService) PrepareClientUpdate(user *model.User, data *model.Inbo
 	return ticket, nil
 }
 
-// PrepareClientReset prices a traffic-counter reset and reserves the balance it
-// costs. Inactive for an admin, whose resets are free.
-//
-// Allowed for a reseller, not refused, but never free: see QuoteInput.Reset for
-// why zeroing the counters is a purchase.
+// PrepareClientReset authorises a reseller to reset one of their own clients'
+// usage counters. It does not charge, refund, or rewrite the reseller ledger:
+// Up/Down resets are usage-only; allocation changes only via create/top-up/
+// deduct/delete/recharge. Inactive for an admin (no ownership gate here).
 func (s *ResellerService) PrepareClientReset(user *model.User, email string) (ChargeTicket, error) {
 	if user == nil || !user.IsReseller {
 		return ChargeTicket{}, nil
-	}
-	profile, err := s.ProfileFor(user.Id)
-	if err != nil {
-		return ChargeTicket{}, err
 	}
 	owner, err := s.ClientOwner(email)
 	if err != nil {
@@ -643,34 +625,7 @@ func (s *ResellerService) PrepareClientReset(user *model.User, email string) (Ch
 	if owner == nil || owner.UserId != user.Id {
 		return ChargeTicket{}, ErrResetNotOwned
 	}
-
-	ct := &xray.ClientTraffic{}
-	err = database.GetDB().Model(&xray.ClientTraffic{}).Where("email = ?", email).First(ct).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return ChargeTicket{}, err
-	}
-
-	q, err := Quote(QuoteInput{
-		Profile:       *profile,
-		Reset:         true,
-		ClearedBytes:  ct.Up + ct.Down,
-		OldCharged:    owner.ChargedBytes,
-		NewTotal:      ct.Total,
-		CurrentExpiry: ct.ExpiryTime,
-		NowMillis:     time.Now().UnixMilli(),
-	})
-	if err != nil {
-		return ChargeTicket{}, err
-	}
-
-	ticket := ChargeTicket{
-		Active: true, UserId: user.Id, Email: email, InboundId: owner.InboundId,
-		Quote: q, Create: false, PrevCharged: owner.ChargedBytes,
-	}
-	if err := s.reserve(ticket); err != nil {
-		return ChargeTicket{}, err
-	}
-	return ticket, nil
+	return ChargeTicket{}, nil
 }
 
 // Balance is a reseller's own standing, for the chip on their inbounds page.

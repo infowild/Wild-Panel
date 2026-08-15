@@ -327,7 +327,7 @@
                              a row far more often than the other twelve put together,
                              and it was two clicks deep. Same handler the menu's own
                              edit entry uses, so nothing forks. -->
-                        <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                        <a-tooltip v-if="PERMS.editInbound" :overlay-class-name="themeSwitcher.currentTheme">
                           <template slot="title">{{ i18n "edit" }}</template>
                           <button type="button" class="ib-rowbtn"
                             @click="openEditInbound(dbInbound.id)">
@@ -360,7 +360,7 @@
                               </a-menu-item>
                               <a-menu-divider></a-menu-divider>
                             </template>
-                            <a-menu-item key="edit">
+                            <a-menu-item key="edit" v-if="PERMS.editInbound">
                               <a-icon type="edit"></a-icon>
                               {{ i18n "edit" }}
                             </a-menu-item>
@@ -379,11 +379,11 @@
                                 <a-icon type="usergroup-add"></a-icon>
                                 {{ i18n "pages.client.bulk"}}
                               </a-menu-item>
-                              <a-menu-item key="copyClients" v-if="!dbInbound.isIkev2SingleClient()">
+                              <a-menu-item key="copyClients" v-if="!RESELLER.isReseller && !dbInbound.isIkev2SingleClient()">
                                 <a-icon type="copy"></a-icon>
                                 {{ i18n "pages.client.copyFromInbound"}}
                               </a-menu-item>
-                              <a-menu-item key="resetClients">
+                              <a-menu-item key="resetClients" v-if="!RESELLER.isReseller">
                                 <a-icon type="file-done"></a-icon>
                                 {{ i18n
                                 "pages.inbounds.resetInboundClientTraffics"}}
@@ -417,24 +417,24 @@
                                 {{ i18n "info"}}
                               </a-menu-item>
                             </template>
-                            <a-menu-item key="clipboard">
+                            <a-menu-item key="clipboard" v-if="PERMS.editInbound">
                               <a-icon type="copy"></a-icon>
                               {{ i18n "pages.inbounds.exportInbound" }}
                             </a-menu-item>
-                            <a-menu-item key="resetTraffic">
+                            <a-menu-item key="resetTraffic" v-if="PERMS.editInbound">
                               <a-icon type="retweet"></a-icon> {{ i18n
                               "pages.inbounds.resetTraffic" }}
                             </a-menu-item>
-                            <a-menu-item key="clone">
+                            <a-menu-item key="clone" v-if="PERMS.createInbound">
                               <a-icon type="block"></a-icon> {{ i18n
                               "pages.inbounds.clone"}}
                             </a-menu-item>
-                            <a-menu-item key="delete">
+                            <a-menu-item key="delete" v-if="PERMS.deleteInbound">
                               <span :style="{ color: 'var(--error)' }">
                                 <a-icon type="delete"></a-icon> {{ i18n "delete"}}
                               </span>
                             </a-menu-item>
-                            <a-menu-item v-if="isMobile">
+                            <a-menu-item v-if="isMobile && PERMS.editInbound">
                               <a-switch size="small" v-model="dbInbound.enable"
                                 @change="switchEnable(dbInbound.id,dbInbound.enable)"></a-switch>
                               {{ i18n "pages.inbounds.enable" }}
@@ -513,7 +513,7 @@
                         <span class="ib-state-mark" aria-hidden="true"></span>
                         <div class="ib-state-copy">
                           <span class="ib-state-lab">[[ dbInbound.enable ? '{{ i18n "enabled" }}' : '{{ i18n "disabled" }}' ]]</span>
-                          <a-switch v-model="dbInbound.enable" size="small"
+                          <a-switch v-if="PERMS.editInbound" v-model="dbInbound.enable" size="small"
                             @change="switchEnable(dbInbound.id,dbInbound.enable)"></a-switch>
                         </div>
                       </div>
@@ -2139,6 +2139,7 @@
         });
       },
       async cloneInbound(baseInbound, dbInbound) {
+        if (!PERMS.createInbound) return;
         const data = {
           up: dbInbound.up,
           down: dbInbound.down,
@@ -2169,6 +2170,7 @@
         await this.submit('/panel/api/inbounds/add', data, inModal);
       },
       openAddInbound() {
+        if (!PERMS.createInbound) return;
         inModal.show({
           title: '{{ i18n "pages.inbounds.addInbound"}}',
           okText: '{{ i18n "create"}}',
@@ -2180,6 +2182,9 @@
         });
       },
       openEditInbound(dbInboundId) {
+        // Courtesy only: /update/:id already refuses anyone without editInbound
+        // (and every reseller). The modal must not open as a config viewer either.
+        if (!PERMS.editInbound) return;
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
         const inbound = dbInbound.toInbound();
         inModal.show({
@@ -2384,6 +2389,7 @@
         });
       },
       delInbound(dbInboundId) {
+        if (!PERMS.deleteInbound) return;
         this.$confirm({
           title: '{{ i18n "pages.inbounds.deleteInbound"}}' + ' #' + dbInboundId,
           content: '{{ i18n "pages.inbounds.deleteInboundContent"}}',
@@ -2508,6 +2514,7 @@
         infoModal.show(newDbInbound, index);
       },
       switchEnable(dbInboundId, state) {
+        if (!PERMS.editInbound) return;
         let dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
         if (!dbInbound) return;
         dbInbound.enable = state;

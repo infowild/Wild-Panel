@@ -396,11 +396,10 @@
                         <template slot="title"
                             >{{ i18n "pages.inbounds.resetTraffic" }}</template
                         >
-                        <!-- Shown to a reseller too, but it is not free for them: zeroing
-                             the counters lets the account move those bytes again, so the
-                             reset is CHARGED to their balance (ResellerService
-                             PrepareClientReset). The route prices it and refuses when they
-                             cannot afford it, naming the shortfall. -->
+                        <!-- Shown to a reseller too. Resetting Up/Down is a usage
+                             counter op only: it does not charge or refund the
+                             reseller allocation (PrepareClientReset checks
+                             ownership and leaves the ledger alone). -->
                         <a-icon
                             class="wcl-sec-act"
                             type="retweet"

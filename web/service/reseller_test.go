@@ -456,40 +456,31 @@ func TestQuoteDeductRefundsOnlyUnusedBytes(t *testing.T) {
 
 // --- reset ----------------------------------------------------------------------
 
-// A reset is a PURCHASE. Zeroing up+down hands the account its whole quota back,
-// so the reseller is buying those bytes a second time. Priced any other way it is
-// an unlimited-traffic button: sell 1 GB, reset, repeat, for one gigabyte of
-// balance forever.
-func TestQuoteResetIsPricedAsAPurchase(t *testing.T) {
+// Client usage reset and reseller allocation are separate ledgers. Quote must
+// never charge, refund, or rewrite ChargedBytes when Reset is set — regardless
+// of ClearedBytes, balance headroom, or unlimited flags.
+func TestQuoteResetDoesNotTouchAllocation(t *testing.T) {
 	runQuoteCases(t, []quoteCase{
 		{
-			// The charge RISES by what was cleared. The quota is untouched, so the
-			// account's lifetime capacity has genuinely grown by that much.
-			name: "clearing the counters costs what they held",
+			name: "clearing a fully used account leaves the charge alone",
 			in: QuoteInput{
 				Profile: limitedReseller(100*gb, 10*gb), Reset: true, ClearedBytes: 10 * gb,
 				OldTotal: 10 * gb, NewTotal: 10 * gb, OldCharged: 10 * gb, Consumed: 10 * gb,
 			},
-			wantDelta:   10 * gb,
-			wantCharged: 20 * gb,
+			wantDelta:   0,
+			wantCharged: 10 * gb,
 		},
 		{
-			// Half-used: only the bytes actually being zeroed are re-sold, not the
-			// whole quota. Charging the quota would bill for headroom the account
-			// never lost.
-			name: "a half-used account costs only what it used",
+			name: "a half-used reset still moves nothing on the ledger",
 			in: QuoteInput{
 				Profile: limitedReseller(100*gb, 10*gb), Reset: true, ClearedBytes: 4 * gb,
 				OldTotal: 10 * gb, NewTotal: 10 * gb, OldCharged: 10 * gb, Consumed: 4 * gb,
 			},
-			wantDelta:   4 * gb,
-			wantCharged: 14 * gb,
+			wantDelta:   0,
+			wantCharged: 10 * gb,
 		},
 		{
-			// Nothing to clear, nothing to charge. Resetting an untouched account
-			// restores no headroom, so it must be free, or the panel bills for a
-			// no-op that any reseller will click.
-			name: "resetting an untouched account is free",
+			name: "resetting an untouched account is a no-op on the ledger",
 			in: QuoteInput{
 				Profile: limitedReseller(100*gb, 10*gb), Reset: true, ClearedBytes: 0,
 				OldTotal: 10 * gb, NewTotal: 10 * gb, OldCharged: 10 * gb,
@@ -498,9 +489,7 @@ func TestQuoteResetIsPricedAsAPurchase(t *testing.T) {
 			wantCharged: 10 * gb,
 		},
 		{
-			// A negative counter is corrupt data, and unclamped it would make the
-			// reset a REFUND: the one shape that turns this purchase into a payout.
-			name: "a negative cleared count cannot pay the reseller",
+			name: "a negative cleared count cannot invent a refund",
 			in: QuoteInput{
 				Profile: limitedReseller(100*gb, 10*gb), Reset: true, ClearedBytes: -50 * gb,
 				OldTotal: 10 * gb, NewTotal: 10 * gb, OldCharged: 10 * gb,
@@ -509,64 +498,48 @@ func TestQuoteResetIsPricedAsAPurchase(t *testing.T) {
 			wantCharged: 10 * gb,
 		},
 		{
-			name: "a reset costing exactly the balance left is allowed",
-			in: QuoteInput{
-				Profile: limitedReseller(100*gb, 90*gb), Reset: true, ClearedBytes: 10 * gb,
-				OldTotal: 10 * gb, NewTotal: 10 * gb, OldCharged: 10 * gb,
-			},
-			wantDelta:   10 * gb,
-			wantCharged: 20 * gb,
-		},
-		{
-			name: "one byte more than the balance left is refused",
+			name: "a reset is allowed even when the balance cannot cover ClearedBytes",
 			in: QuoteInput{
 				Profile: limitedReseller(100*gb, 90*gb), Reset: true, ClearedBytes: 10*gb + 1,
 				OldTotal: 10 * gb, NewTotal: 10 * gb, OldCharged: 10 * gb,
 			},
-			wantErr: ErrInsufficientBalance,
+			wantDelta:   0,
+			wantCharged: 10 * gb,
 		},
 		{
-			// Unlimited skips the check and never the accrual, exactly as it does for
-			// a sale: an admin who later imposes a limit must see the resets too.
-			name: "an unlimited reseller still accrues the reset",
+			name: "an unlimited reseller accrues nothing on reset either",
 			in: QuoteInput{
 				Profile: model.ResellerProfile{Unlimited: true, SpentBytes: 500 * gb},
 				Reset:   true, ClearedBytes: 250 * gb,
 				OldTotal: 10 * gb, NewTotal: 10 * gb, OldCharged: 10 * gb,
 			},
-			wantDelta:   250 * gb,
-			wantCharged: 260 * gb,
+			wantDelta:   0,
+			wantCharged: 10 * gb,
 		},
 		{
-			// The reset branch runs before the quota rules on purpose: NewTotal is
-			// not being edited, so judging it against the zero-quota rule would
-			// refuse resets on accounts an unlimited reseller is allowed to own.
-			name: "a reset on an unlimited account is priced, not refused",
+			name: "a reset on an unlimited account is not refused as a zero-quota sale",
 			in: QuoteInput{
 				Profile: unlimitedReseller(), Reset: true, ClearedBytes: 5 * gb,
 				OldTotal: 0, NewTotal: 0, OldCharged: 0,
 			},
-			wantDelta:   5 * gb,
-			wantCharged: 5 * gb,
+			wantDelta:   0,
+			wantCharged: 0,
 		},
 		{
-			// Same precedence, from the other side: the minimums gate sales, and a
-			// reset is not a sale, so a small one must not be refused as a small
-			// top-up would be.
 			name: "the sale minimums do not gate a reset",
 			in: QuoteInput{
 				Profile: model.ResellerProfile{AllowanceBytes: 100 * gb, MinCreateGB: 50, MinAddGB: 50},
 				Reset:   true, ClearedBytes: 1,
 				OldTotal: 10 * gb, NewTotal: 10 * gb, OldCharged: 10 * gb,
 			},
-			wantDelta:   1,
-			wantCharged: 10*gb + 1,
+			wantDelta:   0,
+			wantCharged: 10 * gb,
 		},
 	})
 }
 
-// A reset buys traffic, so under a days-per-GB factor it buys time along with
-// it, on the same rule as a sale.
+// A reset buys nothing, so under a days-per-GB factor it must not force a new
+// deadline either — that would couple usage resets to allocation again.
 func TestQuoteResetForcedExpiry(t *testing.T) {
 	got, err := Quote(QuoteInput{
 		Profile: model.ResellerProfile{Unlimited: true, DaysPerGB: 3},
@@ -577,13 +550,10 @@ func TestQuoteResetForcedExpiry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Quote: %v", err)
 	}
-	if !got.ForceExpiry || got.ExpiryTime != testNow+35*dayMillis {
-		t.Errorf("quote = %+v; want a forced deadline at %d", got, testNow+35*dayMillis)
+	if got.ForceExpiry || got.DeltaSpent != 0 || got.NewCharged != 10*gb {
+		t.Errorf("quote = %+v; want no charge and no forced deadline", got)
 	}
 
-	// A reset that clears nothing buys nothing, so there is no deadline to derive
-	// and the posted expiry stands. Same hole as every other zero-charge edit;
-	// see TestQuoteForcedExpiryIsSkippedWhenNothingIsCharged.
 	free, err := Quote(QuoteInput{
 		Profile: model.ResellerProfile{Unlimited: true, DaysPerGB: 3},
 		Reset:   true, ClearedBytes: 0,
@@ -598,20 +568,15 @@ func TestQuoteResetForcedExpiry(t *testing.T) {
 	}
 }
 
-// The full cycle an account goes through, priced step by step, with the ledger
-// carried forward exactly as the caller carries it. This is the shape that
-// catches a rule which is right in isolation and wrong in sequence.
-//
-// The invariant: over any run of operations on one account, the reseller's spend
-// never comes out below zero. A cycle that nets a refund is a cycle that can be
-// run forever.
+// The full cycle an account goes through, priced step by step. Resets must leave
+// the cumulative spend unchanged; only sales and quota edits move it.
 func TestQuoteResetCycleNeverPaysTheReseller(t *testing.T) {
 	type step struct {
 		name string
 		in   QuoteInput
 	}
 	// Consumed never falls: it is AllTime - AllTimeBase, and AllTime is monotonic
-	// across a reset precisely so that a reset cannot rewind it.
+	// across a reset precisely so that a reset cannot rewind it into a refund.
 	steps := []step{
 		{"sell 10 GB", QuoteInput{Create: true, NewTotal: 10 * gb}},
 		{"customer moves all 10", QuoteInput{OldTotal: 10 * gb, NewTotal: 10 * gb, Consumed: 10 * gb}},
@@ -648,42 +613,21 @@ func TestQuoteResetCycleNeverPaysTheReseller(t *testing.T) {
 		t.Logf("%-24s delta %+12d charge %12d spent %12d", s.name, got.DeltaSpent, charged, spent)
 	}
 
-	// Two resets of a 10 GB account that moved 20 GB, ending at a 10 GB quota:
-	// 30 GB of capacity has been made available over this account's life, so
-	// 30 GB is what it should have cost. It costs 26, because the deduct in the
-	// middle hands back headroom the account goes on keeping. The 26 is pinned
-	// rather than the 30 so the suite stays green; see
-	// TestQuoteResetThenDeductRefundsHeadroomTheAccountKeeps and the report.
-	const delivered = 30 * gb
-	if spent != 26*gb {
-		t.Errorf("the cycle cost %d; want %d, the figure this test pins while the "+
-			"deduct leak is open (correctly priced it is %d)", spent, int64(26*gb), int64(delivered))
+	// Sell 10 + top-up 6 after a no-op deduct (Consumed already above NewTotal) = 16.
+	// Resets contribute 0.
+	if spent != 16*gb {
+		t.Errorf("the cycle cost %d; want %d (sale + top-up only; resets must be free)", spent, int64(16*gb))
+	}
+	if charged != 16*gb {
+		t.Errorf("final charge = %d; want %d", charged, int64(16*gb))
 	}
 }
 
-// DEFECT, characterized rather than endorsed. A reset and a deduct cancel out,
-// and the account keeps the headroom the reset bought.
-//
-// The deduct floor is max(NewTotal, Consumed), which reads "the charge may fall
-// to what the customer already moved". That holds only while up+down and
-// AllTime agree. A reset breaks exactly that: it zeroes up+down and leaves
-// AllTime alone, so an account can carry a full quota of unused headroom while
-// Consumed still reports only the bytes moved before the reset. The deduct then
-// refunds the entire reset, and the customer moves the new quota for free.
-//
-// Both halves are reseller-reachable with no admin involved:
-// PrepareClientReset prices the reset from ct.Up+ct.Down, and PrepareClientUpdate
-// prices the deduct with Consumed = AllTime - AllTimeBase.
-//
-// Correctly priced, the charge should never fall below "bytes already moved plus
-// bytes the account can still move", which after a reset is
-// Consumed + (NewTotal - usedSinceReset). Quote cannot compute that today: it is
-// not given up+down, only ClearedBytes on the reset call. Passing the account's
-// current up+down in would close it.
-func TestQuoteResetThenDeductRefundsHeadroomTheAccountKeeps(t *testing.T) {
+// A reset must not inflate ChargedBytes, so a later deduct cannot refund
+// "headroom" that a usage reset never purchased.
+func TestQuoteResetThenDeductDoesNotRefundUsageReset(t *testing.T) {
 	profile := limitedReseller(100*gb, 10*gb)
 
-	// A 10 GB account, fully used: charged 10, moved 10, counters at 10.
 	reset, err := Quote(QuoteInput{
 		Profile: profile, Reset: true, ClearedBytes: 10 * gb,
 		OldTotal: 10 * gb, NewTotal: 10 * gb, OldCharged: 10 * gb, Consumed: 10 * gb,
@@ -691,13 +635,11 @@ func TestQuoteResetThenDeductRefundsHeadroomTheAccountKeeps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reset: %v", err)
 	}
-	if reset.DeltaSpent != 10*gb || reset.NewCharged != 20*gb {
-		t.Fatalf("reset = %+v; want a 10 GB purchase", reset)
+	if reset.DeltaSpent != 0 || reset.NewCharged != 10*gb {
+		t.Fatalf("reset = %+v; want a ledger no-op", reset)
 	}
 
-	// Deducted before the customer touches the headroom it just bought. Consumed
-	// is still 10 GB, because AllTime did not move.
-	profile.SpentBytes = 20 * gb
+	profile.SpentBytes = 10 * gb
 	deduct, err := Quote(QuoteInput{
 		Profile:  profile,
 		OldTotal: 10 * gb, NewTotal: 9 * gb, OldCharged: reset.NewCharged, Consumed: 10 * gb,
@@ -705,16 +647,10 @@ func TestQuoteResetThenDeductRefundsHeadroomTheAccountKeeps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("deduct: %v", err)
 	}
-	if deduct.DeltaSpent != -10*gb {
-		t.Fatalf("deduct = %+v; the defect this test characterizes refunds the whole reset", deduct)
-	}
-
-	// The pair costs nothing, and the account is left holding a 9 GB quota with
-	// its counters at zero. Correctly priced the pair costs 9 GB, which is the
-	// traffic the customer is now free to move.
-	if pair := reset.DeltaSpent + deduct.DeltaSpent; pair != 0 {
-		t.Errorf("the reset and deduct together cost %d; want 0, the figure this "+
-			"test pins while the leak is open (correctly priced it is %d)", pair, int64(9*gb))
+	// Consumed is still 10 GB, so the charge cannot fall below that. No reset
+	// purchase exists to refund.
+	if deduct.DeltaSpent != 0 || deduct.NewCharged != 10*gb {
+		t.Fatalf("deduct = %+v; want no refund of a usage reset that never charged", deduct)
 	}
 }
 
@@ -838,15 +774,8 @@ func TestShortByReportsTheDeficitNotThePrice(t *testing.T) {
 			wantShort: 7 * gb,
 			wantPrice: 12 * gb,
 		},
-		{
-			name: "a reset names the gap on the traffic being cleared",
-			in: QuoteInput{
-				Profile: limitedReseller(100*gb, 96*gb), Reset: true, ClearedBytes: 12 * gb,
-				OldTotal: 20 * gb, NewTotal: 20 * gb, OldCharged: 20 * gb,
-			},
-			wantShort: 8 * gb,
-			wantPrice: 12 * gb,
-		},
+		// Reset no longer consults the balance: ClearedBytes cannot produce a
+		// shortfall error. Covered by TestQuoteResetDoesNotTouchAllocation.
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1419,7 +1348,7 @@ func TestForcedExpiryEdges(t *testing.T) {
 //  4. Only a deduct may refund at all.
 //  5. A forced deadline is never before now, so it can never be read back as
 //     the panel's negative delayed-start form or land in 1970.
-//  6. A reset only ever costs: it never refunds and never lowers the charge.
+//  6. A reset never moves the ledger: DeltaSpent is 0 and ChargedBytes is unchanged.
 //
 // Values stay within a quarter of the int64 range so that the differences the
 // ledger takes cannot themselves overflow; the extremes are covered by
@@ -1526,19 +1455,17 @@ func checkQuoteInvariants(t *testing.T, in QuoteInput, got ChargeQuote, availabl
 		fail("DeltaSpent = %d exceeds the %d available", got.DeltaSpent, available)
 	}
 
-	// 6. A reset is a purchase, so it only ever costs. A reset that came out
-	// negative would be a refund for handing the account its quota back, which is
-	// the unlimited-traffic button this pricing exists to close.
+	// 6. A reset is a usage-counter op. It must not charge, refund, or rewrite
+	// the account's charge against the reseller allocation.
 	if in.Reset {
-		if got.DeltaSpent < 0 {
-			fail("a reset refunded %d bytes", got.DeltaSpent)
+		if got.DeltaSpent != 0 {
+			fail("a reset moved SpentBytes by %d", got.DeltaSpent)
 		}
-		if got.NewCharged < in.OldCharged {
-			fail("a reset lowered the charge from %d to %d", in.OldCharged, got.NewCharged)
+		if got.NewCharged != in.OldCharged {
+			fail("a reset changed the charge from %d to %d", in.OldCharged, got.NewCharged)
 		}
-		if got.NewCharged != in.OldCharged+got.DeltaSpent {
-			fail("a reset costing %d moved the charge from %d to %d",
-				got.DeltaSpent, in.OldCharged, got.NewCharged)
+		if got.ForceExpiry {
+			fail("a reset forced an expiry without a charge")
 		}
 	}
 

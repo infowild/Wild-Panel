@@ -302,9 +302,61 @@ func TestGetInboundsForAdminIsUnaffected(t *testing.T) {
 	}
 }
 
-// Settings that will not parse cannot be proven safe to hand over, so they are not
-// handed over. The inbound stays, because the grant is real.
-func TestFilterInboundForResellerFailsClosedOnBadSettings(t *testing.T) {
+// Admin knobs on the inbound row (speed limits, multipliers, sniffing, listen,
+// inbound quota/expiry/reset schedule) must not reach a reseller. Identity and
+// client-ops fields stay so they can pick a target inbound and manage accounts.
+func TestFilterInboundForResellerRedactsAdminConfig(t *testing.T) {
+	s := &InboundService{}
+	inbound := &model.Inbound{
+		Id:                      7,
+		Remark:                  "shared",
+		Protocol:                model.VMESS,
+		Port:                    443,
+		Tag:                     "inbound-443",
+		Enable:                  true,
+		Listen:                  "127.0.0.1",
+		Sniffing:                `{"enabled":true}`,
+		StreamSettings:          `{"network":"tcp"}`,
+		Settings:                sharedInboundSettings,
+		Total:                   50 * 1024 * 1024 * 1024,
+		ExpiryTime:              12345,
+		TrafficReset:            "daily",
+		LastTrafficResetTime:    99,
+		TrafficMultiplierEnable: true,
+		TrafficMultiplierAfter:  1000,
+		TrafficMultiplier:       2,
+		SpeedLimitEnable:        true,
+		SpeedLimitDown:          512,
+		SpeedLimitUp:            256,
+		IPLimit:                 3,
+		IPLimitStrategy:         "reject",
+		ClientStats: []xray.ClientTraffic{
+			{Email: "resellers-client", Up: 1, Down: 2, AllTime: 3},
+		},
+	}
+	s.FilterInboundForReseller(inbound, map[string]bool{"resellers-client": true})
+
+	if inbound.Remark != "shared" || inbound.Protocol != model.VMESS || inbound.Port != 443 || inbound.Tag != "inbound-443" {
+		t.Errorf("identity stripped: %+v", inbound)
+	}
+	if inbound.StreamSettings != `{"network":"tcp"}` {
+		t.Errorf("streamSettings needed for client links was stripped: %q", inbound.StreamSettings)
+	}
+	if got := clientEmailsIn(t, inbound.Settings); len(got) != 1 || !sameEmail(got[0], "resellers-client") {
+		t.Errorf("owned client missing after redact: %v", got)
+	}
+	if inbound.Listen != "" || inbound.Sniffing != "" || inbound.Total != 0 || inbound.ExpiryTime != 0 {
+		t.Errorf("admin fields left visible: listen=%q sniffing=%q total=%d expiry=%d",
+			inbound.Listen, inbound.Sniffing, inbound.Total, inbound.ExpiryTime)
+	}
+	if inbound.TrafficReset != "never" || inbound.LastTrafficResetTime != 0 ||
+		inbound.TrafficMultiplierEnable || inbound.SpeedLimitEnable || inbound.IPLimit != 0 {
+		t.Errorf("inbound knobs left visible: reset=%q mult=%v speed=%v ip=%d",
+			inbound.TrafficReset, inbound.TrafficMultiplierEnable, inbound.SpeedLimitEnable, inbound.IPLimit)
+	}
+}
+
+
 	s := &InboundService{}
 	inbound := &model.Inbound{
 		Id:       7,

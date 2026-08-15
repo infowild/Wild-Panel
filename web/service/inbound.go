@@ -119,9 +119,39 @@ func (s *InboundService) FilterInboundForReseller(inbound *model.Inbound, ownedE
 		// over. The inbound stays visible, since the grant is real, but empty.
 		logger.Warning("reseller scoping: unreadable settings on inbound", inbound.Id, ":", err)
 		inbound.Settings = emptyClientSettings
+		redactInboundConfigForReseller(inbound)
 		return
 	}
 	inbound.Settings = filtered
+	redactInboundConfigForReseller(inbound)
+}
+
+// redactInboundConfigForReseller strips inbound-level admin knobs from a row a
+// reseller is about to see. They keep identity (id, remark, protocol, port, tag,
+// enable) plus settings/streamSettings needed to manage clients and build links;
+// they do not get listen, sniffing, inbound quotas, speed/IP limits, or the
+// traffic-multiplier / reset schedule — and they cannot write any of those back
+// because the role holds no PermEditInbound.
+func redactInboundConfigForReseller(inbound *model.Inbound) {
+	if inbound == nil {
+		return
+	}
+	inbound.Listen = ""
+	inbound.Sniffing = ""
+	inbound.Total = 0
+	inbound.ExpiryTime = 0
+	inbound.TrafficReset = "never"
+	inbound.LastTrafficResetTime = 0
+	inbound.TrafficMultiplierEnable = false
+	inbound.TrafficMultiplierAfter = 0
+	inbound.TrafficMultiplier = 1
+	inbound.SpeedLimitEnable = false
+	inbound.SpeedLimitSeparate = false
+	inbound.SpeedLimitDown = 0
+	inbound.SpeedLimitUp = 0
+	inbound.SpeedLimitAfter = 0
+	inbound.IPLimit = 0
+	inbound.IPLimitStrategy = ""
 }
 
 // rescopeInboundTraffic rewrites an inbound's OWN traffic counters to cover only the
