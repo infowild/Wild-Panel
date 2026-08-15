@@ -119,9 +119,21 @@ func TestWgcXrayConfig(t *testing.T) {
 	}
 	t.Logf("generated config (%d bytes)", len(blob))
 
-	xrayBin := "../../corebundle/core/amd64/xray"
-	if _, err := os.Stat(xrayBin); err != nil {
-		t.Skipf("xray binary not found at %s: %v", xrayBin, err)
+	// This is an integration check against the real core bundle, which is built
+	// (and CI-cached) rather than committed. Skip unless the bundle is COMPLETE:
+	// the generated routing carries a `geoip:private` rule, so xray -test loads
+	// geoip.dat from its own directory and exits non-zero when only the binary
+	// was restored. Guarding on the binary alone turned a partial cache restore
+	// into a release failure that had nothing to do with the code under test.
+	coreDir := "../../corebundle/core/amd64"
+	xrayBin := filepath.Join(coreDir, "xray")
+	for _, required := range []string{xrayBin,
+		filepath.Join(coreDir, "geoip.dat"),
+		filepath.Join(coreDir, "geosite.dat"),
+	} {
+		if _, err := os.Stat(required); err != nil {
+			t.Skipf("core bundle incomplete, %s missing: %v", required, err)
+		}
 	}
 	out, err := exec.Command(xrayBin, "-test", "-c", cfgPath).CombinedOutput()
 	t.Logf("xray -test output:\n%s", string(out))
