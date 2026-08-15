@@ -183,6 +183,7 @@
         el: "#inbound-modal",
         data: {
             inModal: inModal,
+            nodeOptions: [],
             delayedStart: false,
             ikev2CertWarning: "",
             get inbound() {
@@ -1003,6 +1004,12 @@
                 } finally {
                     inModal.loading(false);
                 }
+            }
+        },
+        async mounted() {
+            const msg = await HttpUtil.get('/panel/nodes/options');
+            if (msg && msg.success) {
+                this.nodeOptions = msg.obj || [];
             }
         },
     });

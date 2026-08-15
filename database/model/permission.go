@@ -59,6 +59,10 @@ const (
 	//
 	// APPENDED, for the reason above.
 	PermAccessOverview
+	// PermManageNodes gates the Nodes page and its API: add/edit remote panels,
+	// probe health, and drive inbound mirror sync. APPENDED so existing stored
+	// masks keep their bit positions.
+	PermManageNodes
 )
 
 // resellerPerms is what a reseller may do, derived from the role rather than
@@ -109,6 +113,7 @@ var AllPermissions = []PermissionDef{
 	{PermManageResellers, "manageResellers"},
 	{PermAccessOverview, "accessOverview"},
 	{PermOverviewManage, "manageOverview"},
+	{PermManageNodes, "manageNodes"},
 }
 
 // Has reports whether every bit in q is set in p.

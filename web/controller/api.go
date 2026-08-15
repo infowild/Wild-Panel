@@ -97,10 +97,13 @@ func (a *ApiTokenController) list(c *gin.Context) {
 }
 
 func (a *ApiTokenController) create(c *gin.Context) {
+	// The panel's axios interceptor Qs.stringify's every body, so this arrives as
+	// form-urlencoded; external callers may still send JSON. ShouldBind picks the
+	// binding from Content-Type, so both tags are required here.
 	var body struct {
-		Name string `json:"name"`
+		Name string `json:"name" form:"name"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := c.ShouldBind(&body); err != nil {
 		jsonMsg(c, "create", err)
 		return
 	}
@@ -132,9 +135,9 @@ func (a *ApiTokenController) setEnabled(c *gin.Context) {
 		return
 	}
 	var body struct {
-		Enabled bool `json:"enabled"`
+		Enabled bool `json:"enabled" form:"enabled"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := c.ShouldBind(&body); err != nil {
 		jsonMsg(c, "enable", err)
 		return
 	}

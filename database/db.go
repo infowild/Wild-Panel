@@ -43,6 +43,8 @@ func initModels() error {
 		&model.HistoryOfSeeders{},
 		&model.CustomGeoResource{},
 		&model.ApiToken{},
+		&model.Node{},
+		&model.NodeClientTraffic{},
 	}
 	for _, model := range models {
 		if err := db.AutoMigrate(model); err != nil {

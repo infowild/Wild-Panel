@@ -15,6 +15,7 @@ type XUIController struct {
 	coreController        *CoreController
 	adminController       *AdminController
 	resellerController    *ResellerController
+	nodeController        *NodeController
 }
 
 // NewXUIController creates a new XUIController and initializes its routes.
@@ -43,12 +44,14 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	// run their own resellers. The escalation that opens (assigning someone else's
 	// inbound to a reseller you then log in as) is closed in the service.
 	g.GET("/resellers", requirePerm(model.PermManageResellers), a.resellers)
+	g.GET("/nodes", requirePerm(model.PermManageNodes), a.nodes)
 
 	a.settingController = NewSettingController(g)
 	a.xraySettingController = NewXraySettingController(g)
 	a.coreController = NewCoreController(g)
 	a.adminController = NewAdminController(g)
 	a.resellerController = NewResellerController(g)
+	a.nodeController = NewNodeController(g)
 }
 
 // index renders the main panel index page.
@@ -93,4 +96,9 @@ func (a *XUIController) admins(c *gin.Context) {
 // resellers renders the Resellers management page.
 func (a *XUIController) resellers(c *gin.Context) {
 	html(c, "resellers.html", "pages.resellers.title", nil)
+}
+
+// nodes renders the Nodes management page.
+func (a *XUIController) nodes(c *gin.Context) {
+	html(c, "nodes.html", "pages.nodes.title", nil)
 }

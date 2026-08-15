@@ -214,6 +214,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if !inbound.Enable {
 			continue
 		}
+		// Mirrored onto a remote node — do not bind locally.
+		if inbound.NodeId != 0 {
+			continue
+		}
 		// Skip L2TP/PPTP/OpenVPN/OpenConnect/SSTP/IKEv2/WireGuard/MTProto inbounds, they
 		// are not native Xray protocols. The tunnel ones route through paired
 		// dokodemo-door inbounds injected below; mtproto instead gets a paired socks
@@ -322,6 +326,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if !l2tpInbound.Enable {
 			continue
 		}
+		if l2tpInbound.NodeId != 0 {
+			continue
+		}
 		dokodemoConfig := s.l2tpService.GetDokodemoConfig(l2tpInbound)
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *dokodemoConfig)
 	}
@@ -330,6 +337,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	pptpInbounds, _ := s.pptpService.GetPptpInbounds()
 	for _, pptpInbound := range pptpInbounds {
 		if !pptpInbound.Enable {
+			continue
+		}
+		if pptpInbound.NodeId != 0 {
 			continue
 		}
 		dokodemoConfig := s.pptpService.GetDokodemoConfig(pptpInbound)
@@ -342,6 +352,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if !ovpnInbound.Enable {
 			continue
 		}
+		if ovpnInbound.NodeId != 0 {
+			continue
+		}
 		dokodemoConfig := s.openvpnService.GetDokodemoConfig(ovpnInbound)
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *dokodemoConfig)
 	}
@@ -352,6 +365,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if !ocservInbound.Enable {
 			continue
 		}
+		if ocservInbound.NodeId != 0 {
+			continue
+		}
 		dokodemoConfig := s.ocservService.GetDokodemoConfig(ocservInbound)
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *dokodemoConfig)
 	}
@@ -360,6 +376,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	sstpInbounds, _ := s.sstpService.GetSstpInbounds()
 	for _, sstpInbound := range sstpInbounds {
 		if !sstpInbound.Enable {
+			continue
+		}
+		if sstpInbound.NodeId != 0 {
 			continue
 		}
 		dokodemoConfig := s.sstpService.GetDokodemoConfig(sstpInbound)
@@ -373,6 +392,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if !ikev2Inbound.Enable {
 			continue
 		}
+		if ikev2Inbound.NodeId != 0 {
+			continue
+		}
 		dokodemoConfig := s.ikev2Service.GetDokodemoConfig(ikev2Inbound)
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *dokodemoConfig)
 	}
@@ -382,6 +404,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	wgcInbounds, _ := s.wgcService.GetWgcInbounds()
 	for _, wgcInbound := range wgcInbounds {
 		if !wgcInbound.Enable {
+			continue
+		}
+		if wgcInbound.NodeId != 0 {
 			continue
 		}
 		dokodemoConfig := s.wgcService.GetDokodemoConfig(wgcInbound)
@@ -395,6 +420,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if !awgInbound.Enable {
 			continue
 		}
+		if awgInbound.NodeId != 0 {
+			continue
+		}
 		dokodemoConfig := s.awgService.GetDokodemoConfig(awgInbound)
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *dokodemoConfig)
 	}
@@ -404,6 +432,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	greInbounds, _ := s.greService.GetGreInbounds()
 	for _, greInbound := range greInbounds {
 		if !greInbound.Enable {
+			continue
+		}
+		if greInbound.NodeId != 0 {
 			continue
 		}
 		dokodemoConfig := s.greService.GetDokodemoConfig(greInbound)
@@ -422,6 +453,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if !mtInbound.Enable {
 			continue
 		}
+		if mtInbound.NodeId != 0 {
+			continue
+		}
 		if socksConfig := s.mtprotoService.GetSocksConfig(mtInbound); socksConfig != nil {
 			xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *socksConfig)
 		}
@@ -435,6 +469,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	sshInbounds, _ := s.sshService.GetSshInbounds()
 	for _, sshInbound := range sshInbounds {
 		if !sshInbound.Enable {
+			continue
+		}
+		if sshInbound.NodeId != 0 {
 			continue
 		}
 		if socksConfig := s.sshService.GetSocksConfig(sshInbound); socksConfig != nil {

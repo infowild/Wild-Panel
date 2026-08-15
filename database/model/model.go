@@ -304,6 +304,11 @@ type Inbound struct {
 	// empty string to reject anyway, so the default is belt-and-braces, not the contract).
 	IPLimitStrategy string `json:"ipLimitStrategy" form:"ipLimitStrategy" gorm:"default:reject"`
 
+	// NodeId is the remote node this inbound mirrors onto. 0 means local: the
+	// inbound is generated into this panel's Xray config. Non-zero means the
+	// master stores the definition and pushes it to that node; local Xray skips it.
+	NodeId int `json:"nodeId" form:"nodeId" gorm:"index;default:0"`
+
 	// Xray configuration fields
 	Listen         string   `json:"listen" form:"listen"`
 	Port           int      `json:"port" form:"port"`

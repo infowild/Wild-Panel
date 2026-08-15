@@ -26,6 +26,7 @@ class DBInbound {
         // columns' own defaults so an Add form starts on the same values a fresh row gets.
         this.ipLimit = 0;
         this.ipLimitStrategy = "reject";
+        this.nodeId = 0;
 
         this.listen = "";
         this.port = 0;

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mhsanaei/3x-ui/v2/database"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
@@ -32,6 +33,7 @@ var defaultValueMap = map[string]string{
 	"webCertFile":                 "",
 	"webKeyFile":                  "",
 	"secret":                      random.Seq(32),
+	"panelGuid":                   "",
 	"webBasePath":                 "/",
 	"sessionMaxAge":               "360",
 	"pageSize":                    "25",
@@ -589,6 +591,21 @@ func (s *SettingService) GetSecret() ([]byte, error) {
 		}
 	}
 	return []byte(secret), err
+}
+
+// GetPanelGuid returns a stable UUID for this panel install, minting one on first use.
+func (s *SettingService) GetPanelGuid() (string, error) {
+	guid, err := s.getString("panelGuid")
+	if err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(guid) == "" {
+		guid = uuid.NewString()
+		if err := s.saveSetting("panelGuid", guid); err != nil {
+			return "", err
+		}
+	}
+	return guid, nil
 }
 
 func (s *SettingService) SetBasePath(basePath string) error {

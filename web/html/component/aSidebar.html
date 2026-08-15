@@ -131,6 +131,13 @@
                         title: '{{ i18n "menu.resellers"}}'
                     },
                     {{ end }}
+                    {{ if .perms.manageNodes }}
+                    {
+                        key: '{{ .base_path }}panel/nodes',
+                        icon: 'cloud-server',
+                        title: '{{ i18n "menu.nodes"}}'
+                    },
+                    {{ end }}
                 ],
                 logout: {
                     key: '{{ .base_path }}logout/',

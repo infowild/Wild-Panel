@@ -134,6 +134,10 @@ type Status struct {
 		Mem     uint64 `json:"mem"`
 		Uptime  uint64 `json:"uptime"`
 	} `json:"appStats"`
+	// PanelVersion / PanelGuid let a remote master identify this panel during heartbeat
+	// (3x-ui multi-node wire compatibility).
+	PanelVersion string `json:"panelVersion"`
+	PanelGuid    string `json:"panelGuid"`
 }
 
 // NetIOIface is one network interface's throughput. Up and Down are RATES in
@@ -658,6 +662,11 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.AppStats.Uptime = p.GetUptime()
 	} else {
 		status.AppStats.Uptime = 0
+	}
+
+	status.PanelVersion = config.GetVersion()
+	if guid, err := (&SettingService{}).GetPanelGuid(); err == nil {
+		status.PanelGuid = guid
 	}
 
 	return status

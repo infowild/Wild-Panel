@@ -1,0 +1,324 @@
+{{ template "page/head_start" .}}
+{{ template "page/head_end" .}}
+
+{{ template "page/body_start" .}}
+{{template "page/shell_start" . }}
+      <a-spin :spinning="spinning" :delay="300" tip='{{ i18n "loading"}}' size="large">
+        <transition name="list" appear>
+          <div class="pgc-console">
+            <div class="pgc-bar">
+              <div class="pgc-bar__meta">
+                <h2 class="pgc-bar__title">{{ i18n "pages.nodes.title" }}</h2>
+                <span class="pgc-bar__count" v-if="nodes.length">[[ nodes.length ]]</span>
+                <span class="pgc-bar__note">{{ i18n "pages.nodes.subtitle" }}</span>
+              </div>
+              <div class="pgc-bar__actions">
+                <a-button icon="reload" @click="loadNodes(true)"></a-button>
+                <a-button type="primary" icon="plus" @click="openAdd()">
+                  {{ i18n "pages.nodes.add" }}
+                </a-button>
+              </div>
+            </div>
+
+            <div class="bo-cards" v-if="nodes.length">
+              <article class="bo-tile bo-rs" v-for="node in nodes" :key="node.id">
+                <div class="bo-rs-head">
+                  <div :style="{ minWidth: 0 }">
+                    <div class="bo-rs-name">[[ node.name ]]</div>
+                    <div class="bo-rs-sub">
+                      [[ node.scheme ]]://[[ node.address ]]:[[ node.port ]][[ node.basePath ]]
+                    </div>
+                  </div>
+                  <div :style="{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }">
+                    <a-tag :color="statusColor(node.status)" :style="{ marginInlineEnd: 0 }">
+                      [[ statusLabel(node.status) ]]
+                    </a-tag>
+                    <a-dropdown :trigger="['click']">
+                      <a-icon @click="e => e.preventDefault()" type="more"
+                        :style="{ fontSize: '16px', cursor: 'pointer' }"></a-icon>
+                      <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                        <a-menu-item @click="openEdit(node)">
+                          <a-icon type="edit"></a-icon>
+                          <span>{{ i18n "edit" }}</span>
+                        </a-menu-item>
+                        <a-menu-item @click="probeNode(node)">
+                          <a-icon type="reload"></a-icon>
+                          <span>{{ i18n "pages.nodes.probe" }}</span>
+                        </a-menu-item>
+                        <a-menu-item @click="syncNode(node)">
+                          <a-icon type="cloud-upload"></a-icon>
+                          <span>{{ i18n "pages.nodes.sync" }}</span>
+                        </a-menu-item>
+                        <a-menu-item @click="delNode(node)">
+                          <span :style="{ color: 'var(--error)' }">
+                            <a-icon type="delete"></a-icon>
+                            <span>{{ i18n "delete" }}</span>
+                          </span>
+                        </a-menu-item>
+                      </a-menu>
+                    </a-dropdown>
+                  </div>
+                </div>
+
+                <dl class="bo-spec">
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.nodes.latency" }}</dt>
+                    <dd class="bo-spec-val num" v-if="node.latencyMs">[[ node.latencyMs ]] ms</dd>
+                    <dd class="bo-spec-val bo-muted" v-else>—</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.nodes.inbounds" }}</dt>
+                    <dd class="bo-spec-val num">[[ node.inboundCount || 0 ]]</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.nodes.panelVersion" }}</dt>
+                    <dd class="bo-spec-val">[[ node.panelVersion || '—' ]]</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">Xray</dt>
+                    <dd class="bo-spec-val">[[ node.xrayVersion || '—' ]] [[ node.xrayState ? '('+node.xrayState+')' : '' ]]</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "enabled" }}</dt>
+                    <dd class="bo-spec-val">
+                      <a-switch size="small" :checked="node.enable"
+                        @change="v => setEnable(node, v)"></a-switch>
+                    </dd>
+                  </div>
+                  <div class="bo-spec-row" v-if="node.configDirty">
+                    <dt class="bo-spec-key">{{ i18n "pages.nodes.dirty" }}</dt>
+                    <dd class="bo-spec-val"><a-tag color="orange">{{ i18n "pages.nodes.pendingSync" }}</a-tag></dd>
+                  </div>
+                  <div class="bo-spec-row" v-if="node.lastError">
+                    <dt class="bo-spec-key">{{ i18n "pages.nodes.lastError" }}</dt>
+                    <dd class="bo-spec-val" :style="{ color: 'var(--error)', fontSize: '12px' }">[[ node.lastError ]]</dd>
+                  </div>
+                </dl>
+              </article>
+            </div>
+
+            <div class="wp-empty" v-else-if="!spinning">
+              <div class="wp-empty__icon" aria-hidden="true">
+                <svg class="bo-icon"><use href="#bo-i-grid"></use></svg>
+              </div>
+              <p class="wp-empty__title">{{ i18n "pages.nodes.emptyTitle" }}</p>
+              <p class="wp-empty__hint">{{ i18n "pages.nodes.emptyDesc" }}</p>
+              <div class="wp-empty__cta">
+                <a-button type="primary" icon="plus" @click="openAdd()">
+                  {{ i18n "pages.nodes.add" }}
+                </a-button>
+              </div>
+            </div>
+          </div>
+        </transition>
+      </a-spin>
+
+<a-modal v-model="modalVisible" :title="modalTitle" :confirm-loading="modalBusy"
+  @ok="submitModal" :ok-text="isEdit ? '{{ i18n "save" }}' : '{{ i18n "create" }}'"
+  :cancel-text="'{{ i18n "close" }}'" :mask-closable="false" :width="isMobile ? '100%' : 560"
+  :class="themeSwitcher.currentTheme">
+  <a-form layout="vertical" :colon="false">
+    <a-form-item label='{{ i18n "pages.nodes.name" }}' required>
+      <a-input v-model.trim="form.name"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.nodes.remark" }}'>
+      <a-input v-model.trim="form.remark"></a-input>
+    </a-form-item>
+    <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }">
+      <a-form-item label='{{ i18n "pages.nodes.scheme" }}'>
+        <a-select v-model="form.scheme" :dropdown-class-name="themeSwitcher.currentTheme">
+          <a-select-option value="https">https</a-select-option>
+          <a-select-option value="http">http</a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label='{{ i18n "pages.nodes.address" }}' required :style="{ gridColumn: 'span 1' }">
+        <a-input v-model.trim="form.address"></a-input>
+      </a-form-item>
+      <a-form-item label='{{ i18n "pages.nodes.port" }}' required>
+        <a-input-number v-model="form.port" :min="1" :max="65535" :style="{ width: '100%' }"></a-input-number>
+      </a-form-item>
+    </div>
+    <a-form-item label='{{ i18n "pages.nodes.basePath" }}'>
+      <a-input v-model.trim="form.basePath" placeholder="/"></a-input>
+    </a-form-item>
+    <a-form-item :label="isEdit ? '{{ i18n "pages.nodes.apiTokenKeep" }}' : '{{ i18n "pages.nodes.apiToken" }}'" :required="!isEdit">
+      <a-input v-model.trim="form.apiToken" :placeholder="isEdit ? '{{ i18n "pages.nodes.apiTokenPlaceholder" }}' : ''"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.nodes.tlsMode" }}'>
+      <a-select v-model="form.tlsVerifyMode" :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select-option value="verify">{{ i18n "pages.nodes.tlsVerify" }}</a-select-option>
+        <a-select-option value="skip">{{ i18n "pages.nodes.tlsSkip" }}</a-select-option>
+        <a-select-option value="pin">{{ i18n "pages.nodes.tlsPin" }}</a-select-option>
+      </a-select>
+    </a-form-item>
+    <a-form-item v-if="form.tlsVerifyMode === 'pin'" label='{{ i18n "pages.nodes.certPin" }}'>
+      <a-input v-model.trim="form.pinnedCertSha256"></a-input>
+      <a-button :style="{ marginTop: '8px' }" @click="fetchCertPin" :loading="pinBusy">
+        {{ i18n "pages.nodes.fetchPin" }}
+      </a-button>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.nodes.syncMode" }}'>
+      <a-select v-model="form.inboundSyncMode" :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select-option value="all">{{ i18n "pages.nodes.syncAll" }}</a-select-option>
+        <a-select-option value="selected">{{ i18n "pages.nodes.syncSelected" }}</a-select-option>
+      </a-select>
+    </a-form-item>
+    <a-form-item>
+      <a-checkbox v-model="form.enable">{{ i18n "enabled" }}</a-checkbox>
+      <a-checkbox v-model="form.allowPrivateAddress" :style="{ marginInlineStart: '16px' }">
+        {{ i18n "pages.nodes.allowPrivate" }}
+      </a-checkbox>
+    </a-form-item>
+    <a-button @click="testConnection" :loading="testBusy" icon="api">
+      {{ i18n "pages.nodes.test" }}
+    </a-button>
+    <span v-if="testResult" :style="{ marginInlineStart: '12px', color: 'var(--ok)' }">[[ testResult ]]</span>
+  </a-form>
+</a-modal>
+
+{{template "page/body_scripts" . }}
+<script>
+  const app = new Vue({
+    delimiters: ['[[', ']]'],
+    mixins: [MediaQueryMixin],
+    el: '#app',
+    data: {
+      themeSwitcher,
+      pageTitle: '{{ i18n "menu.nodes"}}',
+      pageClass: 'nodes-page',
+      spinning: false,
+      nodes: [],
+      modalVisible: false,
+      modalBusy: false,
+      isEdit: false,
+      editId: 0,
+      testBusy: false,
+      pinBusy: false,
+      testResult: '',
+      form: {
+        name: '', remark: '', scheme: 'https', address: '', port: 2053,
+        basePath: '/', apiToken: '', enable: true, allowPrivateAddress: false,
+        tlsVerifyMode: 'verify', pinnedCertSha256: '', inboundSyncMode: 'all',
+      },
+    },
+    computed: {
+      modalTitle() {
+        return this.isEdit ? '{{ i18n "pages.nodes.edit" }}' : '{{ i18n "pages.nodes.add" }}';
+      },
+    },
+    methods: {
+      statusColor(s) {
+        if (s === 'online') return 'green';
+        if (s === 'offline') return 'red';
+        return 'default';
+      },
+      statusLabel(s) {
+        if (s === 'online') return '{{ i18n "pages.nodes.online" }}';
+        if (s === 'offline') return '{{ i18n "pages.nodes.offline" }}';
+        return '{{ i18n "pages.nodes.unknown" }}';
+      },
+      blankForm() {
+        return {
+          name: '', remark: '', scheme: 'https', address: '', port: 2053,
+          basePath: '/', apiToken: '', enable: true, allowPrivateAddress: false,
+          tlsVerifyMode: 'verify', pinnedCertSha256: '', inboundSyncMode: 'all',
+        };
+      },
+      async loadNodes(showSpin) {
+        if (showSpin) this.spinning = true;
+        const msg = await HttpUtil.get('/panel/nodes/list');
+        this.spinning = false;
+        if (msg && msg.success) {
+          this.nodes = msg.obj || [];
+        }
+      },
+      openAdd() {
+        this.isEdit = false;
+        this.editId = 0;
+        this.form = this.blankForm();
+        this.testResult = '';
+        this.modalVisible = true;
+      },
+      openEdit(node) {
+        this.isEdit = true;
+        this.editId = node.id;
+        this.form = {
+          name: node.name, remark: node.remark || '',
+          scheme: node.scheme || 'https', address: node.address,
+          port: node.port || 2053, basePath: node.basePath || '/',
+          apiToken: '', enable: !!node.enable,
+          allowPrivateAddress: !!node.allowPrivateAddress,
+          tlsVerifyMode: node.tlsVerifyMode || 'verify',
+          pinnedCertSha256: node.pinnedCertSha256 || '',
+          inboundSyncMode: node.inboundSyncMode || 'all',
+        };
+        this.testResult = '';
+        this.modalVisible = true;
+      },
+      async submitModal() {
+        if (!this.form.name || !this.form.address) return;
+        if (!this.isEdit && !this.form.apiToken) return;
+        this.modalBusy = true;
+        const url = this.isEdit
+          ? '/panel/nodes/update/' + this.editId
+          : '/panel/nodes/add';
+        const msg = await HttpUtil.post(url, this.form);
+        this.modalBusy = false;
+        if (msg && msg.success) {
+          this.modalVisible = false;
+          await this.loadNodes(false);
+        }
+      },
+      async testConnection() {
+        this.testBusy = true;
+        this.testResult = '';
+        const msg = await HttpUtil.post('/panel/nodes/test', this.form);
+        this.testBusy = false;
+        if (msg && msg.success && msg.obj) {
+          this.testResult = '{{ i18n "pages.nodes.testOk" }} (' + (msg.obj.latencyMs || 0) + ' ms)';
+        }
+      },
+      async fetchCertPin() {
+        this.pinBusy = true;
+        const msg = await HttpUtil.post('/panel/nodes/certFingerprint', this.form);
+        this.pinBusy = false;
+        if (msg && msg.success && msg.obj && msg.obj.fingerprint) {
+          this.form.pinnedCertSha256 = msg.obj.fingerprint;
+          this.form.tlsVerifyMode = 'pin';
+        }
+      },
+      async probeNode(node) {
+        const msg = await HttpUtil.post('/panel/nodes/probe/' + node.id);
+        if (msg && msg.success) await this.loadNodes(false);
+      },
+      async syncNode(node) {
+        const msg = await HttpUtil.post('/panel/nodes/sync/' + node.id);
+        if (msg && msg.success) await this.loadNodes(false);
+      },
+      async setEnable(node, enable) {
+        const msg = await HttpUtil.post('/panel/nodes/setEnable/' + node.id, { enable: !!enable });
+        if (msg && msg.success) {
+          node.enable = !!enable;
+        } else {
+          await this.loadNodes(false);
+        }
+      },
+      async delNode(node) {
+        this.$confirm({
+          title: '{{ i18n "pages.nodes.del" }}',
+          content: node.name,
+          okType: 'danger',
+          onOk: async () => {
+            const msg = await HttpUtil.post('/panel/nodes/del/' + node.id);
+            if (msg && msg.success) await this.loadNodes(false);
+          },
+        });
+      },
+    },
+    async mounted() {
+      await this.loadNodes(true);
+    },
+  });
+</script>
+{{ template "page/body_end" .}}
+{{ template "page/shell_end" . }}
