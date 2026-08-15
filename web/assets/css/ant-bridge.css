@@ -1912,9 +1912,10 @@ body.dark :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#a
  * untouched (fit-content / 600px / the 520px default) - overriding here
  * rather than editing the props keeps the change presentational.
  *
- * 900 / 880 / 720: the QR dialog runs a 40/60 split beside a 200px code, the
- * details dialog matches the client dialog it is opened from, and the text
- * dialog is a single column of monospace that gets unreadable much wider.
+ * 900 / 920 / 720: the QR dialog runs a 40/60 split beside a 200px code, the
+ * details dialog carries a status rail plus a two-column configuration zone,
+ * and the text dialog is a single column of monospace that gets unreadable
+ * much wider.
  */
 :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .ant-modal {
   max-width:calc(100vw - 32px);
@@ -1922,7 +1923,7 @@ body.dark :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#a
   top:24px;
 }
 #qrcode-modal .ant-modal { width:900px !important; }
-#inbound-info-modal .ant-modal { width:880px !important; }
+#inbound-info-modal .ant-modal { width:920px !important; }
 #text-modal .ant-modal { width:720px !important; }
 :is(#wgc-config-modal,#awg-config-modal,#ssh-config-modal) .ant-modal { width:860px !important; }
 #gre-config-modal .ant-modal { width:820px !important; }
@@ -2621,6 +2622,177 @@ body.dark :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#a
 /* The unlimited glyph, inherited from the inbounds table. */
 :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-metric__v svg { display:block; }
 
+/* ---- status rail (details dialog) ------------------------------------
+ * The operational summary above the configuration panels: what an operator
+ * checks first (is it up, on which port, how many accounts, how much of the
+ * quota is gone, when does it lapse). Cells, not KPI cards - one hairline
+ * grid on the panel surface, figures at 13px, labels at 10px.
+ *
+ * grid + auto-fit rather than flex so the cells stay equal width and the row
+ * rewraps by itself at 1280 and below instead of needing a breakpoint per
+ * cell count (the count varies: Clients only exists for multi-user inbounds).
+ */
+/* Listener is four facts; transport carries the whole stream stack. Weighted
+   so the technical column gets the room, and only when there IS a second
+   panel - a lone section (tunnel, http, wireguard) still takes the full row
+   off the auto-fit default. */
+#inbound-info-modal .wca-split:has(> .wca-sec ~ .wca-sec) {
+  grid-template-columns:minmax(0,0.8fr) minmax(0,1.2fr);
+}
+
+/* Whose figures these are. The panels below can be scoped to one account, so
+   the rail says what it is measuring rather than leaving two same-named
+   totals on screen with no subject. */
+#inbound-info-modal .wca-scope {
+  margin-bottom:7px;
+  font-size:10px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  color:var(--text-3);
+}
+#inbound-info-modal .wca-rail {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(126px,1fr));
+  gap:1px;
+  background:var(--divider);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  overflow:hidden;
+}
+#inbound-info-modal .wca-rail__cell {
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  padding:11px 14px;
+  background:var(--surface-2);
+  min-width:0;
+}
+#inbound-info-modal .wca-rail__k {
+  font-size:10px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:var(--text-3);
+}
+#inbound-info-modal .wca-rail__v {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  font-size:13px;
+  font-weight:var(--fw-semibold);
+  font-variant-numeric:tabular-nums;
+  line-height:1.35;
+  color:var(--text);
+  overflow-wrap:anywhere;
+}
+#inbound-info-modal .wca-rail__v--mono { font-family:var(--font-mono); }
+#inbound-info-modal .wca-rail__v--muted { color:var(--text-3); font-weight:var(--fw-medium); }
+/* Same four names ColorUtils.usageColor() returns as the quota strip uses. */
+#inbound-info-modal .wca-rail__v--green { color:var(--ok); }
+#inbound-info-modal .wca-rail__v--orange { color:var(--warn); }
+#inbound-info-modal .wca-rail__v--red { color:var(--error); }
+#inbound-info-modal .wca-rail__v--purple { color:var(--accent); }
+#inbound-info-modal .wca-rail__v svg { display:block; }
+/* No cap set. Same meaning the quota strip's glyph carries, as a character so
+   the rail does not repeat a 400-byte path four times. */
+#inbound-info-modal .wca-rail__v--inf::before {
+  content:"\221E";
+  font-size:17px;
+  line-height:1;
+}
+/* The state badge sits in a cell, so it drops the pill's own line-height. */
+#inbound-info-modal .wca-rail__v .wca-badge { letter-spacing:.05em; }
+
+/* ---- usage rail --------------------------------------------------------
+ * Consumed against the cap, the same three figures the quota strip prints,
+ * read as one sentence plus a bar. Construction matches .wcl-usage in the
+ * client dialog so the two read as the same component.
+ */
+#inbound-info-modal .wca-usage { min-width:0; }
+#inbound-info-modal .wca-usage__head {
+  display:flex;
+  align-items:baseline;
+  flex-wrap:wrap;
+  gap:6px;
+  font-size:13px;
+  font-variant-numeric:tabular-nums;
+  color:var(--text);
+}
+#inbound-info-modal .wca-usage__used { font-weight:var(--fw-semibold); }
+#inbound-info-modal .wca-usage__of {
+  font-size:11.5px;
+  font-weight:var(--fw-normal);
+  color:var(--wca-help);
+}
+#inbound-info-modal .wca-usage__total { font-weight:var(--fw-medium); color:var(--text-2); }
+#inbound-info-modal .wca-usage__track {
+  position:relative;
+  height:6px;
+  margin:9px 0 8px;
+  background:var(--surface-3);
+  border:1px solid var(--border);
+  border-radius:var(--radius-pill);
+  overflow:hidden;
+}
+#inbound-info-modal .wca-usage__fill {
+  height:100%;
+  border-radius:inherit;
+  background:var(--accent);
+  transition:width .2s ease;
+}
+#inbound-info-modal .wca-usage__fill--green { background:var(--ok); }
+#inbound-info-modal .wca-usage__fill--orange { background:var(--warn); }
+#inbound-info-modal .wca-usage__fill--red { background:var(--error); }
+#inbound-info-modal .wca-usage__fill--purple { background:var(--accent); }
+#inbound-info-modal .wca-usage__foot {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:4px 12px;
+  font-size:11.5px;
+  font-variant-numeric:tabular-nums;
+  color:var(--wca-help);
+}
+#inbound-info-modal .wca-usage__split { display:flex; align-items:center; gap:12px; }
+#inbound-info-modal .wca-usage__split-item { display:inline-flex; align-items:center; gap:4px; }
+#inbound-info-modal .wca-usage__split-item .anticon { font-size:10px; }
+#inbound-info-modal .wca-usage + .wca-metrics { margin-top:14px; }
+
+/* ---- technical details -------------------------------------------------
+ * Protocol internals: keys, peers, account tables. Correct to expose, rarely
+ * the reason the dialog was opened, so the group is set one step back from
+ * the configuration panels above it rather than hidden.
+ */
+#inbound-info-modal .wca-tech {
+  display:flex;
+  flex-direction:column;
+  gap:var(--wca-gap);
+  min-width:0;
+}
+#inbound-info-modal .wca-tech__head {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+#inbound-info-modal .wca-tech__title {
+  font-size:10.5px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:var(--text-3);
+  white-space:nowrap;
+}
+#inbound-info-modal .wca-tech__rule {
+  flex:1 1 auto;
+  height:1px;
+  background:var(--divider);
+}
+#inbound-info-modal .wca-tech .wca-sec { background:var(--surface-3); }
+
 /* ---- text dialog ----
  * One payload, full height. The textarea is ant's, so it is restyled rather
  * than replaced: the binding and the autosize prop are untouched.
@@ -2722,6 +2894,9 @@ body.dark :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#a
 @media (max-width:860px) {
   :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) { --wca-pad-x:16px; --wca-gap:14px; --wca-sec-pad:13px; }
   :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-split { grid-template-columns:minmax(0,1fr); }
+  /* Restated at the weighted rule's own specificity, or the details dialog
+     would keep two columns here while every other dialog collapsed. */
+  #inbound-info-modal .wca-split:has(> .wca-sec ~ .wca-sec) { grid-template-columns:minmax(0,1fr); }
   #qrcode-modal .wca-card { grid-template-columns:minmax(0,1fr); gap:14px; }
   :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-kv--pair { grid-template-columns:minmax(70px,max-content) minmax(0,1fr); }
 }

@@ -10,16 +10,62 @@
       </div>
       <div class="wca-head__aside">
         <span class="wca-badge wca-badge--accent" v-if="dbInbound.protocol">[[ dbInbound.protocol ]]</span>
+        <template v-if="infoModal.clientSettings">
+          <span class="wca-badge wca-badge--info" v-if="isFrozen">{{ i18n "pages.client.frozen" }}</span>
+          <span class="wca-badge wca-badge--danger" v-else-if="isDepleted">{{ i18n "depleted" }}</span>
+          <span class="wca-badge wca-badge--ok" v-else-if="isEnable">{{ i18n "enabled" }}</span>
+          <span class="wca-badge" v-else>{{ i18n "disabled" }}</span>
+        </template>
+        <template v-else>
+          <span class="wca-badge wca-badge--ok" v-if="dbInbound.enable">{{ i18n "enabled" }}</span>
+          <span class="wca-badge" v-else>{{ i18n "disabled" }}</span>
+        </template>
       </div>
     </div>
   </template>
 
   <div class="wca">
-    <!-- ENDPOINT + CONNECTION STACK ------------------------------------- -->
+    <!-- STATUS SUMMARY ---------------------------------------------------
+         The inbound's own operating figures, read before anything below it.
+         Every value is one the inbounds table already prints for this row.
+         Captioned because the panels below are scoped to ONE account: without
+         it, two different "Total Flow" figures would sit on the same screen
+         with nothing saying which subject each belongs to. -->
+    <div class="wca-scope">Inbound</div>
+    <div class="wca-rail">
+      <div class="wca-rail__cell">
+        <span class="wca-rail__k">{{ i18n "pages.inbounds.port" }}</span>
+        <span class="wca-rail__v wca-rail__v--mono">[[ dbInbound.port ]]</span>
+      </div>
+      <div class="wca-rail__cell" v-if="inbound.clients">
+        <span class="wca-rail__k">{{ i18n "clients" }}</span>
+        <span class="wca-rail__v">[[ inbound.clients.length ]]</span>
+      </div>
+      <div class="wca-rail__cell">
+        <span class="wca-rail__k">{{ i18n "pages.inbounds.traffic" }}</span>
+        <span class="wca-rail__v">[[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]]</span>
+      </div>
+      <div class="wca-rail__cell">
+        <span class="wca-rail__k">{{ i18n "pages.inbounds.totalFlow" }}</span>
+        <span class="wca-rail__v" v-if="dbInbound.total > 0"
+          :class="'wca-rail__v--' + ColorUtils.usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">[[
+          SizeFormatter.sizeFormat(dbInbound.total) ]]</span>
+        <span class="wca-rail__v wca-rail__v--purple wca-rail__v--inf" v-else></span>
+      </div>
+      <div class="wca-rail__cell">
+        <span class="wca-rail__k">{{ i18n "pages.inbounds.expireDate" }}</span>
+        <span class="wca-rail__v" v-if="dbInbound.expiryTime > 0"
+          :class="'wca-rail__v--' + ColorUtils.usageColor(new Date().getTime(), app.expireDiff, dbInbound.expiryTime)">[[
+          IntlUtil.formatDate(dbInbound.expiryTime) ]]</span>
+        <span class="wca-rail__v wca-rail__v--purple wca-rail__v--inf" v-else></span>
+      </div>
+    </div>
+
+    <!-- CONFIGURATION DETAILS -------------------------------------------- -->
     <div class="wca-split">
         <section class="wca-sec">
           <div class="wca-sec__head">
-            <span class="wca-sec__title">Endpoint</span>
+            <span class="wca-sec__title">Listener</span>
           </div>
           <div class="wca-sec__body">
             <div class="wca-kv">
@@ -133,10 +179,6 @@
       <section class="wca-sec">
         <div class="wca-sec__head">
           <span class="wca-sec__title">{{ i18n "pages.inbounds.client" }}</span>
-          <span class="wca-badge wca-badge--info" v-if="isFrozen">{{ i18n "pages.client.frozen" }}</span>
-          <span class="wca-badge wca-badge--danger" v-else-if="isDepleted">{{ i18n "depleted" }}</span>
-          <span class="wca-badge wca-badge--ok" v-else-if="isEnable">{{ i18n "enabled" }}</span>
-          <span class="wca-badge" v-else>{{ i18n "disabled" }}</span>
         </div>
         <div class="wca-sec__body">
           <div class="wca-kv wca-kv--pair">
@@ -161,12 +203,6 @@
               <span class="wca-kv__k">{{ i18n "password" }}</span>
               <code class="wca-code wca-code--inline wca-code--secret">[[ infoModal.clientSettings.password ]]</code>
             </template>
-            <template v-if="infoModal.clientStats">
-              <span class="wca-kv__k">{{ i18n "usage" }}</span>
-              <span class="wca-kv__v wca-kv__v--mono">[[ SizeFormatter.sizeFormat(infoModal.clientStats.up +
-                infoModal.clientStats.down) ]] · ↑ [[ SizeFormatter.sizeFormat(infoModal.clientStats.up) ]] / [[
-                SizeFormatter.sizeFormat(infoModal.clientStats.down) ]] ↓</span>
-            </template>
             <span class="wca-kv__k">{{ i18n "pages.inbounds.createdAt" }}</span>
             <span class="wca-kv__v wca-kv__v--mono"
               v-if="infoModal.clientSettings && infoModal.clientSettings.created_at">[[
@@ -190,7 +226,46 @@
             </template>
           </div>
 
-          <div class="wca-subhead">{{ i18n "usage" }}</div>
+        </div>
+      </section>
+
+      <!-- TRAFFIC ---------------------------------------------------------
+           Consumed against the cap, then the same three figures the quota
+           strip already printed. Every value and every colour call below is
+           one this panel used before; the bar only puts them in proportion. -->
+      <section class="wca-sec">
+        <div class="wca-sec__head">
+          <span class="wca-sec__title">{{ i18n "usage" }}</span>
+        </div>
+        <div class="wca-sec__body">
+          <div class="wca-usage" v-if="infoModal.clientStats">
+            <div class="wca-usage__head">
+              <span class="wca-usage__used">[[ SizeFormatter.sizeFormat(infoModal.clientStats.up +
+                infoModal.clientStats.down) ]]</span>
+              <span class="wca-usage__of">used of</span>
+              <span class="wca-usage__total" v-if="infoModal.clientStats.total > 0">[[
+                SizeFormatter.sizeFormat(infoModal.clientStats.total) ]]</span>
+              <span class="wca-usage__total" v-else>{{ i18n "unlimited" }}</span>
+            </div>
+            <div class="wca-usage__track">
+              <div class="wca-usage__fill"
+                :class="'wca-usage__fill--' + ColorUtils.usageColor(infoModal.clientStats.up + infoModal.clientStats.down, app.trafficDiff, infoModal.clientStats.total)"
+                :style="{ width: (infoModal.clientStats.total > 0 ? Math.min(100, 100 * (infoModal.clientStats.up + infoModal.clientStats.down) / infoModal.clientStats.total) : 0) + '%' }">
+              </div>
+            </div>
+            <div class="wca-usage__foot">
+              <span v-if="infoModal.clientStats.total > 0">[[ Math.round(100 * (infoModal.clientStats.up +
+                infoModal.clientStats.down) / infoModal.clientStats.total) ]]% used</span>
+              <span class="wca-usage__split">
+                <span class="wca-usage__split-item">
+                  <a-icon type="arrow-up"></a-icon>[[ SizeFormatter.sizeFormat(infoModal.clientStats.up) ]]
+                </span>
+                <span class="wca-usage__split-item">
+                  <a-icon type="arrow-down"></a-icon>[[ SizeFormatter.sizeFormat(infoModal.clientStats.down) ]]
+                </span>
+              </span>
+            </div>
+          </div>
           <div class="wca-metrics">
             <div class="wca-metric">
               <span class="wca-metric__k">{{ i18n "remained" }}</span>
@@ -349,6 +424,16 @@
         </div>
       </section>
 
+      <!-- TECHNICAL DETAILS -----------------------------------------------
+           Protocol internals: forwarding targets, account tables, keys and
+           peers. Correct to expose and unchanged in content, but set one
+           surface back because they are rarely why the dialog was opened. -->
+      <div class="wca-tech"
+        v-if="inbound.protocol == Protocols.TUNNEL || dbInbound.isMixed || dbInbound.isHTTP || dbInbound.isWireguard">
+      <div class="wca-tech__head">
+        <span class="wca-tech__title">Technical details</span>
+        <span class="wca-tech__rule"></span>
+      </div>
       <section class="wca-sec" v-if="inbound.protocol == Protocols.TUNNEL">
         <div class="wca-sec__head">
           <span class="wca-sec__title">{{ i18n "pages.inbounds.targetAddress" }}</span>
@@ -476,6 +561,7 @@
           </div>
         </section>
       </template>
+      </div>
     </template>
   </div>
 </a-modal>
