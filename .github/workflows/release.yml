@@ -6,9 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag (e.g. v1)
+        description: Release tag (e.g. v2.0.13)
         required: true
-        default: v1
       make_latest:
         description: Mark this release as GitHub "latest"
         type: boolean
@@ -64,12 +63,20 @@ jobs:
 
       - name: Resolve release tag
         id: meta
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
+          set -euo pipefail
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            tag="$INPUT_TAG"
           else
-            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            tag="${GITHUB_REF_NAME}"
           fi
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "error: release tag must be semantic, e.g. v2.0.13 (got: $tag)" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       # go:embed config/version is baked in at compile time — must match the tag or
       # in-panel updates succeed but the UI still shows the old version (v2.0.5 bug).
@@ -82,6 +89,14 @@ jobs:
           printf '%s\n' "$ver" > config/version
           echo "Embedded version -> ${ver}"
           cat config/version
+
+      # Release is the last gate, not the first place we discover a broken
+      # template, translation baseline, permission test, or compile path.
+      - name: Verify release source
+        run: |
+          set -euo pipefail
+          go vet ./...
+          go test ./... -count=1
 
       - name: Build Wild Panel
         env:
@@ -111,9 +126,10 @@ jobs:
             echo "error: binary missing login UI strings (Sign in to Wild Panel)" >&2
             exit 1
           fi
-          # Login brand mark (holographic rings + wolf)
-          if ! strings build/out/wild-panel-amd64 | grep -q 'lgt-holo'; then
-            echo "error: binary missing login holographic brand markup" >&2
+          # Login scene + brand mark. `lgt-holo` belonged to the retired login;
+          # `lgt-ground` is the current canvas-backed scene root.
+          if ! strings build/out/wild-panel-amd64 | grep -q 'lgt-ground'; then
+            echo "error: binary missing current login scene markup" >&2
             exit 1
           fi
           if ! strings build/out/wild-panel-amd64 | grep -q 'wp-mark'; then
@@ -138,7 +154,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.meta.outputs.tag }}
-          MAKE_LATEST: ${{ github.event_name == 'workflow_dispatch' && inputs.make_latest || true }}
+          # Tag pushes are latest by default; manual dispatch respects the
+          # operator's checkbox (the old `... || true` made false impossible).
+          MAKE_LATEST: ${{ github.event_name != 'workflow_dispatch' || inputs.make_latest }}
         run: |
           set -euo pipefail
           NOTES="$(printf '%s\n' \
@@ -221,9 +239,11 @@ jobs:
             if [[ "$MAKE_LATEST" == "true" ]]; then
               EXTRA+=(--latest)
             fi
+            # Generate notes from commits since the previous tag. Do not stamp
+            # the static historical v2.0.12 copy above onto every future version.
             gh release create "$TAG" wild-panel-amd64 vpn-ui-amd64 \
               --title "Wild Panel ${TAG}" \
-              --notes "$NOTES" \
+              --generate-notes \
               "${EXTRA[@]}"
           fi
           # Note: gh release view JSON schema has no "isLatest" field on all CLI

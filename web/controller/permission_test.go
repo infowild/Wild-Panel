@@ -45,6 +45,11 @@ func runGuarded(t *testing.T, user *model.User, guard gin.HandlerFunc, ajax bool
 	req := httptest.NewRequest(http.MethodGet, "/guarded", nil)
 	if ajax {
 		req.Header.Set("X-Requested-With", "XMLHttpRequest")
+		req.Header.Set("Accept", "application/json")
+	} else {
+		// Match a real browser navigation. wantsHTML intentionally requires this
+		// header so an API GET that omits X-Requested-With still receives JSON.
+		req.Header.Set("Accept", "text/html")
 	}
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -106,7 +111,10 @@ func TestRequireSuperAdmin(t *testing.T) {
 // A page navigation redirects; an XHR gets a JSON status. Denying a page with a raw
 // 403 would leave the browser on a blank screen.
 func TestDenyShapeMatchesRequestKind(t *testing.T) {
-	limited := &model.User{Id: 2, Enable: true}
+	// The user cannot open Inbounds but does have a safe landing page. With no
+	// page permission at all, deny() correctly returns a plain 403 because any
+	// redirect target would create a loop.
+	limited := &model.User{Id: 2, Enable: true, Permissions: model.PermAccessOverview}
 	if got, _ := runGuarded(t, limited, requirePerm(model.PermAccessInbounds), false); got != http.StatusTemporaryRedirect {
 		t.Errorf("page navigation denial = %d; want 307 redirect", got)
 	}
