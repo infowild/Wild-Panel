@@ -2904,3 +2904,464 @@ body.dark :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#a
   :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-metrics { grid-template-columns:minmax(0,1fr); }
   :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .ant-modal-footer .ant-btn { min-width:0; flex:1 1 auto; }
 }
+
+/* ======================================================================
+ * BULK OPERATIONS — the batch console opened from the inbounds toolbar
+ *
+ * SCOPE: `#bulk-ops-modal`. Its own block rather than another id in the
+ * configuration dialogs' `:is()` lists: this is not a form that edits one
+ * object, it is an operation being aimed at a selection, and it needs three
+ * things those dialogs do not have — a selection summary, an operation whose
+ * identity is the loudest thing on screen, and a progress surface.
+ *
+ * Same materials as every other dialog though, so it reads as one product:
+ * the surface / surface-2 / surface-3 ladder, hairlines instead of shadows,
+ * 38px controls, the same header band and the same action bar.
+ *
+ * The structural classes (.bop-*) are declared in the modal's markup in
+ * html/inbounds.html; everything else is drawn on ant's own elements so the
+ * select, switches, input-number and progress keep their bindings.
+ * ====================================================================== */
+
+#bulk-ops-modal {
+  --bop-pad-x:20px;
+  --bop-gap:16px;
+  --bop-sec-pad:16px;
+  /* Matches --wca-help / --fm-help: --text-3 is under 4.5:1 on this surface
+     in light, and every one of these labels is 11-12px. */
+  --bop-help:#5F6775;
+}
+body.dark #bulk-ops-modal { --bop-help:#8B9099; }
+
+/* ---- shell ----
+ * 780: the amount/unit row and the three exclusion rows both want a full
+ * measure, and the progress counts read badly when the rail is short. Width
+ * is an inline style on .ant-modal, hence !important, same as the dialogs
+ * above; the template's props are left alone.
+ */
+#bulk-ops-modal .ant-modal {
+  width:780px !important;
+  max-width:calc(100vw - 32px);
+  padding-bottom:0;
+  top:24px;
+}
+#bulk-ops-modal .ant-modal-content {
+  display:flex;
+  flex-direction:column;
+  max-height:calc(100vh - 48px);
+}
+#bulk-ops-modal .ant-modal-header {
+  flex:0 0 auto;
+  padding:0;
+  background:var(--surface-2);
+  border-bottom:1px solid var(--border);
+}
+#bulk-ops-modal .ant-modal-title {
+  padding:12px var(--bop-pad-x);
+  padding-inline-end:64px;
+  font-size:inherit;
+  line-height:inherit;
+  letter-spacing:normal;
+}
+#bulk-ops-modal .ant-modal-body {
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  padding:18px var(--bop-pad-x) 20px;
+  background:var(--surface);
+}
+#bulk-ops-modal .ant-modal-close { color:var(--text-3); }
+#bulk-ops-modal .ant-modal-close-x { width:52px; height:52px; line-height:52px; font-size:15px; }
+#bulk-ops-modal .ant-modal-close:hover { color:var(--text); }
+
+/* ---- header band ---- */
+#bulk-ops-modal .bop-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px 20px;
+  flex-wrap:wrap;
+  min-width:0;
+}
+#bulk-ops-modal .bop-head__title {
+  display:block;
+  font-size:15.5px;
+  font-weight:var(--fw-semibold);
+  line-height:1.3;
+  letter-spacing:-.01em;
+  color:var(--text);
+}
+#bulk-ops-modal .bop-head__sub {
+  display:block;
+  margin-top:2px;
+  font-size:11.5px;
+  line-height:1.4;
+  color:var(--bop-help);
+}
+
+/* ---- action bar ----
+ * Sticky by construction: the content column scrolls, this does not.
+ */
+#bulk-ops-modal .ant-modal-footer {
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  padding:14px var(--bop-pad-x);
+  background:var(--surface-2);
+  border-top:1px solid var(--border);
+}
+#bulk-ops-modal .ant-modal-footer .ant-btn {
+  height:36px;
+  margin:0;
+  min-width:104px;
+  border-radius:var(--radius-sm);
+}
+#bulk-ops-modal .ant-modal-footer .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger) {
+  background:var(--surface-2);
+  border-color:var(--border);
+  color:var(--text-2);
+}
+#bulk-ops-modal .ant-modal-footer .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):hover {
+  background:var(--surface-3);
+  border-color:var(--border-strong);
+  color:var(--text);
+}
+/* Delete is the one operation that cannot be undone, so the button that
+   starts it stops looking like the button that adds 10 GB. Keyed off the
+   destructive notice in the body, which renders for that operation and no
+   other, so no binding is added to drive it. The handler behind the button
+   is untouched - this is paint, not a different action. Without :has() the
+   button stays the normal primary, which is the current behaviour. */
+#bulk-ops-modal .ant-modal-content:has(.bop-danger) .ant-modal-footer .ant-btn-primary,
+#bulk-ops-modal .ant-modal-content:has(.bop-danger) .ant-modal-footer .ant-btn-primary:focus {
+  background:var(--error);
+  border-color:var(--error);
+  color:#fff;
+}
+#bulk-ops-modal .ant-modal-content:has(.bop-danger) .ant-modal-footer .ant-btn-primary:hover {
+  background:var(--error);
+  border-color:var(--error);
+  filter:brightness(1.08);
+}
+
+/* ---- control system ----
+ * The 38px metric the configuration dialogs use, restated for this scope:
+ * those rules are keyed to `:is(#inbound-modal,#client-modal)` and adding a
+ * third id to forty selectors to reach four controls would put this dialog's
+ * regressions inside theirs.
+ */
+#bulk-ops-modal .ant-select-selection--single,
+#bulk-ops-modal .ant-input-number,
+#bulk-ops-modal .ant-input-number-input { height:38px; }
+#bulk-ops-modal .ant-select-selection--single .ant-select-selection__rendered { line-height:36px; }
+#bulk-ops-modal .ant-input-number-input { line-height:36px; }
+#bulk-ops-modal .ant-select-selection__rendered,
+#bulk-ops-modal .ant-input-number-input { font-size:13px; }
+#bulk-ops-modal .ant-input-number-input { font-variant-numeric:tabular-nums; }
+#bulk-ops-modal .ant-select-selection,
+#bulk-ops-modal .ant-input-number { border-radius:var(--radius-sm); }
+
+/* ---- workspace ---- */
+#bulk-ops-modal .bop {
+  display:flex;
+  flex-direction:column;
+  gap:var(--bop-gap);
+  min-width:0;
+}
+#bulk-ops-modal .bop-sec {
+  padding:var(--bop-sec-pad);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  min-width:0;
+}
+#bulk-ops-modal .bop-sec__head {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  margin-bottom:13px;
+  padding-bottom:9px;
+  border-bottom:1px solid var(--divider);
+}
+#bulk-ops-modal .bop-sec__title {
+  font-size:11.5px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:var(--text);
+}
+#bulk-ops-modal .bop-sec__hint {
+  font-size:11.5px;
+  line-height:1.45;
+  color:var(--bop-help);
+}
+#bulk-ops-modal .bop-sec__body { min-width:0; }
+
+/* ---- selection summary ----
+ * "What am I about to change" as three figures on one rail, before the
+ * operation is even chosen. Cells, not cards.
+ */
+#bulk-ops-modal .bop-rail {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:1px;
+  background:var(--divider);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  overflow:hidden;
+}
+#bulk-ops-modal .bop-rail__cell {
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  padding:11px 14px;
+  background:var(--surface-2);
+  min-width:0;
+}
+#bulk-ops-modal .bop-rail__k {
+  font-size:10px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:var(--text-3);
+}
+#bulk-ops-modal .bop-rail__v {
+  font-size:15px;
+  font-weight:var(--fw-semibold);
+  font-variant-numeric:tabular-nums;
+  line-height:1.25;
+  color:var(--text);
+}
+#bulk-ops-modal .bop-rail__v--muted { color:var(--text-3); font-size:13px; font-weight:var(--fw-medium); }
+
+/* ---- operation ----
+ * The focal point. A taller select than anything else in the dialog, with a
+ * state bar on its start edge whose hue is derived from the operation the
+ * model already holds: positive to add or enable, neutral to disable,
+ * caution to freeze, danger to delete.
+ */
+#bulk-ops-modal .bop-op {
+  position:relative;
+  padding-inline-start:12px;
+}
+#bulk-ops-modal .bop-op::before {
+  content:"";
+  position:absolute;
+  inset-block:1px;
+  inset-inline-start:0;
+  width:3px;
+  border-radius:var(--radius-pill);
+  background:var(--accent);
+}
+#bulk-ops-modal .bop-op--enable::before,
+#bulk-ops-modal .bop-op--unfreeze::before { background:var(--ok); }
+#bulk-ops-modal .bop-op--disable::before { background:var(--text-3); }
+#bulk-ops-modal .bop-op--freeze::before { background:var(--warn); }
+#bulk-ops-modal .bop-op--delete::before { background:var(--error); }
+#bulk-ops-modal .bop-op .ant-select { width:100%; }
+#bulk-ops-modal .bop-op .ant-select-selection--single { height:42px; }
+#bulk-ops-modal .bop-op .ant-select-selection__rendered {
+  line-height:40px;
+  font-size:13.5px;
+  font-weight:var(--fw-medium);
+}
+
+/* ---- amount + unit ----
+ * One control, visually. The number carries the row and the unit sits
+ * against it on the end edge, so "25" and "GB" cannot be read apart.
+ */
+#bulk-ops-modal .bop-amount {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 132px;
+  gap:10px;
+  align-items:center;
+  margin-top:14px;
+}
+#bulk-ops-modal .bop-amount__label {
+  grid-column:1 / -1;
+  font-size:12.5px;
+  font-weight:var(--fw-medium);
+  line-height:1.35;
+  color:var(--text-2);
+}
+#bulk-ops-modal .bop-amount .ant-input-number { width:100%; }
+#bulk-ops-modal .bop-amount .ant-select { width:100%; }
+/* Day operations have no unit control, only a fixed noun; it is drawn as a
+   read-only field so the row keeps the same two-part shape. */
+#bulk-ops-modal .bop-amount__unit {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:38px;
+  padding:0 12px;
+  background:var(--surface-3);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  font-size:12.5px;
+  font-weight:var(--fw-medium);
+  color:var(--text-2);
+  white-space:nowrap;
+}
+
+/* ---- exclusion rows ----
+ * Same construction as the setting rows in the configuration dialogs: what
+ * it does on the start edge, the switch on the end edge, on its own bounded
+ * surface. A loose switch with a sentence beside it was the old shape.
+ */
+#bulk-ops-modal .bop-rows {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+#bulk-ops-modal .bop-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:9px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  min-width:0;
+}
+#bulk-ops-modal .bop-row__name {
+  min-width:0;
+  font-size:12.5px;
+  font-weight:var(--fw-medium);
+  line-height:1.4;
+  color:var(--text-2);
+}
+#bulk-ops-modal .bop-row__ctl { flex:0 0 auto; display:inline-flex; align-items:center; }
+
+/* ---- destructive notice ----
+ * Only ever rendered for delete. Restrained: a tinted panel and a hairline
+ * in the error hue, not a full-bleed alert.
+ */
+#bulk-ops-modal .bop-danger {
+  display:flex;
+  gap:11px;
+  padding:12px 14px;
+  background:var(--error-weak);
+  border:1px solid var(--error);
+  border-radius:var(--radius-md);
+  min-width:0;
+}
+#bulk-ops-modal .bop-danger .anticon {
+  flex:0 0 auto;
+  margin-top:1px;
+  font-size:15px;
+  color:var(--error);
+}
+#bulk-ops-modal .bop-danger__title {
+  display:block;
+  font-size:12px;
+  font-weight:var(--fw-semibold);
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  color:var(--error);
+}
+#bulk-ops-modal .bop-danger__text {
+  display:block;
+  margin-top:3px;
+  font-size:12px;
+  line-height:1.5;
+  color:var(--text-2);
+}
+
+/* ---- progress ----
+ * A batch panel rather than a bar with a caption: what is running, the
+ * count, the rail, and the two figures the run reports when it finishes.
+ */
+#bulk-ops-modal .bop-prog__head {
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:8px 14px;
+  flex-wrap:wrap;
+}
+#bulk-ops-modal .bop-prog__state {
+  font-size:12.5px;
+  font-weight:var(--fw-medium);
+  color:var(--text);
+}
+#bulk-ops-modal .bop-prog__count {
+  font-size:13px;
+  font-weight:var(--fw-semibold);
+  font-variant-numeric:tabular-nums;
+  color:var(--text);
+}
+#bulk-ops-modal .bop-prog__count small {
+  font-size:11.5px;
+  font-weight:var(--fw-normal);
+  color:var(--bop-help);
+}
+#bulk-ops-modal .bop-prog__bar { margin:10px 0 2px; }
+#bulk-ops-modal .bop-prog__bar .ant-progress-inner { background:var(--surface-3); }
+#bulk-ops-modal .bop-prog__bar .ant-progress-text {
+  font-size:11.5px;
+  font-variant-numeric:tabular-nums;
+  color:var(--text-2);
+}
+/* A finished run reads as finished: the rail and its tick take the positive
+   hue instead of staying the accent the running bar used. ant sets the
+   success status itself from the existing :status binding. */
+#bulk-ops-modal .bop-prog__bar .ant-progress-status-success .ant-progress-bg { background:var(--ok); }
+#bulk-ops-modal .bop-prog__bar .ant-progress-status-success .ant-progress-text { color:var(--ok); }
+#bulk-ops-modal .bop-prog__foot {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px 14px;
+  flex-wrap:wrap;
+  font-size:11.5px;
+  font-variant-numeric:tabular-nums;
+  color:var(--bop-help);
+}
+#bulk-ops-modal .bop-prog__eta {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+#bulk-ops-modal .bop-result {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#bulk-ops-modal .bop-chip {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:3px 9px;
+  border-radius:var(--radius-pill);
+  background:var(--surface-3);
+  color:var(--text-2);
+  font-size:11px;
+  font-weight:var(--fw-semibold);
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.04em;
+}
+#bulk-ops-modal .bop-chip--ok { background:var(--ok-weak); color:var(--ok); }
+
+/* ---- responsive ----
+ * 1920 / 1440 / 1280 / 1024 all clear 780 plus margins, so the dialog holds
+ * its width and only the amount row and the rail reflow below that.
+ */
+@media (max-width:840px) {
+  #bulk-ops-modal .ant-modal {
+    width:auto !important;
+    margin:12px;
+    max-width:calc(100vw - 24px);
+    top:12px;
+  }
+  #bulk-ops-modal .ant-modal-content { max-height:calc(100vh - 24px); }
+  #bulk-ops-modal { --bop-pad-x:16px; --bop-gap:14px; --bop-sec-pad:13px; }
+}
+@media (max-width:520px) {
+  #bulk-ops-modal .bop-amount { grid-template-columns:minmax(0,1fr); }
+  #bulk-ops-modal .ant-modal-footer .ant-btn { min-width:0; flex:1 1 auto; }
+}

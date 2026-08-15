@@ -876,7 +876,6 @@
         </transition>
       </a-spin>
   <a-modal id="bulk-ops-modal"
-    title='{{ i18n "pages.inbounds.bulkOperations" }}'
     :visible="bulkOps.visible"
     :confirm-loading="bulkOps.confirmLoading"
     ok-text='{{ i18n "pages.inbounds.apply" }}'
@@ -886,63 +885,146 @@
     :mask-closable="false"
     @ok="() => runBulkOps()"
     @cancel="() => bulkOps.visible = false">
-    <a-form layout="vertical">
-      <a-form-item label='{{ i18n "pages.inbounds.bulkTargetCount" }}'>
-        <a-tag color="purple">[[ selectedCount() ]]</a-tag>
-      </a-form-item>
-      <a-form-item label='{{ i18n "pages.inbounds.operation" }}'>
-        <a-select v-model="bulkOps.op"
-          :dropdown-class-name="themeSwitcher.currentTheme">
-          <!-- Withheld from a reseller: subDays is refused by the server, and addDays
-               is meaningless once their profile derives duration from traffic. See
-               isBulkOpAllowed; bulkOps.op is snapped back to a rendered option in
-               openBulkOps so the select can never point at a hidden one. -->
-          <a-select-option v-if="bulkOpAllowed('addDays')" value="addDays">{{ i18n "pages.inbounds.opAddDays" }}</a-select-option>
-          <a-select-option v-if="bulkOpAllowed('subDays')" value="subDays">{{ i18n "pages.inbounds.opSubDays" }}</a-select-option>
-          <a-select-option value="addTraffic">{{ i18n "pages.inbounds.opAddTraffic" }}</a-select-option>
-          <a-select-option value="subTraffic">{{ i18n "pages.inbounds.opSubTraffic" }}</a-select-option>
-          <a-select-option value="enable">{{ i18n "pages.inbounds.opEnable" }}</a-select-option>
-          <a-select-option value="disable">{{ i18n "pages.inbounds.opDisable" }}</a-select-option>
-          <a-select-option value="freeze">{{ i18n "pages.inbounds.opFreeze" }}</a-select-option>
-          <a-select-option value="unfreeze">{{ i18n "pages.inbounds.opUnfreeze" }}</a-select-option>
-          <a-select-option value="delete">{{ i18n "pages.inbounds.opDelete" }}</a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item v-if="bulkIsNumericOp()" label='{{ i18n "pages.inbounds.amount" }}'>
-        <a-input-number v-model="bulkOps.amount" :min="0"
-          :style="{ width: bulkIsTrafficOp() ? '58%' : '100%' }"></a-input-number>
-        <a-select v-if="bulkIsTrafficOp()" v-model="bulkOps.unit"
-          :style="{ width: '38%', marginInlineStart: '4%' }"
-          :dropdown-class-name="themeSwitcher.currentTheme">
-          <a-select-option value="GB">GB</a-select-option>
-          <a-select-option value="MB">MB</a-select-option>
-        </a-select>
-        <span v-else :style="{ marginInlineStart: '8px' }">{{ i18n "pages.inbounds.days" }}</span>
-      </a-form-item>
-      <a-divider :style="{ margin: '8px 0' }"></a-divider>
-      <a-space direction="vertical" :size="10" :style="{ width: '100%' }">
-        <div>
-          <a-switch v-model="bulkOps.skipFirstUse" size="small"></a-switch>
-          <span :style="{ marginInlineStart: '8px' }">{{ i18n "pages.inbounds.skipFirstUse" }}</span>
-        </div>
-        <div>
-          <a-switch v-model="bulkOps.skipUnlimited" size="small"></a-switch>
-          <span :style="{ marginInlineStart: '8px' }">{{ i18n "pages.inbounds.skipUnlimited" }}</span>
-        </div>
-        <div>
-          <a-switch v-model="bulkOps.skipDisabled" size="small"></a-switch>
-          <span :style="{ marginInlineStart: '8px' }">{{ i18n "pages.inbounds.skipDisabled" }}</span>
-        </div>
-      </a-space>
-      <div v-if="bulkOps.progress.running || bulkOps.progress.done > 0" :style="{ marginTop: '14px' }">
-        <a-progress :percent="bulkProgressPercent()"
-          :status="bulkOps.progress.running ? 'active' : 'success'"></a-progress>
-        <div :style="{ marginTop: '4px', fontSize: '12px', opacity: 0.75 }">
-          [[ bulkOps.progress.done ]] / [[ bulkOps.progress.total ]]
-          <span v-if="bulkOps.progress.etaText"> · {{ i18n "pages.inbounds.eta" }} [[ bulkOps.progress.etaText ]]</span>
+    <template slot="title">
+      <div class="bop-head">
+        <div class="bop-head__id">
+          <span class="bop-head__title">{{ i18n "pages.inbounds.bulkOperations" }}</span>
+          <span class="bop-head__sub">Apply one operation to the current selection</span>
         </div>
       </div>
-    </a-form>
+    </template>
+    <div class="bop">
+      <!-- What the run is aimed at, before the operation is even chosen: the
+           accounts the selection resolves to, and how that selection was made. -->
+      <div class="bop-rail">
+        <div class="bop-rail__cell">
+          <span class="bop-rail__k">{{ i18n "pages.inbounds.bulkTargetCount" }}</span>
+          <span class="bop-rail__v">[[ selectedCount() ]]</span>
+        </div>
+        <div class="bop-rail__cell">
+          <span class="bop-rail__k">Selection</span>
+          <span class="bop-rail__v bop-rail__v--muted">
+            [[ selInbounds.length ]] {{ i18n "menu.inbounds" }} · [[ selClients.length ]] {{ i18n "clients" }}
+          </span>
+        </div>
+      </div>
+
+      <section class="bop-sec">
+        <div class="bop-sec__head">
+          <span class="bop-sec__title">{{ i18n "pages.inbounds.operation" }}</span>
+          <span class="bop-sec__hint">One operation is applied to every selected account.</span>
+        </div>
+        <div class="bop-sec__body">
+          <!-- The state bar on the selector's start edge is hued from the operation
+               already in the model: positive to add or enable, neutral to disable,
+               caution to freeze, danger to delete. -->
+          <div class="bop-op" :class="'bop-op--' + bulkOps.op">
+            <a-select v-model="bulkOps.op"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <!-- Withheld from a reseller: subDays is refused by the server, and addDays
+                   is meaningless once their profile derives duration from traffic. See
+                   isBulkOpAllowed; bulkOps.op is snapped back to a rendered option in
+                   openBulkOps so the select can never point at a hidden one. -->
+              <a-select-option v-if="bulkOpAllowed('addDays')" value="addDays">{{ i18n "pages.inbounds.opAddDays" }}</a-select-option>
+              <a-select-option v-if="bulkOpAllowed('subDays')" value="subDays">{{ i18n "pages.inbounds.opSubDays" }}</a-select-option>
+              <a-select-option value="addTraffic">{{ i18n "pages.inbounds.opAddTraffic" }}</a-select-option>
+              <a-select-option value="subTraffic">{{ i18n "pages.inbounds.opSubTraffic" }}</a-select-option>
+              <a-select-option value="enable">{{ i18n "pages.inbounds.opEnable" }}</a-select-option>
+              <a-select-option value="disable">{{ i18n "pages.inbounds.opDisable" }}</a-select-option>
+              <a-select-option value="freeze">{{ i18n "pages.inbounds.opFreeze" }}</a-select-option>
+              <a-select-option value="unfreeze">{{ i18n "pages.inbounds.opUnfreeze" }}</a-select-option>
+              <a-select-option value="delete">{{ i18n "pages.inbounds.opDelete" }}</a-select-option>
+            </a-select>
+          </div>
+          <div class="bop-amount" v-if="bulkIsNumericOp()">
+            <span class="bop-amount__label">{{ i18n "pages.inbounds.amount" }}</span>
+            <a-input-number v-model="bulkOps.amount" :min="0"></a-input-number>
+            <a-select v-if="bulkIsTrafficOp()" v-model="bulkOps.unit"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value="GB">GB</a-select-option>
+              <a-select-option value="MB">MB</a-select-option>
+            </a-select>
+            <span class="bop-amount__unit" v-else>{{ i18n "pages.inbounds.days" }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Delete is the only operation here that cannot be reversed, so it is the
+           only one that says so. The confirmation it already raises on Apply is
+           unchanged; this is the warning before the operator gets that far. -->
+      <div class="bop-danger" v-if="bulkOps.op === 'delete'">
+        <a-icon type="warning"></a-icon>
+        <div>
+          <span class="bop-danger__title">{{ i18n "pages.inbounds.opDelete" }}</span>
+          <span class="bop-danger__text">
+            This permanently removes the current selection. Deleting an inbound also
+            deletes every account inside it. You will be asked to confirm before
+            anything is removed.
+          </span>
+        </div>
+      </div>
+
+      <section class="bop-sec">
+        <div class="bop-sec__head">
+          <span class="bop-sec__title">Exclusions</span>
+          <span class="bop-sec__hint">Accounts matching an active filter are counted as skipped, not changed.</span>
+        </div>
+        <div class="bop-sec__body">
+          <div class="bop-rows">
+            <div class="bop-row">
+              <span class="bop-row__name">{{ i18n "pages.inbounds.skipFirstUse" }}</span>
+              <span class="bop-row__ctl">
+                <a-switch v-model="bulkOps.skipFirstUse" size="small"></a-switch>
+              </span>
+            </div>
+            <div class="bop-row">
+              <span class="bop-row__name">{{ i18n "pages.inbounds.skipUnlimited" }}</span>
+              <span class="bop-row__ctl">
+                <a-switch v-model="bulkOps.skipUnlimited" size="small"></a-switch>
+              </span>
+            </div>
+            <div class="bop-row">
+              <span class="bop-row__name">{{ i18n "pages.inbounds.skipDisabled" }}</span>
+              <span class="bop-row__ctl">
+                <a-switch v-model="bulkOps.skipDisabled" size="small"></a-switch>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="bop-sec" v-if="bulkOps.progress.running || bulkOps.progress.done > 0">
+        <div class="bop-sec__head">
+          <span class="bop-sec__title">Progress</span>
+        </div>
+        <div class="bop-sec__body">
+          <div class="bop-prog__head">
+            <span class="bop-prog__state" v-if="bulkOps.progress.running">Processing accounts</span>
+            <span class="bop-prog__state" v-else>Result</span>
+            <span class="bop-prog__count">
+              [[ bulkOps.progress.done ]] / [[ bulkOps.progress.total ]] <small>completed</small>
+            </span>
+          </div>
+          <div class="bop-prog__bar">
+            <a-progress :percent="bulkProgressPercent()"
+              :status="bulkOps.progress.running ? 'active' : 'success'"></a-progress>
+          </div>
+          <div class="bop-prog__foot">
+            <span class="bop-result">
+              <span class="bop-chip bop-chip--ok" v-if="bulkOps.progress.applied > 0">
+                {{ i18n "pages.inbounds.bulkAffected" }} [[ bulkOps.progress.applied ]]
+              </span>
+              <span class="bop-chip" v-if="bulkOps.progress.skipped > 0">
+                {{ i18n "pages.inbounds.bulkSkipped" }} [[ bulkOps.progress.skipped ]]
+              </span>
+            </span>
+            <span class="bop-prog__eta" v-if="bulkOps.progress.etaText">
+              <a-icon type="clock-circle"></a-icon>{{ i18n "pages.inbounds.eta" }} [[ bulkOps.progress.etaText ]]
+            </span>
+          </div>
+        </div>
+      </section>
+    </div>
   </a-modal>
 {{template "page/shell_end" . }}
 {{template "page/body_scripts" .}}
