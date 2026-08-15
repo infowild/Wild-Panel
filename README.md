@@ -7,6 +7,10 @@
 </p>
 
 <p align="center">
+  <sub>Overview dashboard — live traffic, system status, and service health at a glance.</sub>
+</p>
+
+<p align="center">
   <b>Wild Panel</b> — all-in-one VPN control panel with a glass neon UI, multi-protocol cores, and Xray-powered routing.
 </p>
 
@@ -20,6 +24,10 @@
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/login.png" alt="Wild Panel — Login" width="720">
+</p>
+
+<p align="center">
+  <sub>Sign-in screen — glass neon UI, dark by default.</sub>
 </p>
 
 ## Highlights

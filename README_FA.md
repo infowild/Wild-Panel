@@ -7,6 +7,10 @@
 </p>
 
 <p align="center">
+  <sub>داشبورد کلی — ترافیک زنده، وضعیت سیستم و سلامت سرویس‌ها در یک نگاه.</sub>
+</p>
+
+<p align="center">
   <b>Wild Panel</b> — پنل همه‌کارهٔ VPN با رابط شیشه‌ای نئون، پشتیبانی گسترده از پروتکل‌ها و مسیریابی مبتنی بر Xray.
 </p>
 
@@ -19,6 +23,10 @@
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/login.png" alt="Wild Panel — Login" width="720">
+</p>
+
+<p align="center">
+  <sub>صفحهٔ ورود — رابط شیشه‌ای نئون، به‌صورت پیش‌فرض تیره.</sub>
 </p>
 
 ## نکات برجسته
