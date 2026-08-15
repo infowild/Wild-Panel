@@ -530,3 +530,479 @@ body:not(.dark) :is(.bo-shell,.login-app,.ant-modal,.ant-drawer,.ant-select-drop
 :is(.bo-shell,.login-app,.ant-modal,.ant-drawer,.ant-select-dropdown,.ant-dropdown,.ant-popover) .bo-proto--vpn {
   background:var(--ok-weak); border-color:var(--ok); color:var(--ok);
 }
+
+/* ================================================================== *
+ * configuration modals - Add/Edit Inbound and Client
+ *
+ * SCOPE: `:is(#inbound-modal,#client-modal)`.
+ *
+ * Those ids are set on <a-modal id="..."> and ant puts them on the portal
+ * root - the element that carries .ant-modal-root - so the id is an ancestor
+ * of the mask, the wrap, the dialog and the form. Verified in the DOM rather
+ * than assumed, because ant 1.x forwards stray attrs inconsistently and the
+ * whole section below hangs off it.
+ *
+ * Two reasons the scope is an id rather than the portal list used above:
+ *
+ * 1. Reach. These forms are the one place in the panel that still shows
+ *    pre-token chrome, because custom.css styles ant globally and some of its
+ *    rules carry a `.dark` class and beat this file at equal specificity. An
+ *    id wins outright, so the overrides below need no !important.
+ * 2. Blast radius. The panel has ~30 other modals. Retuning control heights
+ *    product-wide is a separate decision from fixing these two forms.
+ *
+ * Everything here is presentation. No field is hidden, reordered or rewired;
+ * the section grouping is drawn on the a-divider and a-collapse markers the
+ * templates already emit.
+ *
+ * The `form/client` template is shared: it is the body of #client-modal AND
+ * the first-client block inside #inbound-modal on add. One scope covers both,
+ * which is why the two ids are styled together rather than separately.
+ * ================================================================== */
+
+:is(#inbound-modal,#client-modal) {
+  --fm-ctl-h:36px;
+  --fm-gap:16px;
+  --fm-pad-x:24px;
+  /* Secondary ink for help text. Not --text-3: measured on the modal surface
+     that token is 4.16:1 in light, under the 4.5:1 floor for normal text, and
+     this is the smallest text in the densest forms in the product. */
+  --fm-help:#5F6775;
+}
+body.dark :is(#inbound-modal,#client-modal) { --fm-help:#8B9099; }
+
+/* ---- shell ---------------------------------------------------------------
+ * Width: ant hard-codes `width:520px` as INLINE style on .ant-modal, so a
+ * stylesheet cannot reach it without !important. The alternative was a :width
+ * prop on both templates; this keeps the change CSS-only as asked.
+ *
+ * 520px was the default both forms were still running at. The inbound form has
+ * a 33%/58% label/control split, so at 520 the control column was ~274px and
+ * every select, cert textarea and input-group was being folded into it.
+ */
+:is(#inbound-modal,#client-modal) .ant-modal {
+  max-width:calc(100vw - 32px);
+  padding-bottom:0;
+}
+#inbound-modal .ant-modal { width:900px !important; }
+#client-modal .ant-modal { width:720px !important; top:24px; }
+
+/* Height: cap the dialog to the viewport and let the BODY scroll, so the page
+ * behind never gains a scrollbar and the title and the save button stay put on
+ * a 25-field protocol form.
+ *
+ * Column flex rather than a `max-height` on the body with the header and footer
+ * heights subtracted as magic numbers: the title wraps at narrow widths and the
+ * footer grows with a loading spinner, and both would have broken the constant.
+ *
+ * 48px is the top offset plus an equal gap underneath (inbound sets top:20px
+ * inline via :dialog-style, client gets top:24px above).
+ */
+:is(#inbound-modal,#client-modal) .ant-modal-content {
+  display:flex;
+  flex-direction:column;
+  max-height:calc(100vh - 48px);
+}
+:is(#inbound-modal,#client-modal) .ant-modal-header {
+  flex:0 0 auto;
+  padding:15px var(--fm-pad-x);
+}
+:is(#inbound-modal,#client-modal) .ant-modal-title {
+  font-size:15.5px;
+  line-height:1.4;
+  letter-spacing:-.01em;
+}
+/* custom.css sets `.ant-modal-body{overflow-y:hidden}` globally, which is what
+   made a long form clip instead of scroll. min-height:0 is required or the flex
+   item refuses to shrink below its content and the cap does nothing.
+   overflow-x stays auto: the compact a-input-group rows in the VPN protocol
+   forms use percentage widths and must not be clipped. */
+:is(#inbound-modal,#client-modal) .ant-modal-body {
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:auto;
+  overscroll-behavior:contain;
+  padding:20px var(--fm-pad-x);
+}
+:is(#inbound-modal,#client-modal) .ant-modal-close { color:var(--text-3); }
+:is(#inbound-modal,#client-modal) .ant-modal-close-x {
+  width:52px; height:52px; line-height:52px; font-size:15px;
+}
+:is(#inbound-modal,#client-modal) .ant-modal-close:hover { color:var(--text); }
+:is(#inbound-modal,#client-modal) .ant-modal-close:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:-3px;
+  border-radius:var(--radius-sm);
+}
+
+/* ---- footer ----
+ * Flex with a gap instead of ant's `.ant-btn+.ant-btn{margin-left}`, so the
+ * pair stays aligned in RTL. A danger button, if a form ever adds one, is
+ * pushed to the opposite end rather than sitting next to Save where it can be
+ * hit by accident. */
+:is(#inbound-modal,#client-modal) .ant-modal-footer {
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  padding:12px var(--fm-pad-x);
+}
+:is(#inbound-modal,#client-modal) .ant-modal-footer .ant-btn {
+  height:var(--fm-ctl-h);
+  margin:0;
+  min-width:88px;
+  border-radius:var(--radius-sm);
+}
+:is(#inbound-modal,#client-modal) .ant-modal-footer .ant-btn-danger {
+  margin-inline-end:auto;
+  min-width:0;
+}
+/* Cancel was rendering as a teal fill with a blue border: custom.css paints
+   `.dark .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger)` from the old
+   palette and outranks this file's neutral button. Restated under the id so
+   secondary reads as secondary in both themes. */
+:is(#inbound-modal,#client-modal) .ant-modal-footer .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger) {
+  background:var(--surface-2);
+  border-color:var(--border);
+  color:var(--text-2);
+}
+:is(#inbound-modal,#client-modal) .ant-modal-footer .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):hover,
+:is(#inbound-modal,#client-modal) .ant-modal-footer .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):focus {
+  background:var(--surface-3);
+  border-color:var(--border-strong);
+  color:var(--text);
+}
+
+/* ---- form rhythm and labels ---- */
+:is(#inbound-modal,#client-modal) .ant-form-item { margin-bottom:var(--fm-gap); }
+:is(#inbound-modal,#client-modal) .ant-form-item:last-child { margin-bottom:0; }
+:is(#inbound-modal,#client-modal) .ant-form-item-label > label {
+  font-size:13px;
+  font-weight:var(--fw-medium);
+  color:var(--text-2);
+  line-height:1.4;
+}
+/* The label is the anchor; the tooltip and randomise affordances beside it are
+   support and should not compete with it for weight. */
+:is(#inbound-modal,#client-modal) .ant-form-item-label > label .anticon {
+  color:var(--text-3);
+  font-size:12.5px;
+  margin-inline-start:3px;
+  vertical-align:baseline;
+}
+:is(#inbound-modal,#client-modal) .ant-form-item-label > label .anticon:hover { color:var(--accent); }
+:is(#inbound-modal,#client-modal) .ant-form-item-label > label .anticon-sync { cursor:pointer; }
+/* Restrained required marker: ant's is a 14px red asterisk that outweighs the
+   label text next to it. */
+:is(#inbound-modal,#client-modal) .ant-form-item-required::before {
+  color:var(--error);
+  font-size:11px;
+  line-height:1;
+  vertical-align:super;
+  margin-inline-end:3px;
+}
+
+/* Help text sits clearly below the label in the hierarchy: smaller, muted, and
+   never the same weight. Errors take the same slot so a field does not change
+   height when validation fires. */
+:is(#inbound-modal,#client-modal) .ant-form-explain,
+:is(#inbound-modal,#client-modal) .ant-form-extra {
+  font-size:11.5px;
+  line-height:1.45;
+  color:var(--fm-help);
+  margin-top:4px;
+  min-height:0;
+}
+:is(#inbound-modal,#client-modal) .has-error .ant-form-explain {
+  color:var(--error);
+  font-weight:var(--fw-medium);
+}
+/* Several templates carry an inline `color:#888` on their helper spans. That is
+   5.3:1 on the dark surface but 3.5:1 on the light one, so it fails the text
+   floor in one theme only. Inline styles need the important to reach.
+   Both spellings are required: a static style="color:#888" keeps its hex in the
+   attribute, while Vue's :style="{ color: '#888' }" goes through the CSSOM and
+   the attribute serialises to rgb(136, 136, 136). */
+:is(#inbound-modal,#client-modal) [style*="#888"],
+:is(#inbound-modal,#client-modal) [style*="136, 136, 136"] {
+  color:var(--fm-help) !important;
+}
+
+/* ---- controls -----------------------------------------------------------
+ * One height for everything an operator tabs through. Ant ships 32px; these
+ * forms are long and dense, and 36 is the smallest step that reads as
+ * comfortable without turning a 25-field form into a scroll marathon.
+ * Multi-select is excluded: it grows with its tags and must stay auto.
+ */
+:is(#inbound-modal,#client-modal) .ant-input:not(textarea),
+:is(#inbound-modal,#client-modal) .ant-input-number,
+:is(#inbound-modal,#client-modal) .ant-input-number-input,
+:is(#inbound-modal,#client-modal) .ant-select-selection--single,
+:is(#inbound-modal,#client-modal) .ant-calendar-picker-input,
+:is(#inbound-modal,#client-modal) .ant-time-picker-input,
+:is(#inbound-modal,#client-modal) .ant-radio-button-wrapper,
+:is(#inbound-modal,#client-modal) .ant-input-group-addon > .ant-select .ant-select-selection--single {
+  height:var(--fm-ctl-h);
+}
+:is(#inbound-modal,#client-modal) .ant-select-selection--single .ant-select-selection__rendered {
+  line-height:calc(var(--fm-ctl-h) - 2px);
+}
+:is(#inbound-modal,#client-modal) .ant-radio-button-wrapper {
+  line-height:calc(var(--fm-ctl-h) - 2px);
+  font-size:13px;
+}
+:is(#inbound-modal,#client-modal) textarea.ant-input {
+  min-height:var(--fm-ctl-h);
+  padding:8px 11px;
+  line-height:1.5;
+}
+:is(#inbound-modal,#client-modal) .ant-input-affix-wrapper .ant-input:not(textarea) {
+  height:var(--fm-ctl-h);
+}
+
+/* Radius parity. The number input's inner field and the radio group ends were
+   rendering at 14px against a 6px outer edge, so a row of controls had three
+   different corners in it. Logical corners keep the group's open ends on the
+   correct side in RTL. */
+:is(#inbound-modal,#client-modal) .ant-input,
+:is(#inbound-modal,#client-modal) .ant-input-number,
+:is(#inbound-modal,#client-modal) .ant-input-number-input,
+:is(#inbound-modal,#client-modal) .ant-input-affix-wrapper,
+:is(#inbound-modal,#client-modal) .ant-select-selection,
+:is(#inbound-modal,#client-modal) .ant-calendar-picker-input,
+:is(#inbound-modal,#client-modal) .ant-time-picker-input {
+  border-radius:var(--radius-sm);
+}
+:is(#inbound-modal,#client-modal) .ant-radio-button-wrapper { border-radius:0; }
+:is(#inbound-modal,#client-modal) .ant-radio-group > .ant-radio-button-wrapper:first-child {
+  border-start-start-radius:var(--radius-sm);
+  border-end-start-radius:var(--radius-sm);
+}
+:is(#inbound-modal,#client-modal) .ant-radio-group > .ant-radio-button-wrapper:last-child {
+  border-start-end-radius:var(--radius-sm);
+  border-end-end-radius:var(--radius-sm);
+}
+
+/* Neutral resting chrome, and no colour wash on hover. custom.css tints inputs
+   `#e8f4f2` in light and `rgb(0 135 113 / .3)` in dark on hover AND focus -
+   the old teal brand - which is the single loudest thing left in these forms.
+   Hover moves the border only; focus adds one restrained accent ring. */
+/* Resting border is --border-strong, not --border, and the reason is measured:
+ * a control's fill here is --surface, which is exactly the modal's own surface in
+ * both themes, so the border is the ONLY thing that identifies the field. On
+ * --border that boundary came out at 1.22:1 in dark and 1.30:1 in light. One
+ * token up puts it at roughly 1.7:1 and 2.1:1.
+ *
+ * Still short of the 3:1 that WCAG 1.4.11 asks of a component boundary - closing
+ * that gap needs a mid-grey border that would drop the "subtle borders" direction
+ * this panel is built on, which is a call for the design owner rather than a
+ * silent change here. Noted rather than hidden.
+ *
+ * The three states stay clearly ordered: findable at rest, obvious on hover,
+ * accented on focus. */
+:is(#inbound-modal,#client-modal) .ant-input,
+:is(#inbound-modal,#client-modal) .ant-input-number,
+:is(#inbound-modal,#client-modal) .ant-select-selection,
+:is(#inbound-modal,#client-modal) .ant-calendar-picker-input,
+:is(#inbound-modal,#client-modal) .ant-time-picker-input {
+  background:var(--surface);
+  border:1px solid var(--border-strong);
+  color:var(--text);
+  box-shadow:none;
+}
+:is(#inbound-modal,#client-modal) .ant-input:hover,
+:is(#inbound-modal,#client-modal) .ant-input-number:hover,
+:is(#inbound-modal,#client-modal) .ant-select-selection:hover,
+:is(#inbound-modal,#client-modal) .ant-calendar-picker:hover .ant-calendar-picker-input,
+:is(#inbound-modal,#client-modal) .ant-input-affix-wrapper:hover .ant-input:not([disabled]) {
+  background:var(--surface);
+  border-color:var(--text-3);
+  box-shadow:none;
+}
+:is(#inbound-modal,#client-modal) .ant-input:focus,
+:is(#inbound-modal,#client-modal) .ant-input-number-focused,
+:is(#inbound-modal,#client-modal) .ant-select-open .ant-select-selection,
+:is(#inbound-modal,#client-modal) .ant-select-focused .ant-select-selection,
+:is(#inbound-modal,#client-modal) .ant-calendar-picker-input:focus,
+:is(#inbound-modal,#client-modal) .ant-time-picker-input:focus {
+  background:var(--surface);
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px var(--accent-weak);
+  outline:none;
+}
+:is(#inbound-modal,#client-modal) .ant-input::placeholder { color:var(--text-3); }
+
+/* Solid radio/segment selection on the product accent, replacing the teal
+   #008771 fill custom.css still hands these. The UNCHECKED state needs stating
+   too: it was arriving as a 30% teal wash with a blue border, so an unselected
+   segment looked selected-ish and the group had two competing highlights. */
+:is(#inbound-modal,#client-modal) .ant-radio-button-wrapper {
+  background:var(--surface-2);
+  border-color:var(--border);
+  color:var(--text-2);
+}
+:is(#inbound-modal,#client-modal) .ant-radio-button-wrapper:hover {
+  background:var(--surface-3);
+  border-color:var(--border-strong);
+  color:var(--text);
+}
+:is(#inbound-modal,#client-modal) .ant-radio-button-wrapper:not(:first-child)::before {
+  background:var(--border);
+}
+:is(#inbound-modal,#client-modal) .ant-radio-button-wrapper-checked {
+  background:var(--accent-fill);
+  border-color:var(--accent-fill);
+  color:var(--on-accent);
+  box-shadow:none;
+}
+:is(#inbound-modal,#client-modal) .ant-radio-button-wrapper-checked:hover {
+  background:var(--accent-fill-hover);
+  border-color:var(--accent-fill-hover);
+  color:var(--on-accent);
+}
+:is(#inbound-modal,#client-modal) .ant-radio-button-wrapper:focus-within {
+  box-shadow:0 0 0 2px var(--accent-weak);
+  z-index:1;
+}
+:is(#inbound-modal,#client-modal) .ant-switch { background:var(--off); }
+:is(#inbound-modal,#client-modal) .ant-switch-checked { background:var(--accent-fill); }
+:is(#inbound-modal,#client-modal) .ant-switch:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+  box-shadow:none;
+}
+
+/* Disabled stays legible. Ant dims the value to ~35% and webkit dims it again
+   through -webkit-text-fill-color, which is how read-only fields ended up
+   unreadable. Secondary ink plus the not-allowed cursor carries the state, so
+   it is not conveyed by contrast alone. */
+:is(#inbound-modal,#client-modal) .ant-input[disabled],
+:is(#inbound-modal,#client-modal) .ant-input[readonly],
+:is(#inbound-modal,#client-modal) textarea.ant-input[disabled],
+:is(#inbound-modal,#client-modal) .ant-input-number-disabled .ant-input-number-input,
+:is(#inbound-modal,#client-modal) .ant-select-disabled .ant-select-selection {
+  background:var(--surface-2);
+  border-color:var(--border);
+  color:var(--text-2);
+  -webkit-text-fill-color:var(--text-2);
+  opacity:1;
+  cursor:not-allowed;
+}
+:is(#inbound-modal,#client-modal) .ant-input[disabled]:hover,
+:is(#inbound-modal,#client-modal) .ant-select-disabled .ant-select-selection:hover {
+  border-color:var(--border);
+}
+
+/* ---- section grouping --------------------------------------------------
+ * Drawn entirely on markers the templates already emit. a-divider with text
+ * ("Certificates", "MTProto Proxy", "TLS Certificate", "Masquerade", "Vision
+ * Seed", "Fallbacks") becomes the section heading, and a-collapse ("Sniffing",
+ * "Ciphers", "Obfuscation", "Client") becomes the collapsed advanced area.
+ * No new wrapper, no new interaction pattern.
+ */
+:is(#inbound-modal,#client-modal) .ant-divider-horizontal.ant-divider-with-text-center,
+:is(#inbound-modal,#client-modal) .ant-divider-horizontal.ant-divider-with-text-left,
+:is(#inbound-modal,#client-modal) .ant-divider-horizontal.ant-divider-with-text-right {
+  margin:22px 0 14px;
+  font-size:11.5px;
+  font-weight:var(--fw-semibold);
+  color:var(--text-2);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  /* A with-text divider is display:table and draws its rules as ::before and
+     ::after cells, so a background on the element itself paints a full-width
+     band behind the heading rather than a hairline. The plain-divider rule
+     below wants that background; this one must drop it. */
+  background:none;
+}
+/* Set on the inner span as well as the wrapper: custom.css colours
+   `.dark .ant-divider-inner-text` directly, and a direct declaration beats an
+   inherited one however specific the parent rule is. */
+:is(#inbound-modal,#client-modal) .ant-divider-inner-text {
+  color:var(--text-2);
+  padding-inline:12px;
+}
+:is(#inbound-modal,#client-modal) .ant-divider-horizontal.ant-divider-with-text-center::before,
+:is(#inbound-modal,#client-modal) .ant-divider-horizontal.ant-divider-with-text-center::after,
+:is(#inbound-modal,#client-modal) .ant-divider-horizontal.ant-divider-with-text-left::before,
+:is(#inbound-modal,#client-modal) .ant-divider-horizontal.ant-divider-with-text-left::after,
+:is(#inbound-modal,#client-modal) .ant-divider-horizontal.ant-divider-with-text-right::before,
+:is(#inbound-modal,#client-modal) .ant-divider-horizontal.ant-divider-with-text-right::after {
+  border-top-color:var(--border);
+}
+:is(#inbound-modal,#client-modal) .ant-divider-horizontal:not([class*="with-text"]) {
+  margin:18px 0;
+  background:var(--divider);
+}
+
+:is(#inbound-modal,#client-modal) .ant-collapse {
+  margin:0 0 var(--fm-gap);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+}
+:is(#inbound-modal,#client-modal) .ant-collapse > .ant-collapse-item { border-bottom:1px solid var(--border); }
+:is(#inbound-modal,#client-modal) .ant-collapse > .ant-collapse-item:last-child { border-bottom:none; }
+/* custom.css pads this to 40px on the start edge for an arrow ant draws at 16.
+   Logical padding so the arrow and the text do not swap sides in RTL. */
+:is(#inbound-modal,#client-modal) .ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  padding-block:11px;
+  padding-inline:36px 14px;
+  font-size:12.5px;
+  font-weight:var(--fw-semibold);
+  color:var(--text);
+  letter-spacing:.01em;
+  border-radius:0;
+}
+:is(#inbound-modal,#client-modal) .ant-collapse-content { background:var(--surface); }
+:is(#inbound-modal,#client-modal) .ant-collapse-content > .ant-collapse-content-box { padding:16px 14px; }
+
+/* Tabs inside a dialog are section navigation, not page chrome. custom.css
+   gives .ant-tabs a white ground, a 1.5rem radius and 2rem of padding at
+   >=769px, all of which is page styling that followed the component into the
+   modal and boxed the form in. */
+:is(#inbound-modal,#client-modal) .ant-tabs {
+  padding:0;
+  background:transparent;
+  border-radius:0;
+}
+:is(#inbound-modal,#client-modal) .ant-tabs-bar {
+  margin:0 0 16px;
+  border-bottom:1px solid var(--divider);
+}
+:is(#inbound-modal,#client-modal) .ant-tabs-tab {
+  padding:8px 14px;
+  margin-inline-end:2px;
+  font-size:13px;
+  color:var(--text-2);
+}
+:is(#inbound-modal,#client-modal) .ant-tabs-tab-active { color:var(--accent); font-weight:var(--fw-medium); }
+:is(#inbound-modal,#client-modal) .ant-tabs-ink-bar { height:2px; background:var(--accent); }
+
+/* ---- responsive --------------------------------------------------------
+ * The dialog tracks the viewport before it can overflow it. max-width already
+ * caps every width above, so these only tighten the insets - the form keeps
+ * its internal scroll and the footer stays reachable at every size.
+ */
+@media (max-width:1024px) {
+  #inbound-modal .ant-modal { width:calc(100vw - 32px) !important; }
+}
+@media (max-width:820px) {
+  #client-modal .ant-modal { width:calc(100vw - 24px) !important; }
+}
+@media (max-width:768px) {
+  :is(#inbound-modal,#client-modal) { --fm-pad-x:16px; --fm-gap:14px; }
+  :is(#inbound-modal,#client-modal) .ant-modal {
+    max-width:calc(100vw - 16px);
+    margin:0 auto;
+  }
+  #inbound-modal .ant-modal,
+  #client-modal .ant-modal { width:calc(100vw - 16px) !important; top:12px; }
+  :is(#inbound-modal,#client-modal) .ant-modal-content { max-height:calc(100vh - 24px); }
+  :is(#inbound-modal,#client-modal) .ant-modal-close-x { width:46px; height:46px; line-height:46px; }
+  /* Ant stacks label above control below md, so the label's right alignment
+     from the horizontal layout has to be released or it drifts off the field. */
+  :is(#inbound-modal,#client-modal) .ant-form-item-label { text-align:start; }
+}
