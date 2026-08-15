@@ -2795,3 +2795,338 @@ body:not(.dark) .inbounds-page .ib-idz--off .ib-idz-name {
   .inbounds-page .ib-grid .ant-table-tbody > tr > td,
   .inbounds-page .ib-ops-val { transition:none; }
 }
+
+/* ================================================================== *
+ * Settings console (.settings-page)
+ *
+ * Architecture:
+ *   section rail (left, pinned)  ->  one settings section at a time
+ *   section header (what this is)  ->  configuration blocks  ->  setting rows
+ *   pinned action bar (dirty state + save / restart)
+ *
+ * The rail is the page's existing <a-tabs> moved to tab-position="left", so
+ * every pane key, the JSON-formats condition and ant's own mounting are
+ * untouched; this file only re-lays them out. Everything is scoped to
+ * .settings-page: the same components (a-collapse, a-setting-list-item) are
+ * shared with the Xray pages, which must keep their current look.
+ * ================================================================== */
+
+.bo-shell.settings-page {
+  --set-nav-w:248px;
+  --set-gap:18px;
+  --set-block-gap:14px;
+  /* Sticky offset for the rail: the topbar is sticky at 0 and ~45px tall. */
+  --set-rail-top:54px;
+}
+html:not([data-theme='ultra-dark']) body.dark .bo-shell.settings-page { --bg:#08090B; }
+body:not(.dark) .bo-shell.settings-page { --bg:#F1F4F7; }
+
+.settings-page .bo-content { display:flex; flex-direction:column; min-height:calc(100vh - 64px); }
+.settings-page .set-console {
+  display:flex; flex-direction:column;
+  flex:1 1 auto; min-height:0;
+  max-width:1720px; width:100%;
+}
+
+/* ---- two zones ------------------------------------------------------------
+ * Grid rather than ant's float: the rail then has a real column to sit in and
+ * can be sticky, and the workspace gets min-width:0 so a long unit file or a
+ * wide token table scrolls inside itself instead of widening the page. */
+.settings-page .set-tabs.ant-tabs-left {
+  display:grid;
+  grid-template-columns:var(--set-nav-w) minmax(0,1fr);
+  gap:var(--set-gap);
+  align-items:start;
+  overflow:visible;
+}
+/* ant renders the content before the bar for a left tab set, so the two zones
+   are placed explicitly rather than by source order. */
+.settings-page .set-tabs.ant-tabs-left > .ant-tabs-bar {
+  grid-column:1; grid-row:1;
+  float:none; width:auto; height:auto; margin:0;
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  background:var(--surface);
+  padding:8px;
+  position:sticky; top:var(--set-rail-top);
+  z-index:4;
+}
+.settings-page .set-tabs.ant-tabs-left > .ant-tabs-content {
+  grid-column:2; grid-row:1;
+  padding-left:0; border-left:0; min-width:0;
+}
+.settings-page .set-tabs .ant-tabs-nav-container,
+.settings-page .set-tabs .ant-tabs-nav-wrap,
+.settings-page .set-tabs .ant-tabs-nav-scroll,
+.settings-page .set-tabs .ant-tabs-nav { height:auto; overflow:visible; }
+.settings-page .set-tabs .ant-tabs-ink-bar { display:none; }
+.settings-page .set-tabs .ant-tabs-tabpane { outline:none; }
+
+/* ---- rail items -----------------------------------------------------------
+ * Navigation, not tabs: left-aligned, one line, icon as a quiet locator. The
+ * active item is carried by a tinted surface plus a 3px marker, so it survives
+ * both themes and does not depend on colour alone. */
+.settings-page .set-tabs .ant-tabs-tab {
+  display:flex; align-items:center; gap:10px;
+  margin:0 0 2px; padding:9px 11px;
+  border-radius:var(--radius-sm);
+  font-size:13px; font-weight:var(--fw-medium);
+  line-height:18px; text-align:left; color:var(--text-2);
+  position:relative;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.settings-page .set-tabs .ant-tabs-tab > span:last-child {
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.settings-page .set-tabs .ant-tabs-tab .anticon { margin:0; font-size:14px; color:var(--text-3); flex:0 0 auto; }
+.settings-page .set-tabs .ant-tabs-tab:hover { background:var(--surface-hover); color:var(--text); }
+.settings-page .set-tabs .ant-tabs-tab:hover .anticon { color:var(--text-2); }
+.settings-page .set-tabs .ant-tabs-tab-active,
+.settings-page .set-tabs .ant-tabs-tab-active:hover {
+  background:var(--accent-weak); color:var(--accent); font-weight:var(--fw-semibold);
+}
+.settings-page .set-tabs .ant-tabs-tab-active .anticon { color:var(--accent); }
+.settings-page .set-tabs .ant-tabs-tab-active::before {
+  content:''; position:absolute; inset-inline-start:0; top:8px; bottom:8px;
+  width:3px; border-radius:2px; background:var(--accent);
+}
+.settings-page .set-tabs .ant-tabs-tab:focus-visible {
+  outline:2px solid var(--accent); outline-offset:-2px;
+}
+
+/* ---- section --------------------------------------------------------------
+ * Title, one line of scope, and a state chip read from data the page already
+ * has, so the operator can tell what this section is doing before reading a
+ * single field. */
+.settings-page .set-sec { display:flex; flex-direction:column; gap:14px; padding-bottom:2px; }
+.settings-page .set-sec__head {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:12px; flex-wrap:wrap;
+  padding-bottom:12px; border-bottom:1px solid var(--divider);
+}
+.settings-page .set-sec__headmain { min-width:0; }
+.settings-page .set-sec__title {
+  margin:0; font-size:17px; line-height:24px; letter-spacing:-.01em;
+  font-weight:var(--fw-semibold); color:var(--text);
+}
+.settings-page .set-sec__sub {
+  margin:3px 0 0; font-size:12.5px; line-height:18px; color:var(--text-3);
+  max-width:76ch;
+}
+.settings-page .set-chip {
+  flex:0 0 auto;
+  display:inline-flex; align-items:center; gap:6px;
+  height:24px; padding:0 10px; border-radius:var(--radius-pill);
+  font-size:11.5px; font-weight:var(--fw-medium); white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+  border:1px solid var(--border); background:var(--surface-2); color:var(--text-2);
+}
+.settings-page .set-chip.is-ok { border-color:color-mix(in srgb, var(--ok) 34%, transparent); background:var(--ok-weak); color:var(--ok); }
+.settings-page .set-chip.is-warn { border-color:color-mix(in srgb, var(--warn) 34%, transparent); background:var(--warn-weak); color:var(--warn); }
+.settings-page .set-chip.is-idle { color:var(--text-3); }
+
+/* ---- configuration blocks -------------------------------------------------
+ * One card per logical group, never per field. The collapse stays a collapse -
+ * long groups such as LDAP can still be folded away - but the closed chrome is
+ * gone and the groups read as stacked blocks. */
+.settings-page .set-sec__body > .ant-collapse {
+  background:transparent; border:0; border-radius:0;
+  display:flex; flex-direction:column; gap:var(--set-block-gap);
+}
+.settings-page .set-sec__body > .ant-collapse > .ant-collapse-item {
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  background:var(--surface); overflow:hidden;
+}
+.settings-page .set-sec__body > .ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  padding:11px 14px 11px 34px;
+  font-size:13px; font-weight:var(--fw-semibold); color:var(--text);
+  background:var(--surface-2);
+  transition:background var(--dur-fast) var(--ease);
+}
+.settings-page .set-sec__body > .ant-collapse > .ant-collapse-item > .ant-collapse-header:hover { background:var(--surface-3); }
+.settings-page .set-sec__body > .ant-collapse > .ant-collapse-item > .ant-collapse-header .anticon {
+  left:13px; font-size:11px; color:var(--text-3);
+}
+.settings-page .set-sec__body > .ant-collapse > .ant-collapse-item > .ant-collapse-header:focus-visible {
+  outline:2px solid var(--accent); outline-offset:-2px;
+}
+.settings-page .set-sec__body .ant-collapse-content {
+  background:var(--surface); border-top:1px solid var(--border);
+}
+.settings-page .set-sec__body > .ant-collapse > .ant-collapse-item > .ant-collapse-content > .ant-collapse-content-box {
+  padding:2px 0 4px;
+}
+/* Nested groups (fragment / noise / mux / direct) are one step inset so they
+   read as detail of the switch above them, not as another top-level block. */
+.settings-page .set-sec__body .ant-collapse .ant-collapse {
+  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-md);
+}
+.settings-page .set-sec__body .ant-collapse .ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  padding:9px 12px 9px 30px; font-size:12.5px; font-weight:var(--fw-medium); background:transparent;
+}
+.settings-page .set-sec__body .ant-collapse .ant-collapse > .ant-collapse-item > .ant-collapse-header .anticon { left:11px; }
+.settings-page .set-sec__body .ant-collapse .ant-collapse .ant-collapse-content { background:var(--surface-2); }
+
+/* ---- setting row ----------------------------------------------------------
+ * Name and helper text on the left, the control on the right, on one baseline.
+ * The shared component ships :lg=24 :xl=12, which only pairs the two halves
+ * above 1200px and stacked every row into a legacy form below it; this puts
+ * them side by side at any workspace width that can carry them. */
+.settings-page .set-sec__body .ant-list-item {
+  display:block; padding:10px 20px;
+  border-bottom:1px solid var(--divider);
+}
+.settings-page .set-sec__body .ant-list-item:last-child { border-bottom:0; }
+.settings-page .set-sec__body .ant-list-item > .ant-space { padding:0 !important; }
+.settings-page .set-sec__body .ant-list-item > .ant-row {
+  display:flex; align-items:center; flex-wrap:wrap; gap:8px 18px;
+  margin:0 !important;
+}
+.settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col {
+  float:none; width:auto; padding:0 !important;
+}
+.settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:first-child {
+  flex:1 1 240px; min-width:0;
+}
+.settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:last-child {
+  flex:0 1 340px; min-width:0;
+  display:flex; align-items:center; justify-content:flex-end; gap:8px;
+}
+.settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:last-child > * { max-width:100%; }
+.settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:only-child { flex:1 1 100%; justify-content:flex-start; }
+.settings-page .set-sec__body .ant-list-item-meta { align-items:flex-start; }
+.settings-page .set-sec__body .ant-list-item-meta-title {
+  margin-bottom:1px; font-size:13px; line-height:19px;
+  font-weight:var(--fw-medium); color:var(--text);
+}
+.settings-page .set-sec__body .ant-list-item-meta-description {
+  font-size:11.5px; line-height:16px; color:var(--text-3);
+}
+.settings-page .set-sec__body .ant-list-item-meta-description i { color:var(--text-2); font-style:normal; }
+
+/* ---- controls -------------------------------------------------------------
+ * One control height across the console so a column of rows reads as a grid. */
+.settings-page .set-sec__body .ant-input:not(textarea),
+.settings-page .set-sec__body .ant-input-number,
+.settings-page .set-sec__body .ant-select-selection--single { height:38px; }
+.settings-page .set-sec__body .ant-input-number-input { height:36px; }
+.settings-page .set-sec__body .ant-select-selection--single .ant-select-selection__rendered { line-height:36px; }
+.settings-page .set-sec__body .ant-select-selection--multiple { min-height:38px; padding-bottom:3px; }
+.settings-page .set-sec__body .ant-input,
+.settings-page .set-sec__body .ant-input-number,
+.settings-page .set-sec__body .ant-select-selection { border-radius:var(--radius-sm); font-size:13px; }
+.settings-page .set-sec__body textarea.ant-input { min-height:76px; padding:9px 11px; line-height:19px; }
+.settings-page .set-sec__body .ant-input-group { display:flex; gap:8px; }
+.settings-page .set-sec__body .ant-input-group > .ant-select { padding-right:0 !important; }
+.settings-page .set-sec__body .ant-input-number,
+.settings-page .set-sec__body .ant-select { width:100%; }
+.settings-page .set-sec__body .ant-btn { height:36px; border-radius:var(--radius-sm); font-size:13px; }
+.settings-page .set-sec__body .ant-btn-sm { height:28px; }
+.settings-page .set-sec__body .ant-table-wrapper .ant-btn-sm { height:26px; }
+
+/* ---- credentials ----------------------------------------------------------
+ * Rows that carry a secret get a caution marker and a quieter ground. Nothing
+ * is hidden or revealed that was not already: the existing password inputs and
+ * their reveal control are untouched, this only makes them identifiable at a
+ * glance in a page full of ordinary fields. */
+.settings-page .set-sec__body .ant-list-item:has(input[type="password"]) {
+  background:color-mix(in srgb, var(--warn) 4%, transparent);
+  box-shadow:inset 2px 0 0 0 color-mix(in srgb, var(--warn) 45%, transparent);
+}
+.settings-page .set-sec__body .ant-list-item:has(input[type="password"]) .ant-list-item-meta-title::after {
+  content:'secret'; margin-inline-start:8px;
+  font-size:9.5px; font-weight:var(--fw-medium); letter-spacing:.06em; text-transform:uppercase;
+  color:color-mix(in srgb, var(--warn) 82%, var(--text-3));
+}
+.settings-page .set-sec__body .ant-input-password input { font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace); letter-spacing:.02em; }
+
+/* ---- action bar -----------------------------------------------------------
+ * Save and restart were a card at the top of the page, out of sight by the
+ * time anything had been edited. Pinned to the bottom of the workspace they
+ * stay reachable, and the dirty state the page already tracks (saveBtnDisable)
+ * is written out next to them. */
+.settings-page .set-actionbar {
+  position:sticky; bottom:0; z-index:6;
+  margin-top:18px;
+  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  padding:12px 16px;
+  background:var(--surface);
+  border:1px solid var(--border); border-top-color:var(--border-hover);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-md);
+}
+.settings-page .set-actionbar__meta {
+  display:flex; align-items:center; gap:6px 14px; flex-wrap:wrap; min-width:0;
+}
+.settings-page .set-actionbar__state {
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:12.5px; font-weight:var(--fw-medium); color:var(--text-2);
+  white-space:nowrap;
+}
+.settings-page .set-actionbar__dot {
+  width:7px; height:7px; border-radius:50%; flex:0 0 auto;
+  background:var(--text-3);
+}
+.settings-page .set-actionbar__state.is-clean .set-actionbar__dot { background:var(--ok); }
+.settings-page .set-actionbar__state.is-dirty { color:var(--warn); }
+.settings-page .set-actionbar__state.is-dirty .set-actionbar__dot {
+  background:var(--warn); box-shadow:0 0 0 3px var(--warn-weak);
+}
+.settings-page .set-actionbar__note {
+  font-size:11.5px; line-height:16px; color:var(--text-3); min-width:0;
+}
+.settings-page .set-actionbar__actions { display:flex; align-items:center; gap:10px; margin-inline-start:auto; }
+.settings-page .set-actionbar .ant-btn { height:38px; padding:0 18px; border-radius:var(--radius-sm); font-size:13px; }
+.settings-page .set-actionbar .ant-btn-primary { min-width:132px; }
+/* Restart is the maintenance action here: outlined rather than filled, so the
+   only solid button on the page is the safe one. */
+.settings-page .set-actionbar .ant-btn-danger {
+  background:transparent; color:var(--error); border-color:color-mix(in srgb, var(--error) 42%, transparent);
+}
+.settings-page .set-actionbar .ant-btn-danger:hover:not([disabled]) {
+  background:var(--error-weak); color:var(--error); border-color:var(--error);
+}
+.settings-page .set-actionbar .ant-btn[disabled] { opacity:.55; }
+
+/* ---- responsive -----------------------------------------------------------
+ * The rail narrows before the workspace does, and hands over to ant's top tab
+ * bar at 768 (the page binds tab-position to the existing isMobile flag). */
+@media (min-width:1600px) {
+  .bo-shell.settings-page { --set-nav-w:264px; --set-gap:22px; }
+}
+@media (max-width:1360px) {
+  .bo-shell.settings-page { --set-nav-w:224px; --set-gap:16px; }
+}
+@media (max-width:1180px) {
+  .bo-shell.settings-page { --set-nav-w:200px; --set-gap:14px; --set-block-gap:12px; }
+  .settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:last-child { flex-basis:280px; }
+}
+@media (max-width:1024px) {
+  .settings-page .set-sec__body .ant-list-item > .ant-row { align-items:flex-start; }
+  .settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:first-child { flex:1 1 100%; }
+  .settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:last-child {
+    flex:1 1 100%; justify-content:flex-start;
+  }
+  .settings-page .set-sec__body .ant-list-item > .ant-row > .ant-col:last-child > .ant-switch { margin-inline-start:0; }
+}
+@media (max-width:768px) {
+  .settings-page .set-tabs.ant-tabs-top > .ant-tabs-bar {
+    border:1px solid var(--border); border-radius:var(--radius-lg);
+    background:var(--surface); padding:4px; margin-bottom:14px;
+  }
+  .settings-page .set-tabs.ant-tabs-top .ant-tabs-tab {
+    display:inline-flex; margin:0 2px 0 0; padding:8px 12px;
+  }
+  .settings-page .set-tabs .ant-tabs-tab-active::before { display:none; }
+  /* ant's prev/next arrows steal width and look like chrome from a different
+     product; the tab strip scrolls with the finger / trackpad instead. */
+  .settings-page .set-tabs .ant-tabs-tab-prev,
+  .settings-page .set-tabs .ant-tabs-tab-next { display:none !important; }
+  .settings-page .set-tabs .ant-tabs-nav-container { padding:0 !important; }
+  .settings-page .set-tabs .ant-tabs-nav-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .settings-page .set-sec__title { font-size:16px; }
+  .settings-page .set-sec__body .ant-list-item { padding:10px 14px !important; }
+  .settings-page .set-actionbar { padding:10px 12px; }
+  .settings-page .set-actionbar__note { display:none; }
+  .settings-page .set-actionbar__actions { width:100%; }
+  .settings-page .set-actionbar .ant-btn { flex:1 1 auto; }
+}

@@ -20,79 +20,157 @@
             <a-row v-if="!loadingStates.fetched">
               <div :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
             </a-row>
-            <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
-              <a-col>
-                <a-card hoverable>
-                  <a-row :style="{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }">
-                    <a-col :xs="24" :sm="10" :style="{ padding: '4px' }">
-                      <a-space direction="horizontal">
-                        <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n
-                          "pages.settings.save" }}</a-button>
-                        <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n
-                          "pages.settings.restartPanel" }}</a-button>
-                      </a-space>
-                    </a-col>
-                    <a-col :xs="24" :sm="14">
-                      <template>
-                        <div>
-                          <a-back-top :target="() => document.querySelector('.bo-main')"
-                            visibility-height="200"></a-back-top>
-                          <a-alert type="warning" :style="{ float: 'right', width: 'fit-content' }"
-                            message='{{ i18n "pages.settings.infoDesc" }}' show-icon>
-                          </a-alert>
-                        </div>
-                      </template>
-                    </a-col>
-                  </a-row>
-                </a-card>
-              </a-col>
-              <a-col>
-                <a-tabs default-active-key="1">
-                  <a-tab-pane key="1" :style="{ paddingTop: '20px' }">
-                    <template #tab>
-                      <a-icon type="setting"></a-icon>
-                      <span>{{ i18n "pages.settings.panelSettings" }}</span>
-                    </template>
-                    {{ template "settings/panel/general" . }}
-                  </a-tab-pane>
-                  <a-tab-pane key="2" :style="{ paddingTop: '20px' }">
-                    <template #tab>
-                      <a-icon type="safety"></a-icon>
-                      <span>{{ i18n "pages.settings.securitySettings" }}</span>
-                    </template>
-                    {{ template "settings/panel/security" . }}
-                  </a-tab-pane>
-                  <a-tab-pane key="3" :style="{ paddingTop: '20px' }">
-                    <template #tab>
-                      <a-icon type="message"></a-icon>
-                      <span>{{ i18n "pages.settings.TGBotSettings" }}</span>
-                    </template>
-                    {{ template "settings/panel/telegram" . }}
-                  </a-tab-pane>
-                  <a-tab-pane key="4" :style="{ paddingTop: '20px' }">
-                    <template #tab>
-                      <a-icon type="cloud-server"></a-icon>
-                      <span>{{ i18n "pages.settings.subSettings" }}</span>
-                    </template>
-                    {{ template "settings/panel/subscription/general" . }}
-                  </a-tab-pane>
-                  <a-tab-pane key="5" v-if="allSetting.subJsonEnable || allSetting.subClashEnable" :style="{ paddingTop: '20px' }">
-                    <template #tab>
-                      <a-icon type="code"></a-icon>
-                      <span>{{ i18n "pages.settings.subSettings" }} (Formats)</span>
-                    </template>
-                    {{ template "settings/panel/subscription/json" . }}
-                  </a-tab-pane>
-                  <a-tab-pane key="6" :style="{ paddingTop: '20px' }">
-                    <template #tab>
-                      <a-icon type="cluster"></a-icon>
-                      <span>{{ i18n "pages.settings.serviceSettings" }}</span>
-                    </template>
-                    {{ template "settings/panel/service" . }}
-                  </a-tab-pane>
-                </a-tabs>
-              </a-col>
-            </a-row>
+            <!-- Configuration console: a section rail on the left, one settings
+                 section in the workspace on the right, and a pinned action bar
+                 that carries the page-wide save/restart pair. The rail is the
+                 same a-tabs the page always used, only positioned to the side,
+                 so pane mounting, keys and the JSON-formats condition behave
+                 exactly as before. -->
+            <div key="set-console" class="set-console" v-else>
+              <a-back-top :target="() => document.querySelector('.bo-main')" visibility-height="200"></a-back-top>
+              <a-tabs class="set-tabs" default-active-key="1" :tab-position="isMobile ? 'top' : 'left'">
+                <a-tab-pane key="1">
+                  <template #tab>
+                    <a-icon type="setting"></a-icon>
+                    <span>{{ i18n "pages.settings.panelSettings" }}</span>
+                  </template>
+                  <section class="set-sec">
+                    <header class="set-sec__head">
+                      <div class="set-sec__headmain">
+                        <h2 class="set-sec__title">{{ i18n "pages.settings.panelSettings" }}</h2>
+                        <p class="set-sec__sub">Panel listener, access path, session behaviour, notifications and certificates.</p>
+                      </div>
+                      <span class="set-chip" :class="allSetting.webCertFile || allSetting.webKeyFile ? 'is-ok' : 'is-warn'">
+                        [[ allSetting.webCertFile || allSetting.webKeyFile ? 'TLS configured' : 'No TLS certificate' ]]
+                      </span>
+                    </header>
+                    <div class="set-sec__body">
+                      {{ template "settings/panel/general" . }}
+                    </div>
+                  </section>
+                </a-tab-pane>
+                <a-tab-pane key="2">
+                  <template #tab>
+                    <a-icon type="safety"></a-icon>
+                    <span>{{ i18n "pages.settings.securitySettings" }}</span>
+                  </template>
+                  <section class="set-sec set-sec--sensitive">
+                    <header class="set-sec__head">
+                      <div class="set-sec__headmain">
+                        <h2 class="set-sec__title">{{ i18n "pages.settings.securitySettings" }}</h2>
+                        <p class="set-sec__sub">Administrator credentials, two-factor enrolment and API access tokens.</p>
+                      </div>
+                      <span class="set-chip" :class="twoFactorEnable ? 'is-ok' : 'is-warn'">
+                        [[ twoFactorEnable ? '2FA enabled' : '2FA disabled' ]]
+                      </span>
+                    </header>
+                    <div class="set-sec__body">
+                      {{ template "settings/panel/security" . }}
+                    </div>
+                  </section>
+                </a-tab-pane>
+                <a-tab-pane key="3">
+                  <template #tab>
+                    <a-icon type="message"></a-icon>
+                    <span>{{ i18n "pages.settings.TGBotSettings" }}</span>
+                  </template>
+                  <section class="set-sec">
+                    <header class="set-sec__head">
+                      <div class="set-sec__headmain">
+                        <h2 class="set-sec__title">{{ i18n "pages.settings.TGBotSettings" }}</h2>
+                        <p class="set-sec__sub">Bot credentials, notification schedule and outbound proxy for Telegram.</p>
+                      </div>
+                      <span class="set-chip" :class="allSetting.tgBotEnable ? 'is-ok' : 'is-idle'">
+                        [[ allSetting.tgBotEnable ? 'Bot enabled' : 'Bot disabled' ]]
+                      </span>
+                    </header>
+                    <div class="set-sec__body">
+                      {{ template "settings/panel/telegram" . }}
+                    </div>
+                  </section>
+                </a-tab-pane>
+                <a-tab-pane key="4">
+                  <template #tab>
+                    <a-icon type="cloud-server"></a-icon>
+                    <span>{{ i18n "pages.settings.subSettings" }}</span>
+                  </template>
+                  <section class="set-sec">
+                    <header class="set-sec__head">
+                      <div class="set-sec__headmain">
+                        <h2 class="set-sec__title">{{ i18n "pages.settings.subSettings" }}</h2>
+                        <p class="set-sec__sub">Subscription listener, profile information shown to clients, and certificates.</p>
+                      </div>
+                      <span class="set-chip" :class="allSetting.subEnable ? 'is-ok' : 'is-idle'">
+                        [[ allSetting.subEnable ? 'Service enabled' : 'Service disabled' ]]
+                      </span>
+                    </header>
+                    <div class="set-sec__body">
+                      {{ template "settings/panel/subscription/general" . }}
+                    </div>
+                  </section>
+                </a-tab-pane>
+                <a-tab-pane key="5" v-if="allSetting.subJsonEnable || allSetting.subClashEnable">
+                  <template #tab>
+                    <a-icon type="code"></a-icon>
+                    <span>{{ i18n "pages.settings.subSettings" }} (Formats)</span>
+                  </template>
+                  <section class="set-sec">
+                    <header class="set-sec__head">
+                      <div class="set-sec__headmain">
+                        <h2 class="set-sec__title">{{ i18n "pages.settings.subSettings" }} (Formats)</h2>
+                        <p class="set-sec__sub">Output paths for JSON and Clash, plus fragment, noise, mux and direct routing.</p>
+                      </div>
+                      <span class="set-chip is-idle">
+                        [[ allSetting.subJsonEnable ? 'JSON on' : 'JSON off' ]] · [[ allSetting.subClashEnable ? 'Clash on' : 'Clash off' ]]
+                      </span>
+                    </header>
+                    <div class="set-sec__body">
+                      {{ template "settings/panel/subscription/json" . }}
+                    </div>
+                  </section>
+                </a-tab-pane>
+                <a-tab-pane key="6">
+                  <template #tab>
+                    <a-icon type="cluster"></a-icon>
+                    <span>{{ i18n "pages.settings.serviceSettings" }}</span>
+                  </template>
+                  <section class="set-sec">
+                    <header class="set-sec__head">
+                      <div class="set-sec__headmain">
+                        <h2 class="set-sec__title">{{ i18n "pages.settings.serviceSettings" }}</h2>
+                        <p class="set-sec__sub">Systemd unit definition, boot behaviour and the live service log.</p>
+                      </div>
+                      <span class="set-chip" :class="serviceState.active ? 'is-ok' : 'is-warn'">
+                        [[ serviceState.active ? '{{ i18n "pages.core.stateRunning" }}' : '{{ i18n "pages.core.stateStopped" }}' ]]
+                      </span>
+                    </header>
+                    <div class="set-sec__body">
+                      {{ template "settings/panel/service" . }}
+                    </div>
+                  </section>
+                </a-tab-pane>
+              </a-tabs>
+              <!-- Pinned action bar. Same two page-wide actions, same disabled
+                   conditions (save while dirty, restart only once saved); the
+                   dirty state they already carry is now spelled out instead of
+                   being readable only from which button is greyed. -->
+              <div class="set-actionbar">
+                <div class="set-actionbar__meta">
+                  <span class="set-actionbar__state" :class="saveBtnDisable ? 'is-clean' : 'is-dirty'">
+                    <i class="set-actionbar__dot"></i>
+                    <span v-if="saveBtnDisable">All changes saved</span>
+                    <span v-else>Unsaved changes</span>
+                  </span>
+                  <span class="set-actionbar__note">{{ i18n "pages.settings.infoDesc" }}</span>
+                </div>
+                <div class="set-actionbar__actions">
+                  <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n
+                    "pages.settings.restartPanel" }}</a-button>
+                  <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n
+                    "pages.settings.save" }}</a-button>
+                </div>
+              </div>
+            </div>
           </template>
         </transition>
       </a-spin>

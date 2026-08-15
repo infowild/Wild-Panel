@@ -1,5 +1,8 @@
 {{define "settings/panel/general"}}
-<a-collapse default-active-key="1">
+{{/* Every group is a visible configuration block now that the page navigates by
+     section; LDAP stays folded because it is the one optional, 19-field group
+     here. Panel keys and contents are unchanged. */}}
+<a-collapse :default-active-key="['1','2','3','4','5']">
     <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
         <a-setting-list-item paddings="small">
             <template #title>
