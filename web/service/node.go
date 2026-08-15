@@ -606,9 +606,30 @@ func mergeClientDelta(tx *gorm.DB, nodeId int, email string, up, down, allTime i
 	}
 	newRow := err == gorm.ErrRecordNotFound
 
+	// First time we ever see this (node,email): SEED the baseline to the node's
+	// current absolute counters and add nothing to the master. Master usage is
+	// counted from the moment the node is under management, so pre-existing usage
+	// on a freshly connected node — or a node deleted and re-added — can never be
+	// imported or double-counted. This is the invariant the operator asked for:
+	// the master's stored consumption only ever grows from real, post-connect use
+	// and is never reset or rewritten by anything the remote (reseller) panel does.
+	if newRow {
+		seed := model.NodeClientTraffic{
+			NodeId:  nodeId,
+			Email:   email,
+			Up:      up,
+			Down:    down,
+			AllTime: allTime,
+		}
+		return tx.Create(&seed).Error
+	}
+
 	dUp := up - base.Up
 	dDown := down - base.Down
 	dAll := allTime - base.AllTime
+	// A remote reset (Up/Down fall back to 0) or any counter going backwards must
+	// never subtract from the master. Clamp every direction at zero: the master's
+	// consumption is monotonic and immune to remote resets.
 	if dUp < 0 {
 		dUp = 0
 	}
@@ -647,14 +668,13 @@ func mergeClientDelta(tx *gorm.DB, nodeId int, email string, up, down, allTime i
 		}
 	}
 
-	base.NodeId = nodeId
-	base.Email = email
+	// Advance the baseline to the node's current absolute counters so the next
+	// pull measures the next delta. After a remote reset this stores the lower
+	// value, so subsequent growth is counted from the reset point forward without
+	// ever rewinding what the master already recorded.
 	base.Up = up
 	base.Down = down
 	base.AllTime = allTime
-	if newRow {
-		return tx.Create(&base).Error
-	}
 	return tx.Save(&base).Error
 }
 

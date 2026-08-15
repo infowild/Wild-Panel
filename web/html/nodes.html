@@ -124,14 +124,14 @@
     <a-form-item label='{{ i18n "pages.nodes.remark" }}'>
       <a-input v-model.trim="form.remark"></a-input>
     </a-form-item>
-    <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }">
+    <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 2fr 1fr', gap: '12px' }">
       <a-form-item label='{{ i18n "pages.nodes.scheme" }}'>
         <a-select v-model="form.scheme" :dropdown-class-name="themeSwitcher.currentTheme">
           <a-select-option value="https">https</a-select-option>
           <a-select-option value="http">http</a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label='{{ i18n "pages.nodes.address" }}' required :style="{ gridColumn: 'span 1' }">
+      <a-form-item label='{{ i18n "pages.nodes.address" }}' required :style="{ gridColumn: isMobile ? '1 / -1' : 'span 1' }">
         <a-input v-model.trim="form.address"></a-input>
       </a-form-item>
       <a-form-item label='{{ i18n "pages.nodes.port" }}' required>
