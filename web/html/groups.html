@@ -20,42 +20,43 @@
               </div>
             </div>
 
-            <div class="bo-cards" v-if="groups.length" :style="{ marginBottom: '16px' }">
-              <article class="bo-tile" :style="{ padding: '14px 16px' }">
-                <dl class="bo-spec" :style="{ gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, minmax(0, 1fr))' }">
-                  <div class="bo-spec-row">
-                    <dt class="bo-spec-key">{{ i18n "pages.groups.statTotal" }}</dt>
-                    <dd class="bo-spec-val num">[[ groups.length ]]</dd>
-                  </div>
-                  <div class="bo-spec-row">
-                    <dt class="bo-spec-key">{{ i18n "pages.groups.statClients" }}</dt>
-                    <dd class="bo-spec-val num">[[ totalClients ]]</dd>
-                  </div>
-                  <div class="bo-spec-row">
-                    <dt class="bo-spec-key">{{ i18n "pages.groups.statUp" }}</dt>
-                    <dd class="bo-spec-val num">[[ fmt(totalUp) ]]</dd>
-                  </div>
-                  <div class="bo-spec-row">
-                    <dt class="bo-spec-key">{{ i18n "pages.groups.statDown" }}</dt>
-                    <dd class="bo-spec-val num">[[ fmt(totalDown) ]]</dd>
-                  </div>
-                </dl>
-              </article>
-            </div>
+            <article class="bo-tile grp-summary" v-if="groups.length">
+              <dl class="bo-spec grp-stats">
+                <div class="bo-spec-row">
+                  <dt class="bo-spec-key">{{ i18n "pages.groups.statTotal" }}</dt>
+                  <dd class="bo-spec-val num">[[ groups.length ]]</dd>
+                </div>
+                <div class="bo-spec-row">
+                  <dt class="bo-spec-key">{{ i18n "pages.groups.statClients" }}</dt>
+                  <dd class="bo-spec-val num">[[ totalClients ]]</dd>
+                </div>
+                <div class="bo-spec-row">
+                  <dt class="bo-spec-key">{{ i18n "pages.groups.statUp" }}</dt>
+                  <dd class="bo-spec-val num">[[ fmt(totalUp) ]]</dd>
+                </div>
+                <div class="bo-spec-row">
+                  <dt class="bo-spec-key">{{ i18n "pages.groups.statDown" }}</dt>
+                  <dd class="bo-spec-val num">[[ fmt(totalDown) ]]</dd>
+                </div>
+              </dl>
+            </article>
 
+            <!-- Same card language as Resellers: identity on top, the one number
+                 the page exists for in the balance block, the rest as spec rows.
+                 The head no longer repeats the traffic and the client count that
+                 the blocks below already carry. -->
             <div class="bo-cards" v-if="groups.length">
               <article class="bo-tile bo-rs" v-for="g in groups" :key="g.name">
                 <div class="bo-rs-head">
                   <div :style="{ minWidth: 0 }">
                     <div class="bo-rs-name">[[ g.name ]]</div>
                     <div class="bo-rs-sub">
-                      [[ g.clientCount ]] {{ i18n "pages.groups.clients" }}
-                      · [[ fmt(g.trafficUsed) ]]
+                      [[ g.clientCount || 0 ]] {{ i18n "pages.groups.clients" }}
                     </div>
                   </div>
                   <a-dropdown :trigger="['click']">
                     <a-icon @click="e => e.preventDefault()" type="more"
-                      :style="{ fontSize: '16px', cursor: 'pointer' }"></a-icon>
+                      :style="{ fontSize: '16px', cursor: 'pointer', flexShrink: 0 }"></a-icon>
                     <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
                       <a-menu-item @click="openAddClients(g)">
                         <a-icon type="user-add"></a-icon>
@@ -82,22 +83,20 @@
                     </a-menu>
                   </a-dropdown>
                 </div>
+
+                <div class="bo-rs-bal">
+                  <div class="bo-rs-bal-val">[[ fmt(g.trafficUsed) ]]</div>
+                  <div class="bo-rs-bal-label">{{ i18n "pages.groups.traffic" }}</div>
+                </div>
+
                 <dl class="bo-spec">
                   <div class="bo-spec-row">
-                    <dt class="bo-spec-key">{{ i18n "pages.groups.clients" }}</dt>
-                    <dd class="bo-spec-val num">[[ g.clientCount ]]</dd>
-                  </div>
-                  <div class="bo-spec-row">
-                    <dt class="bo-spec-key">↑</dt>
+                    <dt class="bo-spec-key">{{ i18n "pages.groups.statUp" }}</dt>
                     <dd class="bo-spec-val num">[[ fmt(g.up) ]]</dd>
                   </div>
                   <div class="bo-spec-row">
-                    <dt class="bo-spec-key">↓</dt>
+                    <dt class="bo-spec-key">{{ i18n "pages.groups.statDown" }}</dt>
                     <dd class="bo-spec-val num">[[ fmt(g.down) ]]</dd>
-                  </div>
-                  <div class="bo-spec-row">
-                    <dt class="bo-spec-key">{{ i18n "pages.groups.traffic" }}</dt>
-                    <dd class="bo-spec-val num">[[ fmt(g.trafficUsed) ]]</dd>
                   </div>
                 </dl>
               </article>

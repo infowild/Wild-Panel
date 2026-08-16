@@ -3839,7 +3839,7 @@ body.dark .bo-shell.core-page,
 body.dark .bo-shell.admins-page,
 body.dark .bo-shell.resellers-page,
 body.dark .bo-shell.nodes-page,
-.bo-shell.groups-page {
+body.dark .bo-shell.groups-page {
   --pgc-divider:rgba(255,255,255,.075);
 }
 /* Same ground the other consoles sit on, so moving between pages is not a
@@ -3848,12 +3848,12 @@ html:not([data-theme='ultra-dark']) body.dark .bo-shell.core-page,
 html:not([data-theme='ultra-dark']) body.dark .bo-shell.admins-page,
 html:not([data-theme='ultra-dark']) body.dark .bo-shell.resellers-page,
 html:not([data-theme='ultra-dark']) body.dark .bo-shell.nodes-page,
-.bo-shell.groups-page { --bg:#08090B; }
+html:not([data-theme='ultra-dark']) body.dark .bo-shell.groups-page { --bg:#08090B; }
 body:not(.dark) .bo-shell.core-page,
 body:not(.dark) .bo-shell.admins-page,
 body:not(.dark) .bo-shell.resellers-page,
 body:not(.dark) .bo-shell.nodes-page,
-.bo-shell.groups-page { --bg:#F1F4F7; }
+body:not(.dark) .bo-shell.groups-page { --bg:#F1F4F7; }
 
 .core-page .bo-content,
 .admins-page .bo-content,
@@ -3956,21 +3956,21 @@ body:not(.dark) .bo-shell.nodes-page,
   .bo-shell.admins-page,
   .bo-shell.resellers-page,
   .bo-shell.nodes-page,
-.bo-shell.groups-page { --pgc-pad:30px; --pgc-gap:18px; }
+  .bo-shell.groups-page { --pgc-pad:30px; --pgc-gap:18px; }
 }
 @media (max-width:1180px) {
   .bo-shell.core-page,
   .bo-shell.admins-page,
   .bo-shell.resellers-page,
   .bo-shell.nodes-page,
-.bo-shell.groups-page { --pgc-pad:20px; --pgc-gap:14px; }
+  .bo-shell.groups-page { --pgc-pad:20px; --pgc-gap:14px; }
 }
 @media (max-width:768px) {
   .bo-shell.core-page,
   .bo-shell.admins-page,
   .bo-shell.resellers-page,
   .bo-shell.nodes-page,
-.bo-shell.groups-page { --pgc-pad:14px; }
+  .bo-shell.groups-page { --pgc-pad:14px; }
   .pgc-bar { padding:7px 12px; gap:10px 12px; }
   .pgc-bar__note { display:none; }
   .pgc-bar .ant-btn { padding:0 12px; }
@@ -4038,4 +4038,29 @@ body:not(.dark) .bo-shell.nodes-page,
 .core-page .core-actions .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):hover,
 .core-page .ant-card-extra .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):hover {
   background:var(--surface-3); border-color:var(--border-strong); color:var(--text);
+}
+
+/* ---- Groups: totals strip --------------------------------------------
+ * The page totals are their own full-width block rather than a member of
+ * .bo-cards: that grid becomes an auto-fill track list at >=720px, so a
+ * single tile placed in it was laid out in one ~330px column with the rest
+ * of the row left empty, which is what made the page read as misaligned. */
+.grp-summary { padding:14px 16px; }
+.bo-spec.grp-stats { margin-top:0; grid-template-columns:repeat(4,minmax(0,1fr)); }
+@media (max-width:720px) {
+  .bo-spec.grp-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+/* The card overflow menu is a bare 16px glyph, well under the comfortable
+   touch target on a phone. Padding grows the hit area and the matching
+   negative margin keeps the icon drawn exactly where it was. Shared by every
+   .bo-rs card - groups, nodes, resellers - so the affordance is identical. */
+.bo-rs-head .anticon.ant-dropdown-trigger {
+  padding:6px; margin-block:-6px; margin-inline-end:-6px;
+  border-radius:var(--radius-sm,6px); color:var(--text-3);
+  transition:background-color .15s ease, color .15s ease;
+}
+.bo-rs-head .anticon.ant-dropdown-trigger:hover,
+.bo-rs-head .anticon.ant-dropdown-trigger:focus-visible {
+  background:var(--surface-3); color:var(--text);
 }
