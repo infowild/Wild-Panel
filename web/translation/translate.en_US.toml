@@ -1392,6 +1392,7 @@
 "allowPrivate" = "Allow private / loopback address"
 "test" = "Test connection"
 "testOk" = "Connected"
+"testFailed" = "Connection failed"
 "probe" = "Probe now"
 "sync" = "Sync now"
 "enable" = "Enable"

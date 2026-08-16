@@ -159,7 +159,7 @@ var knownMissing = keySet(
 	"pages.nodes.tlsMode", "pages.nodes.tlsVerify", "pages.nodes.tlsSkip", "pages.nodes.tlsPin",
 	"pages.nodes.certPin", "pages.nodes.fetchPin", "pages.nodes.syncMode",
 	"pages.nodes.syncAll", "pages.nodes.syncSelected", "pages.nodes.allowPrivate",
-	"pages.nodes.test", "pages.nodes.testOk", "pages.nodes.probe", "pages.nodes.sync",
+	"pages.nodes.test", "pages.nodes.testOk", "pages.nodes.testFailed", "pages.nodes.probe", "pages.nodes.sync",
 	"pages.nodes.enable", "pages.nodes.latency", "pages.nodes.inbounds",
 	"pages.nodes.panelVersion", "pages.nodes.dirty", "pages.nodes.pendingSync",
 	"pages.nodes.lastError", "pages.nodes.online", "pages.nodes.offline", "pages.nodes.unknown",

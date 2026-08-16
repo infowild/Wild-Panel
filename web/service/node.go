@@ -398,6 +398,17 @@ func (s *NodeService) TestConnection(spec NodeSpec) (*RemoteStatus, int, error) 
 	return st, int(latency.Milliseconds()), err
 }
 
+// StoredToken returns the saved plaintext api token for a node. Used so the edit
+// dialog can re-test a connection without the operator retyping the secret (the
+// token field is intentionally blank on edit and never echoed back to the UI).
+func (s *NodeService) StoredToken(id int) (string, error) {
+	n, err := s.loadRaw(id)
+	if err != nil {
+		return "", err
+	}
+	return n.ApiToken, nil
+}
+
 // CertFingerprint fetches the remote leaf cert SHA-256 (base64).
 func (s *NodeService) CertFingerprint(spec NodeSpec) (string, error) {
 	if err := normalizeNodeSpec(&spec); err != nil {

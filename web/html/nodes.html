@@ -181,6 +181,9 @@
       {{ i18n "pages.nodes.test" }}
     </a-button>
     <span v-if="testResult" :style="{ marginInlineStart: '12px', color: 'var(--ok)' }">[[ testResult ]]</span>
+    <div v-if="testError" :style="{ marginTop: '8px', color: 'var(--error)', fontSize: '12px', wordBreak: 'break-word' }">
+      [[ testError ]]
+    </div>
   </a-form>
 </a-modal>
 {{template "page/shell_end" . }}
@@ -207,6 +210,8 @@
       testBusy: false,
       pinBusy: false,
       testResult: '',
+      testError: '',
+      pollTimer: null,
       form: {
         name: '', remark: '', scheme: 'https', address: '', port: 2053,
         basePath: '/', apiToken: '', enable: true, allowPrivateAddress: false,
@@ -251,6 +256,7 @@
         this.editId = 0;
         this.form = this.blankForm();
         this.testResult = '';
+        this.testError = '';
         this.modalVisible = true;
       },
       openEdit(node) {
@@ -268,6 +274,7 @@
           inboundTags: Array.isArray(node.inboundTags) ? node.inboundTags.slice() : [],
         };
         this.testResult = '';
+        this.testError = '';
         this.modalVisible = true;
       },
       async submitModal() {
@@ -287,10 +294,18 @@
       async testConnection() {
         this.testBusy = true;
         this.testResult = '';
-        const msg = await HttpUtil.post('/panel/nodes/test', this.form);
+        this.testError = '';
+        // On edit the token field is intentionally blank; send the node id so the
+        // backend falls back to the stored token instead of failing "token required".
+        const payload = Object.assign({}, this.form, this.isEdit ? { id: this.editId } : {});
+        const msg = await HttpUtil.post('/panel/nodes/test', payload);
         this.testBusy = false;
         if (msg && msg.success && msg.obj) {
           this.testResult = '{{ i18n "pages.nodes.testOk" }} (' + (msg.obj.latencyMs || 0) + ' ms)';
+        } else {
+          // Surface the real reason (SSRF private block, 404 wrong base path/token,
+          // TLS, timeout) instead of leaving the card silently "pending".
+          this.testError = (msg && msg.msg) || '{{ i18n "pages.nodes.testFailed" }}';
         }
       },
       async fetchCertPin() {
@@ -303,12 +318,14 @@
         }
       },
       async probeNode(node) {
-        const msg = await HttpUtil.post('/panel/nodes/probe/' + node.id);
-        if (msg && msg.success) await this.loadNodes(false);
+        // Always reload: on failure the backend has already saved status=offline +
+        // lastError, and the toast shows the reason, so the card must refresh too.
+        await HttpUtil.post('/panel/nodes/probe/' + node.id);
+        await this.loadNodes(false);
       },
       async syncNode(node) {
-        const msg = await HttpUtil.post('/panel/nodes/sync/' + node.id);
-        if (msg && msg.success) await this.loadNodes(false);
+        await HttpUtil.post('/panel/nodes/sync/' + node.id);
+        await this.loadNodes(false);
       },
       async setEnable(node, enable) {
         const msg = await HttpUtil.post('/panel/nodes/setEnable/' + node.id, { enable: !!enable });
@@ -332,6 +349,13 @@
     },
     async mounted() {
       await this.loadNodes(true);
+      // The heartbeat job writes online/offline + lastError to the DB every ~10s.
+      // Poll the list so those transitions surface without a manual reload; the
+      // card would otherwise sit on the stale "Unknown" it had at first paint.
+      this.pollTimer = setInterval(() => { this.loadNodes(false); }, 15000);
+    },
+    beforeDestroy() {
+      if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
     },
   });
 </script>

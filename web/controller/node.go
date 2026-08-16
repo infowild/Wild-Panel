@@ -2,6 +2,7 @@ package controller
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
@@ -12,6 +13,7 @@ import (
 // nodeForm is the add/edit/test payload. Bound via ShouldBind + form tags because
 // the panel axios interceptor Qs.stringify's every body.
 type nodeForm struct {
+	Id                  int      `json:"id" form:"id"`
 	Name                string   `json:"name" form:"name"`
 	Remark              string   `json:"remark" form:"remark"`
 	Scheme              string   `json:"scheme" form:"scheme"`
@@ -176,7 +178,16 @@ func (a *NodeController) test(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.nodes.test"), err)
 		return
 	}
-	st, latency, err := a.nodeService.TestConnection(form.spec())
+	spec := form.spec()
+	// Editing an existing node leaves the token field blank on purpose (we never
+	// echo the secret back). Fall back to the stored token so "Test connection"
+	// works on edit instead of failing with "api token is required to test".
+	if strings.TrimSpace(spec.ApiToken) == "" && form.Id > 0 {
+		if tok, terr := a.nodeService.StoredToken(form.Id); terr == nil {
+			spec.ApiToken = tok
+		}
+	}
+	st, latency, err := a.nodeService.TestConnection(spec)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.nodes.test"), err)
 		return
