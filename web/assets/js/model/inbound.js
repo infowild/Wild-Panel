@@ -3207,6 +3207,7 @@ Inbound.ClientBase = class extends XrayCommonClass {
         reset = 0,
         created_at = undefined,
         updated_at = undefined,
+        group = '',
     ) {
         super();
         this.email = email;
@@ -3220,6 +3221,7 @@ Inbound.ClientBase = class extends XrayCommonClass {
         this.reset = reset;
         this.created_at = created_at;
         this.updated_at = updated_at;
+        this.group = group || '';
     }
 
     static commonArgsFromJson(json = {}) {
@@ -3235,11 +3237,12 @@ Inbound.ClientBase = class extends XrayCommonClass {
             json.reset,
             json.created_at,
             json.updated_at,
+            json.group || '',
         ];
     }
 
     _clientBaseToJson() {
-        return {
+        const out = {
             email: this.email,
             limitIp: this.limitIp,
             totalGB: this.totalGB,
@@ -3252,6 +3255,8 @@ Inbound.ClientBase = class extends XrayCommonClass {
             created_at: this.created_at,
             updated_at: this.updated_at,
         };
+        if (this.group) out.group = this.group;
+        return out;
     }
 
     get _expiryTime() {
@@ -3324,9 +3329,9 @@ Inbound.VmessSettings.VMESS = class extends Inbound.ClientBase {
     constructor(
         id = RandomUtil.randomUUID(),
         security = USERS_SECURITY.AUTO,
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group = '',
     ) {
-        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group);
         this.id = id;
         this.security = security;
     }
@@ -3429,9 +3434,9 @@ Inbound.VLESSSettings.VLESS = class extends Inbound.ClientBase {
     constructor(
         id = RandomUtil.randomUUID(),
         flow = '',
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group = '',
     ) {
-        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group);
         this.id = id;
         this.flow = flow;
     }
@@ -3527,9 +3532,9 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
 Inbound.TrojanSettings.Trojan = class extends Inbound.ClientBase {
     constructor(
         password = RandomUtil.randomSeq(10),
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group = '',
     ) {
-        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group);
         this.password = password;
     }
 
@@ -3629,9 +3634,9 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends Inbound.ClientBase {
     constructor(
         method = '',
         password = RandomUtil.randomShadowsocksPassword(),
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group = '',
     ) {
-        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group);
         this.method = method;
         this.password = password;
     }
@@ -3679,9 +3684,9 @@ Inbound.HysteriaSettings = class extends Inbound.Settings {
 Inbound.HysteriaSettings.Hysteria = class extends Inbound.ClientBase {
     constructor(
         auth = RandomUtil.randomSeq(10),
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group = '',
     ) {
-        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group);
         this.auth = auth;
     }
 
@@ -3757,9 +3762,9 @@ Inbound.AnytlsSettings.DEFAULT_PADDING_SCHEME = [
 Inbound.AnytlsSettings.Anytls = class extends Inbound.ClientBase {
     constructor(
         password = RandomUtil.randomSeq(10),
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group = '',
     ) {
-        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group);
         this.password = password;
     }
 
@@ -3831,9 +3836,9 @@ Inbound.TuicSettings.Tuic = class extends Inbound.ClientBase {
     constructor(
         id = RandomUtil.randomUUID(),
         password = RandomUtil.randomSeq(10),
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group = '',
     ) {
-        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group);
         this.id = id;
         this.password = password;
     }
@@ -3937,9 +3942,9 @@ Inbound.NaiveSettings.Naive = class extends Inbound.ClientBase {
     constructor(
         password = RandomUtil.randomSeq(10),
         username = '',
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group = '',
     ) {
-        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at, group);
         this.password = password;
         this.username = username;
     }
@@ -4056,6 +4061,7 @@ Inbound.L2tpSettings.L2tpUser = class extends XrayCommonClass {
     slot = undefined,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.id = id;
@@ -4078,6 +4084,7 @@ Inbound.L2tpSettings.L2tpUser = class extends XrayCommonClass {
     this.slot = slot;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   static fromJson(json = []) {
@@ -4099,6 +4106,7 @@ Inbound.L2tpSettings.L2tpUser = class extends XrayCommonClass {
           j.slot,
           j.created_at,
           j.updated_at,
+          j.group ?? "",
         ),
     );
   }
@@ -4123,6 +4131,7 @@ Inbound.L2tpSettings.L2tpUser = class extends XrayCommonClass {
       slot: this.slot,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 
@@ -4236,6 +4245,7 @@ Inbound.PptpSettings.PptpUser = class extends XrayCommonClass {
     slot = undefined,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.id = id;
@@ -4258,6 +4268,7 @@ Inbound.PptpSettings.PptpUser = class extends XrayCommonClass {
     this.slot = slot;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   static fromJson(json = []) {
@@ -4279,6 +4290,7 @@ Inbound.PptpSettings.PptpUser = class extends XrayCommonClass {
           j.slot,
           j.created_at,
           j.updated_at,
+          j.group ?? "",
         ),
     );
   }
@@ -4303,6 +4315,7 @@ Inbound.PptpSettings.PptpUser = class extends XrayCommonClass {
       slot: this.slot,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 
@@ -4548,6 +4561,7 @@ Inbound.OpenvpnSettings.OpenvpnUser = class extends XrayCommonClass {
     slot = undefined,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.id = id;
@@ -4570,6 +4584,7 @@ Inbound.OpenvpnSettings.OpenvpnUser = class extends XrayCommonClass {
     this.slot = slot;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   static fromJson(json = []) {
@@ -4592,6 +4607,7 @@ Inbound.OpenvpnSettings.OpenvpnUser = class extends XrayCommonClass {
           j.slot,
           j.created_at,
           j.updated_at,
+          j.group ?? "",
         ),
     );
   }
@@ -4616,6 +4632,7 @@ Inbound.OpenvpnSettings.OpenvpnUser = class extends XrayCommonClass {
       slot: this.slot,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 
@@ -4754,6 +4771,7 @@ Inbound.OcservSettings.OcservUser = class extends XrayCommonClass {
     slot = undefined,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.id = id;
@@ -4776,6 +4794,7 @@ Inbound.OcservSettings.OcservUser = class extends XrayCommonClass {
     this.slot = slot;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   static fromJson(json = []) {
@@ -4798,6 +4817,7 @@ Inbound.OcservSettings.OcservUser = class extends XrayCommonClass {
           j.slot,
           j.created_at,
           j.updated_at,
+          j.group ?? "",
         ),
     );
   }
@@ -4822,6 +4842,7 @@ Inbound.OcservSettings.OcservUser = class extends XrayCommonClass {
       slot: this.slot,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 
@@ -4958,6 +4979,7 @@ Inbound.SstpSettings.SstpUser = class extends XrayCommonClass {
     slot = undefined,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.id = id;
@@ -4980,6 +5002,7 @@ Inbound.SstpSettings.SstpUser = class extends XrayCommonClass {
     this.slot = slot;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   static fromJson(json = []) {
@@ -5002,6 +5025,7 @@ Inbound.SstpSettings.SstpUser = class extends XrayCommonClass {
           j.slot,
           j.created_at,
           j.updated_at,
+          j.group ?? "",
         ),
     );
   }
@@ -5026,6 +5050,7 @@ Inbound.SstpSettings.SstpUser = class extends XrayCommonClass {
       slot: this.slot,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 
@@ -5182,6 +5207,7 @@ Inbound.Ikev2Settings.Ikev2User = class extends XrayCommonClass {
     slot = undefined,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.id = id;
@@ -5204,6 +5230,7 @@ Inbound.Ikev2Settings.Ikev2User = class extends XrayCommonClass {
     this.slot = slot;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   static fromJson(json = []) {
@@ -5226,6 +5253,7 @@ Inbound.Ikev2Settings.Ikev2User = class extends XrayCommonClass {
           j.slot,
           j.created_at,
           j.updated_at,
+          j.group ?? "",
         ),
     );
   }
@@ -5250,6 +5278,7 @@ Inbound.Ikev2Settings.Ikev2User = class extends XrayCommonClass {
       slot: this.slot,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 
@@ -5385,6 +5414,7 @@ Inbound.WgcSettings.WgUser = class extends XrayCommonClass {
     slot = undefined,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.email = email;
@@ -5416,6 +5446,7 @@ Inbound.WgcSettings.WgUser = class extends XrayCommonClass {
     this.slot = slot;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   // See MtprotoUser.id: same email-as-identity model, same reason. toJson() writes
@@ -5447,6 +5478,7 @@ Inbound.WgcSettings.WgUser = class extends XrayCommonClass {
           j.slot,
           j.created_at,
           j.updated_at,
+          j.group ?? "",
         ),
     );
   }
@@ -5474,6 +5506,7 @@ Inbound.WgcSettings.WgUser = class extends XrayCommonClass {
       slot: this.slot,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 
@@ -5651,6 +5684,7 @@ Inbound.AwgSettings.AwgUser = class extends XrayCommonClass {
     slot = undefined,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.email = email;
@@ -5682,6 +5716,7 @@ Inbound.AwgSettings.AwgUser = class extends XrayCommonClass {
     this.slot = slot;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   // See MtprotoUser.id: same email-as-identity model, same reason. toJson() writes
@@ -5713,6 +5748,7 @@ Inbound.AwgSettings.AwgUser = class extends XrayCommonClass {
           j.slot,
           j.created_at,
           j.updated_at,
+          j.group ?? "",
         ),
     );
   }
@@ -5740,6 +5776,7 @@ Inbound.AwgSettings.AwgUser = class extends XrayCommonClass {
       slot: this.slot,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 
@@ -5884,6 +5921,7 @@ Inbound.GreSettings.GreUser = class extends XrayCommonClass {
     slot = undefined,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.email = email;
@@ -5905,6 +5943,7 @@ Inbound.GreSettings.GreUser = class extends XrayCommonClass {
     this.slot = slot;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   // See AwgUser.id / MtprotoUser.id: email-as-identity, so the live object needs this or
@@ -5932,6 +5971,7 @@ Inbound.GreSettings.GreUser = class extends XrayCommonClass {
           j.slot,
           j.created_at,
           j.updated_at,
+          j.group ?? "",
         ),
     );
   }
@@ -5956,6 +5996,7 @@ Inbound.GreSettings.GreUser = class extends XrayCommonClass {
       slot: this.slot,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 
@@ -6097,6 +6138,7 @@ Inbound.MtprotoSettings.MtprotoUser = class extends XrayCommonClass {
     reset = 0,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.email = email;
@@ -6119,6 +6161,7 @@ Inbound.MtprotoSettings.MtprotoUser = class extends XrayCommonClass {
     this.reset = reset;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   // Identity is the email (no username), but the panel's shared client plumbing is
@@ -6157,6 +6200,7 @@ Inbound.MtprotoSettings.MtprotoUser = class extends XrayCommonClass {
         client.reset ?? 0,
         client.created_at,
         client.updated_at,
+        client.group ?? "",
       ),
     );
   }
@@ -6246,6 +6290,7 @@ Inbound.MtprotoSettings.MtprotoUser = class extends XrayCommonClass {
       reset: this.reset,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 
@@ -6353,6 +6398,7 @@ Inbound.SshSettings.SshUser = class extends XrayCommonClass {
     reset = 0,
     created_at = undefined,
     updated_at = undefined,
+    group = "",
   ) {
     super();
     this.id = id;
@@ -6368,6 +6414,7 @@ Inbound.SshSettings.SshUser = class extends XrayCommonClass {
     this.reset = reset;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this.group = group || "";
   }
 
   static fromJson(json = []) {
@@ -6388,6 +6435,7 @@ Inbound.SshSettings.SshUser = class extends XrayCommonClass {
           j.reset ?? 0,
           j.created_at,
           j.updated_at,
+          j.group ?? "",
         ),
     );
   }
@@ -6411,6 +6459,7 @@ Inbound.SshSettings.SshUser = class extends XrayCommonClass {
       reset: this.reset,
       created_at: this.created_at,
       updated_at: this.updated_at,
+      group: this.group,
     };
   }
 

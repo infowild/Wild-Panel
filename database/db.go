@@ -45,6 +45,7 @@ func initModels() error {
 		&model.ApiToken{},
 		&model.Node{},
 		&model.NodeClientTraffic{},
+		&model.ClientGroup{},
 	}
 	for _, model := range models {
 		if err := db.AutoMigrate(model); err != nil {

@@ -87,6 +87,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup, customGeo *service.Custom
 
 	clients := api.Group("/clients")
 	NewClientController(clients, a.inboundController)
+	NewGroupController(clients)
 
 	customGeoGroup := api.Group("/custom-geo")
 	customGeoGroup.Use(requireXrayOrOverviewManage())

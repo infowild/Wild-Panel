@@ -17,9 +17,9 @@ import (
 // existing add/update/delete/reset path (slots, RADIUS, keys, uniqueness)
 // stays the single source of truth.
 type ApiClientService struct {
-	Inbound  InboundService
-	Mtproto  MtprotoService
-	Setting  SettingService
+	Inbound         InboundService
+	Mtproto         MtprotoService
+	Setting         SettingService
 	SubLinksBuilder func(host, subId string) ([]string, error)
 }
 
@@ -39,6 +39,7 @@ type ClientFlatView struct {
 	LimitIp    int    `json:"limitIp"`
 	SubId      string `json:"subId"`
 	Comment    string `json:"comment"`
+	Group      string `json:"group"`
 	InboundIds []int  `json:"inboundIds"`
 }
 
@@ -88,6 +89,7 @@ func (s *ApiClientService) GetFlat(email string) (*ClientFlatView, error) {
 		LimitIp:    client.LimitIP,
 		SubId:      client.SubID,
 		Comment:    client.Comment,
+		Group:      client.Group,
 		InboundIds: []int{inboundId},
 	}, nil
 }
@@ -235,6 +237,11 @@ func (s *ApiClientService) Update(email string, patch map[string]any) (model.Pro
 			updated.Comment = s
 		}
 	}
+	if v, ok := patch["group"]; ok {
+		if s, ok := v.(string); ok {
+			updated.Group = strings.TrimSpace(s)
+		}
+	}
 	updated.Email = email
 
 	clientId := clientIdentity(ib.Protocol, *existing)
@@ -299,6 +306,7 @@ func (s *ApiClientService) mintClient(ib *model.Inbound, base model.Client) (mod
 	c.LimitIP = base.LimitIP
 	c.SubID = base.SubID
 	c.Comment = base.Comment
+	c.Group = base.Group
 	c.Email = base.Email
 
 	switch ib.Protocol {

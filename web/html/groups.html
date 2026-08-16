@@ -1,0 +1,349 @@
+{{ template "page/head_start" .}}
+{{ template "page/head_end" .}}
+
+{{ template "page/body_start" .}}
+{{template "page/shell_start" . }}
+      <a-spin :spinning="spinning" :delay="300" tip='{{ i18n "loading"}}' size="large">
+        <transition name="list" appear>
+          <div class="pgc-console">
+            <div class="pgc-bar">
+              <div class="pgc-bar__meta">
+                <h2 class="pgc-bar__title">{{ i18n "pages.groups.title" }}</h2>
+                <span class="pgc-bar__count" v-if="groups.length">[[ groups.length ]]</span>
+                <span class="pgc-bar__note">{{ i18n "pages.groups.subtitle" }}</span>
+              </div>
+              <div class="pgc-bar__actions">
+                <a-button icon="reload" @click="loadGroups(true)"></a-button>
+                <a-button type="primary" icon="plus" @click="openCreate()">
+                  {{ i18n "pages.groups.add" }}
+                </a-button>
+              </div>
+            </div>
+
+            <div class="bo-cards" v-if="groups.length" :style="{ marginBottom: '16px' }">
+              <article class="bo-tile" :style="{ padding: '14px 16px' }">
+                <dl class="bo-spec" :style="{ gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, minmax(0, 1fr))' }">
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.groups.statTotal" }}</dt>
+                    <dd class="bo-spec-val num">[[ groups.length ]]</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.groups.statClients" }}</dt>
+                    <dd class="bo-spec-val num">[[ totalClients ]]</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.groups.statUp" }}</dt>
+                    <dd class="bo-spec-val num">[[ fmt(totalUp) ]]</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.groups.statDown" }}</dt>
+                    <dd class="bo-spec-val num">[[ fmt(totalDown) ]]</dd>
+                  </div>
+                </dl>
+              </article>
+            </div>
+
+            <div class="bo-cards" v-if="groups.length">
+              <article class="bo-tile bo-rs" v-for="g in groups" :key="g.name">
+                <div class="bo-rs-head">
+                  <div :style="{ minWidth: 0 }">
+                    <div class="bo-rs-name">[[ g.name ]]</div>
+                    <div class="bo-rs-sub">
+                      [[ g.clientCount ]] {{ i18n "pages.groups.clients" }}
+                      · [[ fmt(g.trafficUsed) ]]
+                    </div>
+                  </div>
+                  <a-dropdown :trigger="['click']">
+                    <a-icon @click="e => e.preventDefault()" type="more"
+                      :style="{ fontSize: '16px', cursor: 'pointer' }"></a-icon>
+                    <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                      <a-menu-item @click="openAddClients(g)">
+                        <a-icon type="user-add"></a-icon>
+                        <span>{{ i18n "pages.groups.addClients" }}</span>
+                      </a-menu-item>
+                      <a-menu-item :disabled="!g.clientCount" @click="openRemoveClients(g)">
+                        <a-icon type="user-delete"></a-icon>
+                        <span>{{ i18n "pages.groups.removeClients" }}</span>
+                      </a-menu-item>
+                      <a-menu-item :disabled="!g.clientCount" @click="resetTraffic(g)">
+                        <a-icon type="reload"></a-icon>
+                        <span>{{ i18n "pages.groups.resetTraffic" }}</span>
+                      </a-menu-item>
+                      <a-menu-item @click="openRename(g)">
+                        <a-icon type="edit"></a-icon>
+                        <span>{{ i18n "pages.groups.rename" }}</span>
+                      </a-menu-item>
+                      <a-menu-item @click="deleteGroup(g)">
+                        <span :style="{ color: 'var(--error)' }">
+                          <a-icon type="delete"></a-icon>
+                          <span>{{ i18n "pages.groups.delete" }}</span>
+                        </span>
+                      </a-menu-item>
+                    </a-menu>
+                  </a-dropdown>
+                </div>
+                <dl class="bo-spec">
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.groups.clients" }}</dt>
+                    <dd class="bo-spec-val num">[[ g.clientCount ]]</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">↑</dt>
+                    <dd class="bo-spec-val num">[[ fmt(g.up) ]]</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">↓</dt>
+                    <dd class="bo-spec-val num">[[ fmt(g.down) ]]</dd>
+                  </div>
+                  <div class="bo-spec-row">
+                    <dt class="bo-spec-key">{{ i18n "pages.groups.traffic" }}</dt>
+                    <dd class="bo-spec-val num">[[ fmt(g.trafficUsed) ]]</dd>
+                  </div>
+                </dl>
+              </article>
+            </div>
+
+            <div class="wp-empty" v-else-if="!spinning">
+              <div class="wp-empty__icon" aria-hidden="true">
+                <svg class="bo-icon"><use href="#bo-i-grid"></use></svg>
+              </div>
+              <p class="wp-empty__title">{{ i18n "pages.groups.emptyTitle" }}</p>
+              <p class="wp-empty__hint">{{ i18n "pages.groups.emptyDesc" }}</p>
+              <div class="wp-empty__cta">
+                <a-button type="primary" icon="plus" @click="openCreate()">
+                  {{ i18n "pages.groups.add" }}
+                </a-button>
+              </div>
+            </div>
+          </div>
+        </transition>
+      </a-spin>
+
+<a-modal v-model="createVisible" title='{{ i18n "pages.groups.add" }}'
+  :confirm-loading="modalBusy" @ok="submitCreate"
+  :ok-text="'{{ i18n "create" }}'" :cancel-text="'{{ i18n "close" }}'"
+  :mask-closable="false" :width="isMobile ? '100%' : 420"
+  :class="themeSwitcher.currentTheme">
+  <a-form layout="vertical" :colon="false">
+    <a-form-item label='{{ i18n "pages.groups.name" }}' required>
+      <a-input v-model.trim="createName" @pressEnter="submitCreate"></a-input>
+    </a-form-item>
+  </a-form>
+</a-modal>
+
+<a-modal v-model="renameVisible" title='{{ i18n "pages.groups.rename" }}'
+  :confirm-loading="modalBusy" @ok="submitRename"
+  :ok-text="'{{ i18n "save" }}'" :cancel-text="'{{ i18n "close" }}'"
+  :mask-closable="false" :width="isMobile ? '100%' : 420"
+  :class="themeSwitcher.currentTheme">
+  <a-form layout="vertical" :colon="false">
+    <a-form-item label='{{ i18n "pages.groups.name" }}' required>
+      <a-input v-model.trim="renameName" @pressEnter="submitRename"></a-input>
+    </a-form-item>
+  </a-form>
+</a-modal>
+
+<a-modal v-model="membersVisible" :title="membersTitle"
+  :confirm-loading="modalBusy" @ok="submitMembers"
+  :ok-text="membersMode === 'add' ? '{{ i18n "pages.groups.addClients" }}' : '{{ i18n "pages.groups.removeClients" }}'"
+  :cancel-text="'{{ i18n "close" }}'"
+  :mask-closable="false" :width="isMobile ? '100%' : 520"
+  :class="themeSwitcher.currentTheme">
+  <a-form layout="vertical" :colon="false">
+    <a-form-item :label="membersMode === 'add' ? '{{ i18n "pages.groups.pickClients" }}' : '{{ i18n "pages.groups.pickRemove" }}'">
+      <a-select mode="multiple" v-model="membersEmails"
+        :dropdown-class-name="themeSwitcher.currentTheme"
+        option-filter-prop="children"
+        show-search>
+        <a-select-option v-for="o in membersOptions" :key="o.value" :value="o.value">
+          [[ o.label ]]
+        </a-select-option>
+      </a-select>
+    </a-form-item>
+  </a-form>
+</a-modal>
+{{template "page/shell_end" . }}
+
+{{template "page/body_scripts" .}}
+{{template "component/aSidebar" .}}
+{{template "component/aThemeSwitch" .}}
+
+<script>
+  const app = new Vue({
+    delimiters: ['[[', ']]'],
+    mixins: [MediaQueryMixin],
+    el: '#app',
+    data: {
+      themeSwitcher,
+      pageTitle: '{{ i18n "menu.groups"}}',
+      pageClass: 'groups-page',
+      spinning: false,
+      groups: [],
+      createVisible: false,
+      renameVisible: false,
+      membersVisible: false,
+      modalBusy: false,
+      createName: '',
+      renameName: '',
+      renameOld: '',
+      membersMode: 'add',
+      membersGroup: '',
+      membersEmails: [],
+      membersOptions: [],
+      allClientOptions: [],
+    },
+    computed: {
+      totalClients() {
+        return this.groups.reduce((n, g) => n + (g.clientCount || 0), 0);
+      },
+      totalUp() {
+        return this.groups.reduce((n, g) => n + (g.up || 0), 0);
+      },
+      totalDown() {
+        return this.groups.reduce((n, g) => n + (g.down || 0), 0);
+      },
+      membersTitle() {
+        return this.membersMode === 'add'
+          ? '{{ i18n "pages.groups.addClients" }} — ' + this.membersGroup
+          : '{{ i18n "pages.groups.removeClients" }} — ' + this.membersGroup;
+      },
+    },
+    methods: {
+      fmt(n) {
+        return SizeFormatter.sizeFormat(Number(n) || 0);
+      },
+      async loadGroups(showSpin) {
+        if (showSpin) this.spinning = true;
+        const msg = await HttpUtil.get('/panel/api/clients/groups');
+        this.spinning = false;
+        if (msg && msg.success) {
+          this.groups = msg.obj || [];
+        }
+      },
+      async loadAllClients() {
+        // Build a flat email list from inbounds the caller can see.
+        const msg = await HttpUtil.get('/panel/api/inbounds/list');
+        if (!(msg && msg.success)) return;
+        const opts = [];
+        const seen = {};
+        (msg.obj || []).forEach(ib => {
+          let clients = [];
+          try {
+            const settings = JSON.parse(ib.settings || '{}');
+            clients = settings.clients || [];
+          } catch (e) {}
+          clients.forEach(c => {
+            const email = (c.email || '').trim();
+            if (!email || seen[email.toLowerCase()]) return;
+            seen[email.toLowerCase()] = true;
+            const label = c.group ? (email + ' [' + c.group + ']') : email;
+            opts.push({ value: email, label: label, title: label });
+          });
+        });
+        opts.sort((a, b) => a.value.localeCompare(b.value));
+        this.allClientOptions = opts;
+      },
+      openCreate() {
+        this.createName = '';
+        this.createVisible = true;
+      },
+      async submitCreate() {
+        if (!this.createName) return;
+        this.modalBusy = true;
+        const msg = await HttpUtil.post('/panel/api/clients/groups/create', { name: this.createName });
+        this.modalBusy = false;
+        if (msg && msg.success) {
+          this.createVisible = false;
+          await this.loadGroups(false);
+        }
+      },
+      openRename(g) {
+        this.renameOld = g.name;
+        this.renameName = g.name;
+        this.renameVisible = true;
+      },
+      async submitRename() {
+        if (!this.renameName) return;
+        this.modalBusy = true;
+        const msg = await HttpUtil.post('/panel/api/clients/groups/rename', {
+          oldName: this.renameOld,
+          newName: this.renameName,
+        });
+        this.modalBusy = false;
+        if (msg && msg.success) {
+          this.renameVisible = false;
+          await this.loadGroups(false);
+        }
+      },
+      deleteGroup(g) {
+        this.$confirm({
+          title: '{{ i18n "pages.groups.deleteConfirm" }}',
+          content: g.name,
+          okType: 'danger',
+          class: themeSwitcher.currentTheme,
+          onOk: async () => {
+            const msg = await HttpUtil.post('/panel/api/clients/groups/delete', { name: g.name });
+            if (msg && msg.success) await this.loadGroups(false);
+          },
+        });
+      },
+      resetTraffic(g) {
+        this.$confirm({
+          title: '{{ i18n "pages.groups.resetTrafficConfirm" }}',
+          content: g.name,
+          class: themeSwitcher.currentTheme,
+          onOk: async () => {
+            const msg = await HttpUtil.post('/panel/api/clients/groups/resetTraffic', { name: g.name });
+            if (msg && msg.success) await this.loadGroups(false);
+          },
+        });
+      },
+      async openAddClients(g) {
+        this.membersMode = 'add';
+        this.membersGroup = g.name;
+        this.membersEmails = [];
+        if (!this.allClientOptions.length) await this.loadAllClients();
+        // Prefer clients not already in this group.
+        this.membersOptions = this.allClientOptions.filter(o => {
+          const m = o.label.match(/\[([^\]]+)\]$/);
+          return !(m && m[1] === g.name);
+        });
+        this.membersVisible = true;
+      },
+      async openRemoveClients(g) {
+        this.membersMode = 'remove';
+        this.membersGroup = g.name;
+        this.membersEmails = [];
+        const msg = await HttpUtil.get('/panel/api/clients/groups/' + encodeURIComponent(g.name) + '/emails');
+        const emails = (msg && msg.success && msg.obj) ? msg.obj : [];
+        this.membersOptions = emails.map(e => ({ value: e, label: e }));
+        this.membersVisible = true;
+      },
+      async submitMembers() {
+        if (!this.membersEmails.length) return;
+        this.modalBusy = true;
+        let msg;
+        if (this.membersMode === 'add') {
+          msg = await HttpUtil.post('/panel/api/clients/groups/bulkAdd', {
+            emails: this.membersEmails,
+            group: this.membersGroup,
+          });
+        } else {
+          msg = await HttpUtil.post('/panel/api/clients/groups/bulkRemove', {
+            emails: this.membersEmails,
+          });
+        }
+        this.modalBusy = false;
+        if (msg && msg.success) {
+          this.membersVisible = false;
+          this.allClientOptions = [];
+          await this.loadGroups(false);
+        }
+      },
+    },
+    async mounted() {
+      await this.loadGroups(true);
+    },
+  });
+</script>
+{{ template "page/body_end" .}}

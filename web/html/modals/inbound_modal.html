@@ -184,6 +184,7 @@
         data: {
             inModal: inModal,
             nodeOptions: [],
+            clientGroupOptions: [],
             delayedStart: false,
             ikev2CertWarning: "",
             get inbound() {
@@ -1010,6 +1011,10 @@
             const msg = await HttpUtil.get('/panel/nodes/options');
             if (msg && msg.success) {
                 this.nodeOptions = msg.obj || [];
+            }
+            const g = await HttpUtil.get('/panel/api/clients/groups');
+            if (g && g.success) {
+                this.clientGroupOptions = (g.obj || []).map(x => x.name).filter(Boolean);
             }
         },
     });

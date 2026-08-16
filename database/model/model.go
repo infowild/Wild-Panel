@@ -399,6 +399,7 @@ type Client struct {
 	Enable     bool   `json:"enable" form:"enable"`         // Whether the client is enabled
 	TgID       int64  `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
 	SubID      string `json:"subId" form:"subId"`           // Subscription identifier
+	Group      string `json:"group,omitempty" form:"group"` // Logical client-group label (Sanaei parity)
 	Comment    string `json:"comment" form:"comment"`       // Client comment
 	Reset      int    `json:"reset" form:"reset"`           // Reset period in days
 
@@ -467,3 +468,18 @@ type ClientGrePeer struct {
 	PeerIp string `json:"peerIp,omitempty"`
 	Remark string `json:"remark,omitempty"`
 }
+
+// ClientGroup is a named client label (Sanaei "Groups"). Empty placeholder rows live here
+// so a group can exist before any client references it. ResetUp/ResetDown are display
+// baselines: ResetGroupTraffic snapshots the members' counters here instead of zeroing
+// client_traffics, so individual client usage stays intact.
+type ClientGroup struct {
+	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name      string `json:"name" gorm:"uniqueIndex;not null"`
+	ResetUp   int64  `json:"resetUp" gorm:"column:reset_up;default:0"`
+	ResetDown int64  `json:"resetDown" gorm:"column:reset_down;default:0"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
+func (ClientGroup) TableName() string { return "client_groups" }

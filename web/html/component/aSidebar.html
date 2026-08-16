@@ -95,6 +95,11 @@
                         icon: 'user',
                         title: '{{ i18n "menu.inbounds"}}'
                     },
+                    {
+                        key: '{{ .base_path }}panel/groups',
+                        icon: 'tags',
+                        title: '{{ i18n "menu.groups"}}'
+                    },
                     {{ end }}
                     {{ if .perms.manageNodes }}
                     {

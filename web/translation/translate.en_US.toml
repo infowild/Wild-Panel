@@ -106,6 +106,7 @@
 "admins" = "Admins"
 "resellers" = "Resellers"
 "nodes" = "Nodes"
+"groups" = "Groups"
 "logout" = "Log Out"
 "link" = "Manage"
 
@@ -381,6 +382,8 @@
 
 [pages.inbounds]
 "totalUsers" = "Total Users"
+"clientGroup" = "Group"
+"clientGroupPlaceholder" = "Optional label (VIP, customer-a, …)"
 "exportTxt" = "Export TXT"
 "exportPdf" = "Export PDF"
 "exportNoneSelected" = "No accounts selected"
@@ -1409,3 +1412,26 @@
 "localNode" = "This panel (local)"
 "nodeAssignHint" = "This inbound will run on the selected node and will not bind locally."
 "fetchInbounds" = "Fetch remote inbounds"
+
+[pages.groups]
+"title" = "Groups"
+"subtitle" = "Organize clients with labels for bulk actions and traffic view"
+"add" = "Add Group"
+"name" = "Group name"
+"clients" = "Clients"
+"traffic" = "Traffic"
+"statTotal" = "Groups"
+"statClients" = "Grouped clients"
+"statUp" = "Upload"
+"statDown" = "Download"
+"emptyTitle" = "No groups yet"
+"emptyDesc" = "Create a group label, then assign clients from here or the client form."
+"addClients" = "Add clients"
+"removeClients" = "Remove clients"
+"rename" = "Rename"
+"delete" = "Delete group"
+"deleteConfirm" = "Delete this group? Clients stay; only the label is cleared."
+"resetTraffic" = "Reset group traffic"
+"resetTrafficConfirm" = "Reset the displayed group traffic? Client counters are not changed."
+"pickClients" = "Select clients to add"
+"pickRemove" = "Select clients to ungroup"

@@ -231,6 +231,7 @@
         el: "#client-modal",
         data: {
             clientModal,
+            clientGroupOptions: [],
             get inbound() {
                 return this.clientModal.inbound;
             },
@@ -347,6 +348,12 @@
                     },
                 });
             },
+        },
+        async mounted() {
+            const g = await HttpUtil.get('/panel/api/clients/groups');
+            if (g && g.success) {
+                this.clientGroupOptions = (g.obj || []).map(x => x.name).filter(Boolean);
+            }
         },
     });
 </script>

@@ -2138,6 +2138,14 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 		return false, common.NewError("no client remained in Inbound")
 	}
 
+	db := database.GetDB()
+	// Adjust group baselines while the client still carries its group label in settings.
+	if email != "" {
+		if err := adjustGroupBaselinesForRemovedTraffic(db, []string{email}); err != nil {
+			logger.Warning("adjust group baselines:", err)
+		}
+	}
+
 	settings["clients"] = newClients
 	newSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
@@ -2145,8 +2153,6 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 	}
 
 	oldInbound.Settings = string(newSettings)
-
-	db := database.GetDB()
 
 	err = s.DelClientIPs(db, email)
 	if err != nil {
@@ -3610,18 +3616,14 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 	db := database.GetDB()
-
-	// Reset traffic stats in ClientTraffic table
-	result := db.Model(xray.ClientTraffic{}).
-		Where("email = ?", clientEmail).
-		Updates(map[string]any{"enable": true, "up": 0, "down": 0})
-
-	err := result.Error
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{clientEmail}); err != nil {
+			return err
+		}
+		return tx.Model(xray.ClientTraffic{}).
+			Where("email = ?", clientEmail).
+			Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error
+	})
 }
 
 func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, error) {
@@ -3681,11 +3683,16 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 	// meanwhile. A reset zeroes up/down and re-enables; it must not rewind the lifetime
 	// counter. Mirrors ResetClientTrafficByEmail, which already updates by column.
 	db := database.GetDB()
-	err = db.Model(xray.ClientTraffic{}).Where("id = ?", traffic.Id).Updates(map[string]any{
-		"up":     0,
-		"down":   0,
-		"enable": true,
-	}).Error
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{clientEmail}); err != nil {
+			return err
+		}
+		return tx.Model(xray.ClientTraffic{}).Where("id = ?", traffic.Id).Updates(map[string]any{
+			"up":     0,
+			"down":   0,
+			"enable": true,
+		}).Error
+	})
 	if err != nil {
 		return false, err
 	}
@@ -4574,6 +4581,11 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 		return false, common.NewError("no client remained in Inbound")
 	}
 
+	db := database.GetDB()
+	if err := adjustGroupBaselinesForRemovedTraffic(db, []string{email}); err != nil {
+		logger.Warning("adjust group baselines:", err)
+	}
+
 	settings["clients"] = newClients
 	newSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
@@ -4582,9 +4594,6 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 
 	oldInbound.Settings = string(newSettings)
 
-	db := database.GetDB()
-
-	// remove IP bindings
 	if err := s.DelClientIPs(db, email); err != nil {
 		logger.Error("Error in delete client IPs")
 		return false, err

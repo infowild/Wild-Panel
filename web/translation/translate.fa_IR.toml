@@ -106,6 +106,7 @@
 "admins" = "ادمین‌ها"
 "resellers" = "نماینده‌ها"
 "nodes" = "نودها"
+"groups" = "گروه‌ها"
 "logout" = "خروج"
 "link" = "مدیریت"
 
@@ -245,6 +246,8 @@
 
 [pages.inbounds]
 "totalUsers" = "کل کاربران"
+"clientGroup" = "گروه"
+"clientGroupPlaceholder" = "برچسب اختیاری (VIP، مشتری و …)"
 "exportTxt" = "Export TXT"
 "exportPdf" = "Export PDF"
 "exportNoneSelected" = "No accounts selected"
@@ -1131,3 +1134,26 @@
 "localNode" = "همین پنل (محلی)"
 "nodeAssignHint" = "این ورودی روی نود انتخابی اجرا می‌شود و روی این سرور bind نمی‌شود."
 "fetchInbounds" = "دریافت ورودی‌های راه دور"
+
+[pages.groups]
+"title" = "گروه‌ها"
+"subtitle" = "برچسب‌گذاری کلاینت‌ها برای عملیات گروهی و مشاهده ترافیک"
+"add" = "افزودن گروه"
+"name" = "نام گروه"
+"clients" = "کلاینت‌ها"
+"traffic" = "ترافیک"
+"statTotal" = "گروه‌ها"
+"statClients" = "کلاینت‌های گروه‌بندی‌شده"
+"statUp" = "آپلود"
+"statDown" = "دانلود"
+"emptyTitle" = "هنوز گروهی نیست"
+"emptyDesc" = "یک برچسب گروه بسازید، بعد از همین‌جا یا فرم کلاینت اعضا را اضافه کنید."
+"addClients" = "افزودن کلاینت"
+"removeClients" = "حذف از گروه"
+"rename" = "تغییر نام"
+"delete" = "حذف گروه"
+"deleteConfirm" = "این گروه حذف شود؟ کلاینت‌ها می‌مانند؛ فقط برچسب پاک می‌شود."
+"resetTraffic" = "ریست ترافیک گروه"
+"resetTrafficConfirm" = "ترافیک نمایشی گروه ریست شود؟ شمارنده‌های کلاینت تغییر نمی‌کنند."
+"pickClients" = "کلاینت‌ها را برای افزودن انتخاب کنید"
+"pickRemove" = "کلاینت‌ها را برای خروج از گروه انتخاب کنید"

@@ -45,6 +45,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	// inbound to a reseller you then log in as) is closed in the service.
 	g.GET("/resellers", requirePerm(model.PermManageResellers), a.resellers)
 	g.GET("/nodes", requirePerm(model.PermManageNodes), a.nodes)
+	g.GET("/groups", requirePerm(model.PermAccessInbounds), a.groups)
 
 	a.settingController = NewSettingController(g)
 	a.xraySettingController = NewXraySettingController(g)
@@ -101,4 +102,9 @@ func (a *XUIController) resellers(c *gin.Context) {
 // nodes renders the Nodes management page.
 func (a *XUIController) nodes(c *gin.Context) {
 	html(c, "nodes.html", "pages.nodes.title", nil)
+}
+
+// groups renders the Client Groups page (Sanaei parity).
+func (a *XUIController) groups(c *gin.Context) {
+	html(c, "groups.html", "pages.groups.title", nil)
 }

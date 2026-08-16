@@ -3827,7 +3827,8 @@ body:not(.dark) .bo-shell.xray-page { --bg:#F1F4F7; }
 .bo-shell.core-page,
 .bo-shell.admins-page,
 .bo-shell.resellers-page,
-.bo-shell.nodes-page {
+.bo-shell.nodes-page,
+.bo-shell.groups-page {
   --pgc-pad:24px;
   --pgc-max:2240px;
   --pgc-gap:16px;
@@ -3837,7 +3838,8 @@ body:not(.dark) .bo-shell.xray-page { --bg:#F1F4F7; }
 body.dark .bo-shell.core-page,
 body.dark .bo-shell.admins-page,
 body.dark .bo-shell.resellers-page,
-body.dark .bo-shell.nodes-page {
+body.dark .bo-shell.nodes-page,
+.bo-shell.groups-page {
   --pgc-divider:rgba(255,255,255,.075);
 }
 /* Same ground the other consoles sit on, so moving between pages is not a
@@ -3845,16 +3847,19 @@ body.dark .bo-shell.nodes-page {
 html:not([data-theme='ultra-dark']) body.dark .bo-shell.core-page,
 html:not([data-theme='ultra-dark']) body.dark .bo-shell.admins-page,
 html:not([data-theme='ultra-dark']) body.dark .bo-shell.resellers-page,
-html:not([data-theme='ultra-dark']) body.dark .bo-shell.nodes-page { --bg:#08090B; }
+html:not([data-theme='ultra-dark']) body.dark .bo-shell.nodes-page,
+.bo-shell.groups-page { --bg:#08090B; }
 body:not(.dark) .bo-shell.core-page,
 body:not(.dark) .bo-shell.admins-page,
 body:not(.dark) .bo-shell.resellers-page,
-body:not(.dark) .bo-shell.nodes-page { --bg:#F1F4F7; }
+body:not(.dark) .bo-shell.nodes-page,
+.bo-shell.groups-page { --bg:#F1F4F7; }
 
 .core-page .bo-content,
 .admins-page .bo-content,
 .resellers-page .bo-content,
-.nodes-page .bo-content {
+.nodes-page .bo-content,
+.groups-page .bo-content {
   padding-inline:var(--pgc-pad);
   padding-bottom:24px;
 }
@@ -3950,19 +3955,22 @@ body:not(.dark) .bo-shell.nodes-page { --bg:#F1F4F7; }
   .bo-shell.core-page,
   .bo-shell.admins-page,
   .bo-shell.resellers-page,
-  .bo-shell.nodes-page { --pgc-pad:30px; --pgc-gap:18px; }
+  .bo-shell.nodes-page,
+.bo-shell.groups-page { --pgc-pad:30px; --pgc-gap:18px; }
 }
 @media (max-width:1180px) {
   .bo-shell.core-page,
   .bo-shell.admins-page,
   .bo-shell.resellers-page,
-  .bo-shell.nodes-page { --pgc-pad:20px; --pgc-gap:14px; }
+  .bo-shell.nodes-page,
+.bo-shell.groups-page { --pgc-pad:20px; --pgc-gap:14px; }
 }
 @media (max-width:768px) {
   .bo-shell.core-page,
   .bo-shell.admins-page,
   .bo-shell.resellers-page,
-  .bo-shell.nodes-page { --pgc-pad:14px; }
+  .bo-shell.nodes-page,
+.bo-shell.groups-page { --pgc-pad:14px; }
   .pgc-bar { padding:7px 12px; gap:10px 12px; }
   .pgc-bar__note { display:none; }
   .pgc-bar .ant-btn { padding:0 12px; }
