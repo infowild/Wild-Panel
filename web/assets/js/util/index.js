@@ -938,27 +938,130 @@ const MediaQueryMixin = {
 }
 
 class FileManager {
+    static isIOS() {
+        const ua = navigator.userAgent || '';
+        return /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    static isNarrowUi() {
+        return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+    }
+
     static downloadTextFile(content, filename = 'file.txt', options = { type: "text/plain" }) {
         // Tolerate a bare mime-type string (older/cached callers passed 'text/plain'
         // instead of { type: 'text/plain' }); a non-object here makes the Blob
         // constructor throw "not of type 'BlobPropertyBag'".
         if (typeof options === 'string') options = { type: options };
         if (!options || typeof options !== 'object') options = { type: 'text/plain' };
-        let link = window.document.createElement('a');
+        const blob = new Blob([content], options);
+        if (this.isIOS() && typeof File === 'function' && navigator.share) {
+            const file = new File([blob], filename, { type: options.type || 'text/plain' });
+            const can = !navigator.canShare || navigator.canShare({ files: [file] });
+            if (can) {
+                navigator.share({ files: [file], title: filename }).catch((e) => {
+                    if (e && e.name === 'AbortError') return;
+                    this.saveBlobViaAnchor(blob, filename);
+                });
+                return;
+            }
+        }
+        this.saveBlobViaAnchor(blob, filename);
+    }
 
+    static saveBlobViaAnchor(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
         link.download = filename;
-        link.style.border = '0';
-        link.style.padding = '0';
-        link.style.margin = '0';
-        link.style.position = 'absolute';
-        link.style.left = '-9999px';
-        link.style.top = `${window.pageYOffset || window.document.documentElement.scrollTop}px`;
-        link.href = URL.createObjectURL(new Blob([content], options));
+        link.rel = 'noopener';
+        link.style.display = 'none';
+        document.body.appendChild(link);
         link.click();
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+            link.remove();
+        }, 1000);
+    }
 
-        URL.revokeObjectURL(link.href);
+    static panelUrl(path) {
+        const base = (typeof basePath !== 'undefined' ? basePath : '').replace(/\/$/, '');
+        return base + (path.charAt(0) === '/' ? path : '/' + path);
+    }
 
-        link.remove();
+    // Fetch a text attachment (OpenVPN .ovpn, etc.) without navigating the tab.
+    // window.open() of application/x-openvpn-profile paints a blank page on phones.
+    static filenameFromDisposition(header, fallback) {
+        if (!header) return fallback;
+        const m = /filename\*?=(?:UTF-8''|"?)([^";]+)/i.exec(header);
+        if (!m) return fallback;
+        try {
+            return decodeURIComponent(m[1].replace(/"/g, '')).trim() || fallback;
+        } catch (e) {
+            return m[1].replace(/"/g, '').trim() || fallback;
+        }
+    }
+
+    static async offerPanelTextFile(path, filename, title) {
+        const resp = await axios.get(this.panelUrl(path), { responseType: 'text' });
+        let text = resp.data;
+        if (typeof text !== 'string') {
+            text = JSON.stringify(text);
+        }
+        const trimmed = text.trim();
+        if (trimmed.charAt(0) === '{') {
+            try {
+                const j = JSON.parse(trimmed);
+                if (j && typeof j === 'object' && 'success' in j) {
+                    if (!j.success) {
+                        throw new Error(j.msg || 'Download failed');
+                    }
+                    throw new Error('Download failed');
+                }
+            } catch (e) {
+                if (!(e instanceof SyntaxError)) throw e;
+            }
+        }
+        if (typeof txtModal !== 'undefined') {
+            txtModal.show(title || filename, text, filename);
+        }
+        if (!this.isIOS() && !this.isNarrowUi()) {
+            this.downloadTextFile(text, filename, { type: 'text/plain;charset=utf-8' });
+        }
+    }
+
+    // Binary download that stays on the current page. Navigating the tab to
+    // getDb (window.location) leaves phones on a blank screen.
+    static async downloadPanelBlob(path, fallbackName) {
+        const resp = await axios.get(this.panelUrl(path), { responseType: 'blob' });
+        let blob = resp.data;
+        if (!(blob instanceof Blob)) {
+            blob = new Blob([blob]);
+        }
+        const ct = (blob.type || '').toLowerCase();
+        if (ct.indexOf('json') !== -1 || ct.indexOf('text/html') !== -1) {
+            const text = await blob.text();
+            try {
+                const j = JSON.parse(text);
+                throw new Error((j && j.msg) || 'Download failed');
+            } catch (e) {
+                if (e instanceof SyntaxError) throw new Error('Download failed');
+                throw e;
+            }
+        }
+        const cd = resp.headers && (resp.headers['content-disposition'] || resp.headers['Content-Disposition']);
+        const name = this.filenameFromDisposition(cd, fallbackName);
+        if (this.isIOS() && typeof File === 'function' && navigator.share) {
+            const file = new File([blob], name, { type: blob.type || 'application/octet-stream' });
+            if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({ files: [file], title: name });
+                    return;
+                } catch (e) {
+                    if (e && e.name === 'AbortError') return;
+                }
+            }
+        }
+        this.saveBlobViaAnchor(blob, name);
     }
 }
 

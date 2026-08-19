@@ -52,8 +52,8 @@ var (
 // syscall.Exec's os.Args back into itself. That is harmless for the panel, but from
 // a CLI process it would re-exec the CLI with its own `update` arguments, in a loop.
 const (
-	panelRepo      = "infowild/Wild-Panel"
-	PanelAsset     = "wild-panel-amd64"
+	panelRepo  = "infowild/Wild-Panel"
+	PanelAsset = "wild-panel-amd64"
 	// PanelLegacyAsset is the pre-rebrand release name. Used only as a download
 	// fallback so in-panel / CLI update still works until wild-panel-amd64 is published.
 	PanelLegacyAsset = "vpn-ui-amd64"
@@ -153,9 +153,9 @@ const (
 	// the fetch request itself: nothing further happens until they answer.
 	updatePhaseStaged     = "staged"
 	updatePhaseInstalling = "installing"
-	updatePhaseRestarting  = "restarting"
-	updatePhaseCancelled   = "cancelled"
-	updatePhaseError       = "error"
+	updatePhaseRestarting = "restarting"
+	updatePhaseCancelled  = "cancelled"
+	updatePhaseError      = "error"
 )
 
 // Self-update progress, polled by the overview to render a % bar and a speed
@@ -543,21 +543,16 @@ func backupPanelDB() {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return
 	}
-	// Fold the WAL into the main DB first so the file copy is a consistent snapshot
-	// (the panel holds the DB open, so a plain copy could otherwise be torn).
-	if gdb := database.GetDB(); gdb != nil {
-		if sqlDB, err := gdb.DB(); err == nil {
-			_, _ = sqlDB.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
-		}
-	}
 	base := fmt.Sprintf("wild-panel_%s.db", config.GetVersion())
 	dst := filepath.Join(dir, base)
-	if err := CopyFile(db, dst); err != nil {
+	data, err := database.ExportSnapshot()
+	if err != nil {
 		logger.Warning("panel update: DB backup failed:", err)
 		return
 	}
-	for _, side := range []string{"-wal", "-shm"} {
-		_ = CopyFile(db+side, dst+side)
+	if err := os.WriteFile(dst, data, 0o644); err != nil {
+		logger.Warning("panel update: DB backup write failed:", err)
+		return
 	}
 	logger.Infof("panel update: backed up DB -> %s", dst)
 }

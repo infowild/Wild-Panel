@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -98,7 +99,12 @@ func (a *APIController) initRouter(g *gin.RouterGroup, customGeo *service.Custom
 
 // BackuptoTgbot sends a backup of the panel data to Telegram bot admins.
 func (a *APIController) BackuptoTgbot(c *gin.Context) {
+	if !a.Tgbot.IsRunning() {
+		jsonMsg(c, "backup", fmt.Errorf("telegram bot is not running"))
+		return
+	}
 	a.Tgbot.SendBackupToAdmins()
+	jsonMsg(c, "backup", nil)
 }
 
 // ApiTokenController manages Bearer tokens under /panel/setting (session + PermPanelSettings only).

@@ -1000,8 +1000,15 @@
                     if (typeof app !== 'undefined' && app.getDBInbounds) {
                         app.getDBInbounds();
                     }
-                    const url = '/panel/api/inbounds/' + inbound.id + '/ovpn/' + proto;
-                    window.open(basePath.replace(/\/$/, '') + url, '_blank');
+                    await FileManager.offerPanelTextFile(
+                        '/panel/api/inbounds/' + inbound.id + '/ovpn/' + proto,
+                        'client-' + proto + '.ovpn',
+                        'OpenVPN ' + String(proto).toUpperCase(),
+                    );
+                } catch (e) {
+                    if (typeof app !== 'undefined' && app.$message) {
+                        app.$message.error((e && e.message) || String(e));
+                    }
                 } finally {
                     inModal.loading(false);
                 }

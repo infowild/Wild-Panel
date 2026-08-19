@@ -59,3 +59,21 @@ func TestRemoveSidecars(t *testing.T) {
 	}
 	RemoveSidecars(p) // idempotent
 }
+
+func TestExportSnapshot(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "wild-panel.db")
+	if err := InitDB(p); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("CREATE TABLE snap(x INTEGER); INSERT INTO snap VALUES (42);").Error; err != nil {
+		t.Fatal(err)
+	}
+	raw, err := ExportSnapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(raw) < 100 || string(raw[:15]) != "SQLite format 3" {
+		t.Fatalf("snapshot is not a SQLite file: len=%d prefix=%q", len(raw), raw[:min(16, len(raw))])
+	}
+}

@@ -132,7 +132,7 @@ func (s *SubService) inboundConfigFiles(inbound *model.Inbound, email, host stri
 				Protocol:    string(model.OPENVPN),
 				Label:       "OpenVPN " + strings.ToUpper(proto) + labelSuffix(inbound.Remark),
 				Filename:    configFilename(inbound.Remark, "openvpn", proto, "ovpn"),
-				ContentType: "application/x-openvpn-profile",
+				ContentType: "text/plain",
 				Content:     content,
 			})
 		}

@@ -3640,35 +3640,29 @@ func (t *Tgbot) sendBackup(chatId int64) {
 	output := t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	t.SendMsgToTgbot(chatId, output)
 
-	// Update by manually trigger a checkpoint operation
-	err := database.Checkpoint()
+	// Send database backup as a named .db so restore can pick it back up.
+	data, err := database.ExportSnapshot()
 	if err != nil {
-		logger.Error("Error in trigger a checkpoint operation: ", err)
-	}
-
-	// Send database backup
-	file, err := os.Open(config.GetDBPath())
-	if err == nil {
-		defer file.Close()
+		logger.Error("Error creating db backup: ", err)
+	} else {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
+		name := fmt.Sprintf("wild-panel_%s.db", time.Now().Format("20060102-150405"))
 		document := tu.Document(
 			tu.ID(chatId),
-			tu.File(file),
+			tu.FileFromBytes(data, name),
 		)
 		_, err = bot.SendDocument(ctx, document)
 		if err != nil {
 			logger.Error("Error in uploading backup: ", err)
 		}
-	} else {
-		logger.Error("Error in opening db file for backup: ", err)
 	}
 
 	// Small delay between file sends
 	time.Sleep(500 * time.Millisecond)
 
 	// Send config.json backup
-	file, err = os.Open(xray.GetConfigPath())
+	file, err := os.Open(xray.GetConfigPath())
 	if err == nil {
 		defer file.Close()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

@@ -631,7 +631,7 @@ func (a *ServerController) getDb(c *gin.Context) {
 
 	// Set the headers for the response
 	c.Header("Content-Type", "application/octet-stream")
-	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Disposition", `attachment; filename="`+filename+`"`)
 
 	// Write the file contents to the response
 	c.Writer.Write(db)

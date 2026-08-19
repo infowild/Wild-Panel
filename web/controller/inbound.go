@@ -1665,8 +1665,10 @@ func (a *InboundController) downloadOvpn(c *gin.Context) {
 	}
 
 	filename := fmt.Sprintf("client-%s.ovpn", proto)
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
-	c.Data(200, "application/x-openvpn-profile", []byte(content))
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename=%q`, filename))
+	// text/plain so a phone that still navigates to this URL shows the profile
+	// instead of a blank tab (application/x-openvpn-profile has no in-browser renderer).
+	c.Data(200, "text/plain; charset=utf-8", []byte(content))
 }
 
 // generateOpenVpnCerts generates a self-signed CA, server cert, and tls-crypt

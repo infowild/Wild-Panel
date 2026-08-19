@@ -150,8 +150,11 @@ func (s *ServerService) ImportForeignDB(src dbFile, activate bool) (*ImportRepor
 	// See the identical call in ServerService.ImportDB: the sidecars stay at the
 	// old path and must not be inherited by the imported database.
 	database.RemoveSidecars(dbPath)
+	dropFallback := false
 	defer func() {
-		// Only fires on the success path; the fallback is consumed by an error return.
+		if !dropFallback {
+			return
+		}
 		if _, err := os.Stat(fallbackPath); err == nil {
 			if rerr := os.Remove(fallbackPath); rerr != nil {
 				logger.Warningf("import: failed to remove fallback file: %v", rerr)
@@ -160,7 +163,7 @@ func (s *ServerService) ImportForeignDB(src dbFile, activate bool) (*ImportRepor
 	}()
 
 	if err = os.Rename(tempPath, dbPath); err != nil {
-		if errRename := os.Rename(fallbackPath, dbPath); errRename != nil {
+		if errRename := restoreDBFallback(fallbackPath, dbPath); errRename != nil {
 			return nil, common.NewErrorf("Error moving db file and restoring fallback: %v", errRename)
 		}
 		return nil, common.NewErrorf("Error moving db file: %v", err)
@@ -168,7 +171,8 @@ func (s *ServerService) ImportForeignDB(src dbFile, activate bool) (*ImportRepor
 
 	// AutoMigrate the superset schema onto the backup and run the adopt migrations.
 	if err = database.InitDB(dbPath); err != nil {
-		if errRename := os.Rename(fallbackPath, dbPath); errRename != nil {
+		_ = database.CloseDB()
+		if errRename := restoreDBFallback(fallbackPath, dbPath); errRename != nil {
 			return nil, common.NewErrorf("Error migrating db and restoring fallback: %v", errRename)
 		}
 		if errReinit := database.InitDB(dbPath); errReinit != nil {
@@ -179,6 +183,13 @@ func (s *ServerService) ImportForeignDB(src dbFile, activate bool) (*ImportRepor
 
 	// Put this panel's reachability/identity settings back over the backup's.
 	if err = s.restorePreservedSettings(preserved); err != nil {
+		_ = database.CloseDB()
+		if errRename := restoreDBFallback(fallbackPath, dbPath); errRename != nil {
+			return nil, common.NewErrorf("Imported DB but failed to preserve panel settings: %v (restore failed: %v)", err, errRename)
+		}
+		if errReinit := database.InitDB(dbPath); errReinit != nil {
+			logger.Errorf("import: restored fallback but re-init failed: %v", errReinit)
+		}
 		return nil, common.NewErrorf("Imported DB but failed to preserve panel settings: %v", err)
 	}
 
@@ -195,10 +206,12 @@ func (s *ServerService) ImportForeignDB(src dbFile, activate bool) (*ImportRepor
 		s.l2tpService.InitL2tp()
 		s.pptpService.InitPptp()
 		if err = s.RestartXrayService(); err != nil {
+			dropFallback = true
 			return report, common.NewErrorf("Imported DB but failed to start Xray: %v", err)
 		}
 	}
 
+	dropFallback = true
 	return report, nil
 }
 

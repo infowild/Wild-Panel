@@ -1148,25 +1148,7 @@ func (s *ServerService) GetConfigJson() (any, error) {
 }
 
 func (s *ServerService) GetDb() ([]byte, error) {
-	// Update by manually trigger a checkpoint operation
-	err := database.Checkpoint()
-	if err != nil {
-		return nil, err
-	}
-	// Open the file for reading
-	file, err := os.Open(config.GetDBPath())
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	// Read the file contents
-	fileContents, err := io.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	return fileContents, nil
+	return database.ExportSnapshot()
 }
 
 func (s *ServerService) ImportDB(file multipart.File) error {
@@ -1261,8 +1243,13 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	// them, but its error is only logged, so this is the belt to that braces.
 	database.RemoveSidecars(config.GetDBPath())
 
-	// Defer fallback cleanup ONLY if everything goes well
+	// Only delete the pre-import copy after a successful open. If restore of
+	// the fallback fails, this file is the last good database.
+	dropFallback := false
 	defer func() {
+		if !dropFallback {
+			return
+		}
 		if _, err := os.Stat(fallbackPath); err == nil {
 			if rerr := os.Remove(fallbackPath); rerr != nil {
 				logger.Warningf("Warning: failed to remove fallback file: %v", rerr)
@@ -1272,8 +1259,7 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 
 	// Move temp to DB path
 	if err = os.Rename(tempPath, config.GetDBPath()); err != nil {
-		// Restore from fallback
-		if errRename := os.Rename(fallbackPath, config.GetDBPath()); errRename != nil {
+		if errRename := restoreDBFallback(fallbackPath, config.GetDBPath()); errRename != nil {
 			return common.NewErrorf("Error moving db file and restoring fallback: %v", errRename)
 		}
 		return common.NewErrorf("Error moving db file: %v", err)
@@ -1281,8 +1267,12 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 
 	// Open & migrate new DB
 	if err = database.InitDB(config.GetDBPath()); err != nil {
-		if errRename := os.Rename(fallbackPath, config.GetDBPath()); errRename != nil {
+		_ = database.CloseDB()
+		if errRename := restoreDBFallback(fallbackPath, config.GetDBPath()); errRename != nil {
 			return common.NewErrorf("Error migrating db and restoring fallback: %v", errRename)
+		}
+		if errReinit := database.InitDB(config.GetDBPath()); errReinit != nil {
+			logger.Errorf("import: restored fallback but re-init failed: %v", errReinit)
 		}
 		return common.NewErrorf("Error migrating db: %v", err)
 	}
@@ -1295,10 +1285,21 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 
 	// Start Xray
 	if err = s.RestartXrayService(); err != nil {
+		dropFallback = true
 		return common.NewErrorf("Imported DB but failed to start Xray: %v", err)
 	}
 
+	dropFallback = true
 	return nil
+}
+
+// restoreDBFallback puts the pre-import database back at dest. The imported
+// file is removed first so the rename works on Windows (os.Rename will not
+// overwrite an existing file there).
+func restoreDBFallback(fallbackPath, dest string) error {
+	_ = os.Remove(dest)
+	database.RemoveSidecars(dest)
+	return os.Rename(fallbackPath, dest)
 }
 
 // IsValidGeofileName validates that the filename is safe for geofile operations.

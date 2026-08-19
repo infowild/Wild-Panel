@@ -2118,10 +2118,19 @@
           await this.getDBInbounds();
         }
       },
-      downloadOvpn(dbInboundId, proto) {
-        const url = "/panel/api/inbounds/" + dbInboundId + "/ovpn/" + proto;
-        const base = (typeof basePath !== "undefined" ? basePath : "").replace(/\/$/, "");
-        window.open(base + url, "_blank");
+      async downloadOvpn(dbInboundId, proto) {
+        this.loading(true);
+        try {
+          await FileManager.offerPanelTextFile(
+            '/panel/api/inbounds/' + dbInboundId + '/ovpn/' + proto,
+            'client-' + proto + '.ovpn',
+            'OpenVPN ' + String(proto).toUpperCase(),
+          );
+        } catch (e) {
+          this.$message.error((e && e.message) || String(e));
+        } finally {
+          this.loading(false);
+        }
       },
       openCloneInbound(dbInbound) {
         this.$confirm({
@@ -2403,6 +2412,7 @@
         });
       },
       delClient(dbInboundId, client, confirmation = true) {
+        if (!PERMS.deleteClient) return;
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
         clientId = this.getClientId(dbInbound.protocol, client);
         if (confirmation) {
@@ -2866,7 +2876,16 @@
         return new Date(ts).toLocaleString()
       },
       isRemovable(dbInboundId) {
-        return this.getInboundClients(this.dbInbounds.find(row => row.id === dbInboundId)).length > 1;
+        if (!PERMS.deleteClient) return false;
+        const clients = this.getInboundClients(this.dbInbounds.find(row => row.id === dbInboundId)) || [];
+        // Admins must leave at least one client on the inbound (Xray will not
+        // keep an empty clients list). A reseller's table is already scoped to
+        // accounts they created, so that "last visible row" is usually NOT the
+        // last client on the inbound — hiding delete here made them unable to
+        // remove a single account they sold. The API still refuses a delete that
+        // would empty the whole inbound.
+        if (RESELLER.isReseller) return clients.length > 0;
+        return clients.length > 1;
       },
       inboundLinks(dbInboundId) {
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);

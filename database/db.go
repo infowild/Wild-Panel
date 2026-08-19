@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
@@ -480,14 +481,46 @@ func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 
 // Checkpoint folds the WAL back into the main database file.
 //
-// TRUNCATE, not the default PASSIVE. The caller is ServerService.GetDb, which
-// checkpoints and then serves ONLY the .db file as the panel's DB download. A
-// passive checkpoint yields to any concurrent reader and still reports success,
-// so on a busy panel the downloaded backup could quietly be missing the most
-// recent writes - the one thing a backup may not do. The other two backup paths
-// (main.go, panelupdate.go) already use TRUNCATE; this one was the odd one out.
+// TRUNCATE, not the default PASSIVE. Used by ExportSnapshot's fallback and by
+// callers that need the on-disk .db to be complete without a VACUUM copy.
 func Checkpoint() error {
+	if db == nil {
+		return errors.New("database not ready")
+	}
 	return db.Exec("PRAGMA wal_checkpoint(TRUNCATE);").Error
+}
+
+// ExportSnapshot returns a consistent copy of the live database as SQLite bytes.
+// VACUUM INTO is a point-in-time snapshot and does not race with writers the way
+// reading the live .db file after a checkpoint can. The destination must not
+// already exist (SQLite rule), so the temp file is removed before VACUUM.
+func ExportSnapshot() ([]byte, error) {
+	if db == nil {
+		return nil, errors.New("database not ready")
+	}
+	tmp, err := os.CreateTemp("", "wild-panel-export-*.db")
+	if err != nil {
+		return nil, err
+	}
+	path := tmp.Name()
+	if err := tmp.Close(); err != nil {
+		os.Remove(path)
+		return nil, err
+	}
+	if err := os.Remove(path); err != nil {
+		return nil, err
+	}
+	quoted := strings.ReplaceAll(path, "'", "''")
+	if err := db.Exec("VACUUM INTO '" + quoted + "'").Error; err != nil {
+		os.Remove(path)
+		// Older SQLite or a locked dest: fold WAL then copy the live file.
+		if err2 := Checkpoint(); err2 != nil {
+			return nil, err
+		}
+		return os.ReadFile(config.GetDBPath())
+	}
+	defer os.Remove(path)
+	return os.ReadFile(path)
 }
 
 // RemoveSidecars deletes the -wal/-shm files belonging to dbPath.
