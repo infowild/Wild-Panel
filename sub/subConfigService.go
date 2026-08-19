@@ -93,26 +93,45 @@ func (s *SubService) ConfigFile(subId string, host string, key string) (SubConfi
 	return SubConfigFile{}, false
 }
 
-// ConfigLinks is ConfigFiles reduced to what the page needs, with absolute URLs built the
-// same way the subscription URLs are (so a configured subURI or a proxy host wins).
+// ConfigLinks is ConfigFiles reduced to what the page needs.
+//
+// The href is a path on THIS subscription server (the page the browser already
+// loaded), never GetSubURI(). That URI is often a CDN or converter that only
+// serves the encoded subscription at /{subId} and 404s /{subId}/configs/... —
+// which is exactly what a phone hits when it follows a plain <a href>.
 func (s *SubService) ConfigLinks(subId, host, scheme, hostWithPort, subPath string) []SubConfigLink {
 	files := s.ConfigFiles(subId, host)
 	if len(files) == 0 {
 		return nil
 	}
-	base, _, _ := s.BuildURLs(scheme, hostWithPort, subPath, subPath, subPath, subId)
-	if base == "" {
-		return nil
-	}
 	links := make([]SubConfigLink, 0, len(files))
 	for _, f := range files {
+		path := configFilePath(subPath, subId, f.Key)
+		if path == "" {
+			continue
+		}
 		links = append(links, SubConfigLink{
 			Label:    f.Label,
 			Filename: f.Filename,
-			Url:      strings.TrimRight(base, "/") + "/configs/" + f.Key,
+			Url:      path,
 		})
 	}
 	return links
+}
+
+// configFilePath is the path-absolute URL of one subscriber config file on the
+// sub server. Empty subPath (or "/") means the sub root is "/".
+func configFilePath(subPath, subId, key string) string {
+	id := strings.Trim(subId, "/")
+	k := strings.Trim(key, "/")
+	if id == "" || k == "" {
+		return ""
+	}
+	p := strings.Trim(subPath, "/")
+	if p == "" {
+		return "/" + id + "/configs/" + k
+	}
+	return "/" + p + "/" + id + "/configs/" + k
 }
 
 func (s *SubService) inboundConfigFiles(inbound *model.Inbound, email, host string) []SubConfigFile {
@@ -150,7 +169,7 @@ func (s *SubService) inboundConfigFiles(inbound *model.Inbound, email, host stri
 				Protocol:    string(model.WGC),
 				Label:       wgLabel("WireGuard", cfg.Remark, inbound.Remark),
 				Filename:    configFilename(inbound.Remark, "wg", wgVariant(cfg.Remark, i), "conf"),
-				ContentType: "application/x-wireguard-profile",
+				ContentType: "text/plain",
 				Content:     cfg.Config,
 			})
 		}
@@ -168,7 +187,7 @@ func (s *SubService) inboundConfigFiles(inbound *model.Inbound, email, host stri
 				Protocol:    string(model.AWG),
 				Label:       wgLabel("AmneziaWG", cfg.Remark, inbound.Remark),
 				Filename:    configFilename(inbound.Remark, "awg", wgVariant(cfg.Remark, i), "conf"),
-				ContentType: "application/x-wireguard-profile",
+				ContentType: "text/plain",
 				Content:     cfg.Config,
 			})
 		}

@@ -129,20 +129,9 @@
         });
       },
       download(dev) {
-        // Filename is the account email; when several configs exist (external-proxy
-        // endpoints) the remark keeps their downloads from colliding.
         const base = awgConfigModal.email || 'client';
         const suffix = dev.remark ? '-' + String(dev.remark).replace(/[^A-Za-z0-9_.-]/g, '_') : '';
-        const name = base + suffix + '.conf';
-        const blob = new Blob([dev.config], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        FileManager.downloadTextFile(dev.config, base + suffix + '.conf', { type: 'text/plain;charset=utf-8' });
       },
       // a-modal portals its body to the document root, so these are looked up on the
       // document rather than through this.$el.

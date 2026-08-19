@@ -983,9 +983,11 @@ class FileManager {
         }, 1000);
     }
 
-    static panelUrl(path) {
-        const base = (typeof basePath !== 'undefined' ? basePath : '').replace(/\/$/, '');
-        return base + (path.charAt(0) === '/' ? path : '/' + path);
+    // Paths for axios. baseURL is already webBasePath (page.html); prefixing it
+    // again made /secret/secret/panel/api/... and the phone showed a 404.
+    static axiosPath(path) {
+        if (!path) return '/';
+        return path.charAt(0) === '/' ? path : '/' + path;
     }
 
     // Fetch a text attachment (OpenVPN .ovpn, etc.) without navigating the tab.
@@ -1002,7 +1004,7 @@ class FileManager {
     }
 
     static async offerPanelTextFile(path, filename, title) {
-        const resp = await axios.get(this.panelUrl(path), { responseType: 'text' });
+        const resp = await axios.get(this.axiosPath(path), { responseType: 'text' });
         let text = resp.data;
         if (typeof text !== 'string') {
             text = JSON.stringify(text);
@@ -1024,15 +1026,13 @@ class FileManager {
         if (typeof txtModal !== 'undefined') {
             txtModal.show(title || filename, text, filename);
         }
-        if (!this.isIOS() && !this.isNarrowUi()) {
-            this.downloadTextFile(text, filename, { type: 'text/plain;charset=utf-8' });
-        }
+        this.downloadTextFile(text, filename, { type: 'text/plain;charset=utf-8' });
     }
 
     // Binary download that stays on the current page. Navigating the tab to
     // getDb (window.location) leaves phones on a blank screen.
     static async downloadPanelBlob(path, fallbackName) {
-        const resp = await axios.get(this.panelUrl(path), { responseType: 'blob' });
+        const resp = await axios.get(this.axiosPath(path), { responseType: 'blob' });
         let blob = resp.data;
         if (!(blob instanceof Blob)) {
             blob = new Blob([blob]);

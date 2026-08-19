@@ -185,4 +185,27 @@
       },
     },
   });
+
+  document.querySelectorAll('a.sub-config-btn').forEach((a) => {
+    a.addEventListener('click', async (e) => {
+      const url = a.getAttribute('href');
+      const name = a.getAttribute('data-filename') || a.getAttribute('download') || 'config.txt';
+      if (!url || typeof FileManager === 'undefined') return;
+      // iOS treats <a download> as a navigation. After the URL fix that
+      // navigation is the same-origin text profile, which Safari can Share.
+      // Fetch+share here would run after await and lose the user-gesture.
+      if (FileManager.isIOS()) return;
+      e.preventDefault();
+      try {
+        const resp = await fetch(url, { credentials: 'same-origin' });
+        if (!resp.ok) {
+          throw new Error('HTTP ' + resp.status);
+        }
+        const text = await resp.text();
+        FileManager.downloadTextFile(text, name, { type: 'text/plain;charset=utf-8' });
+      } catch (err) {
+        window.location.assign(url);
+      }
+    });
+  });
 })();

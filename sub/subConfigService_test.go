@@ -162,3 +162,23 @@ func TestConfigFilenameIsSafe(t *testing.T) {
 		})
 	}
 }
+
+func TestConfigFilePathStaysOnTheSubServer(t *testing.T) {
+	cases := []struct {
+		name, subPath, subId, key, want string
+	}{
+		{"default /sub/", "/sub/", "abc", "ovpn-3-udp", "/sub/abc/configs/ovpn-3-udp"},
+		{"sub root is /", "/", "abc", "wgc-1-0", "/abc/configs/wgc-1-0"},
+		{"empty path", "", "abc", "awg-2-0", "/abc/configs/awg-2-0"},
+		{"no trailing slash on sub path", "/sub", "abc", "gre-1-0-linux", "/sub/abc/configs/gre-1-0-linux"},
+		{"missing key", "/sub/", "abc", "", ""},
+		{"missing subId", "/sub/", "", "ovpn-1-tcp", ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := configFilePath(c.subPath, c.subId, c.key); got != c.want {
+				t.Fatalf("got %q, want %q", got, c.want)
+			}
+		})
+	}
+}

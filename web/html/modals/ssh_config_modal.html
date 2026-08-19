@@ -165,23 +165,13 @@
         });
       },
       download(cfg, kind) {
-        // Filename is the account username (fall back to the email label); the remark
-        // keeps several endpoints' downloads from colliding.
         const base = sshConfigModal.username || sshConfigModal.email || 'client';
         const suffix = cfg.remark ? '-' + String(cfg.remark).replace(/[^A-Za-z0-9_.-]/g, '_') : '';
         const isSingbox = kind === 'singbox';
         const content = isSingbox ? cfg.singbox : cfg.plain;
         const ext = isSingbox ? '.json' : '.txt';
         const name = base + suffix + (isSingbox ? '-singbox' : '') + ext;
-        const blob = new Blob([content || ''], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        FileManager.downloadTextFile(content || '', name, { type: 'text/plain;charset=utf-8' });
       },
       // a-modal portals its body to the document root, so these are looked up on the
       // document rather than through this.$el.

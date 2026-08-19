@@ -186,16 +186,11 @@
         if (!text) return;
         const base = greConfigModal.email || 'client';
         const suffix = greConfigModal.peers.length > 1 ? '-peer' + (peer.peerIndex + 1) : '';
-        const name = base + suffix + '-gre-' + platform + '.txt';
-        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        FileManager.downloadTextFile(
+          text,
+          base + suffix + '-gre-' + platform + '.txt',
+          { type: 'text/plain;charset=utf-8' },
+        );
       },
       // a-modal portals its body to the document root, so these are looked up on the
       // document rather than through this.$el.

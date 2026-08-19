@@ -581,15 +581,11 @@
         const d = new Date();
         const p = (n) => String(n).padStart(2, '0');
         const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
-        const blob = new Blob([this.logsContent], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = (this.logsCore || 'core') + '-logs-' + stamp + '.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        FileManager.downloadTextFile(
+          this.logsContent,
+          (this.logsCore || 'core') + '-logs-' + stamp + '.txt',
+          { type: 'text/plain;charset=utf-8' },
+        );
       },
       // --- core picker (setup / add / uninstall) -------------------------
       async loadCatalog() {
