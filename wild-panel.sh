@@ -932,6 +932,7 @@ menu_loop() {
 usage() {
     cat <<EOF
 usage: ${0##*/}            open the management menu
+       ${0##*/} uninstall  remove the panel (same as the binary --uninstall)
        ${0##*/} ssl        issue/install a Let's Encrypt certificate (non-interactive
                            with DEPLOY_DOMAIN=... DEPLOY_EMAIL=...)
        ${0##*/} --help     this message
@@ -975,6 +976,11 @@ require_bin() {
 main() {
     case "${1:-}" in
         -h|--help|help) usage; return 0 ;;
+        uninstall|--uninstall|-uninstall)
+            require_root "$@"
+            require_bin
+            exec "$BIN" --uninstall "${@:2}"
+            ;;
         ssl)
             require_root "$@"
             require_bin

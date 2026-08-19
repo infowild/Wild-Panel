@@ -104,8 +104,10 @@ curl -Ls https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/d
 ## حذف پنل
 
 ```bash
-sudo /opt/wild-panel/wild-panel-amd64 --uninstall
+sudo /opt/wild-panel/wild-panel-amd64 --uninstall --yes
 ```
+
+بدون `--yes` باید `yes` را تایپ کنید. `sudo wild-panel uninstall --yes` هم کار می‌کند.
 
 > [!NOTE]
 > نصب تازه از `/opt/wild-panel`، یونیت `wild-panel` و دیتابیس `wild-panel.db` استفاده می‌کند. نصب‌های قدیمی هنگام ارتقا خودکار منتقل می‌شوند. نسخهٔ فعلی پنل **2.0.10** است.

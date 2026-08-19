@@ -350,12 +350,6 @@ func stopVpnDaemons(r *UninstallReport, exePath string) {
 	if exePath == "" {
 		return
 	}
-	// Reap panel binaries by well-known basenames. Do NOT match `wild-panel` /
-	// `vpn-ui` — those are the management menu scripts; killing them mid-uninstall
-	// would abort the teardown that the menu just started.
-	for _, n := range []string{"wild-panel-amd64", "vpn-ui-amd64"} {
-		_ = exec.Command("pkill", "-KILL", "-x", n).Run()
-	}
 	skip := map[string]bool{}
 	for pid := os.Getpid(); pid > 1; {
 		skip[strconv.Itoa(pid)] = true
@@ -365,13 +359,30 @@ func stopVpnDaemons(r *UninstallReport, exePath string) {
 		}
 		pid = ppid
 	}
-	out, _ := exec.Command("pgrep", "-f", exePath).Output()
-	for _, pid := range strings.Fields(string(out)) {
-		if skip[pid] {
-			continue
+	killOthers := func(pids []string) {
+		for _, pid := range pids {
+			if skip[pid] {
+				continue
+			}
+			_ = exec.Command("kill", "-KILL", pid).Run()
 		}
-		_ = exec.Command("kill", "-KILL", pid).Run()
 	}
+	// Reap panel binaries by well-known basenames. Do NOT match `wild-panel` /
+	// `vpn-ui` — those are the management menu scripts; killing them mid-uninstall
+	// would abort the teardown that the menu just started.
+	// pkill -x <name> was wrong: it has no PID exclusion, so it SIGKILL'd the
+	// uninstall process itself (vpn-ui-amd64 is 12 chars and matches comm
+	// exactly). Linux comm is also truncated to 15 chars, so try both.
+	for _, n := range []string{"wild-panel-amd64", "vpn-ui-amd64"} {
+		out, _ := exec.Command("pgrep", "-x", n).Output()
+		killOthers(strings.Fields(string(out)))
+		if len(n) > 15 {
+			out, _ = exec.Command("pgrep", "-x", n[:15]).Output()
+			killOthers(strings.Fields(string(out)))
+		}
+	}
+	out, _ := exec.Command("pgrep", "-f", exePath).Output()
+	killOthers(strings.Fields(string(out)))
 }
 
 // parentPID returns the parent PID of pid by reading /proc/<pid>/stat, or 0 if it

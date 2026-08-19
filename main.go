@@ -78,6 +78,79 @@ func stdoutIsTTY() bool {
 	return fi.Mode()&os.ModeCharDevice != 0
 }
 
+func stdinIsTTY() bool {
+	fi, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return fi.Mode()&os.ModeCharDevice != 0
+}
+
+// hostSwitchKey strips one or two leading dashes so `--uninstall`, `-uninstall`
+// and the bare `uninstall` form all resolve to the same key. Only `--` was
+// stripped before, so `-uninstall` fell through to "Invalid subcommands" and
+// the documented uninstall command looked broken.
+func hostSwitchKey(arg string) string {
+	if strings.HasPrefix(arg, "--") {
+		return strings.TrimPrefix(arg, "--")
+	}
+	if strings.HasPrefix(arg, "-") {
+		return strings.TrimPrefix(arg, "-")
+	}
+	return arg
+}
+
+type hostSwitches struct {
+	random, systemd, uninstall, force, hasExplicit, onlyKnown bool
+	user, pass, path                                          string
+	port                                                      int
+}
+
+func parseHostSwitches(args []string) hostSwitches {
+	h := hostSwitches{onlyKnown: true}
+	for i := 0; i < len(args); i++ {
+		key := hostSwitchKey(args[i])
+		inlineVal, hasInline := "", false
+		if eq := strings.IndexByte(key, '='); eq >= 0 {
+			inlineVal, key, hasInline = key[eq+1:], key[:eq], true
+		}
+		takeVal := func() string {
+			if hasInline {
+				return inlineVal
+			}
+			if i+1 < len(args) {
+				i++
+				return args[i]
+			}
+			return ""
+		}
+		switch key {
+		case "random":
+			h.random = true
+		case "systemd":
+			h.systemd = true
+		case "uninstall":
+			h.uninstall = true
+		case "yes", "force", "y":
+			h.force = true
+		case "user":
+			h.user, h.hasExplicit = takeVal(), true
+		case "pass":
+			h.pass, h.hasExplicit = takeVal(), true
+		case "path":
+			h.path, h.hasExplicit = takeVal(), true
+		case "port":
+			if p, err := strconv.Atoi(strings.TrimSpace(takeVal())); err == nil {
+				h.port = p
+			}
+			h.hasExplicit = true
+		default:
+			h.onlyKnown = false
+		}
+	}
+	return h
+}
+
 // isInfoArg reports whether an argument is a harmless info switch (version/help)
 // that should run without root.
 func isInfoArg(a string) bool {
@@ -395,11 +468,18 @@ func runUninstall(assumeYes bool) {
 		fmt.Println("  • /etc configs, /usr/libexec/vpn-ui* bundles, logs, bin/, the database")
 		fmt.Println("  • the Wild Panel binary itself (and legacy /opt/vpn-ui leftovers)")
 		fmt.Println("Distro packages and boot/modprobe edits are kept and listed at the end.")
+		if !stdinIsTTY() {
+			fmt.Fprintln(os.Stderr, "stdin is not a terminal. Re-run with --yes to confirm, e.g.:")
+			fmt.Fprintln(os.Stderr, "  sudo /opt/wild-panel/wild-panel-amd64 --uninstall --yes")
+			os.Exit(1)
+		}
 		fmt.Print("Type 'yes' to proceed: ")
 		line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-		if strings.TrimSpace(line) != "yes" {
+		switch strings.ToLower(strings.TrimSpace(line)) {
+		case "yes", "y":
+		default:
 			fmt.Println("Aborted — nothing was removed.")
-			return
+			os.Exit(1)
 		}
 	}
 
@@ -2533,74 +2613,28 @@ func main() {
 	// unit, write the change, start it again. --random and the explicit values run
 	// before --systemd, so a combined invocation boots the unit with the new
 	// settings.
-	{
-		doRandom, doSystemd, doUninstall, doForce, onlySwitches := false, false, false, false, true
-		var setUser, setPass, setPath string
-		var setPort int
-		hasExplicit := false
-		cliArgs := os.Args[1:]
-		for i := 0; i < len(cliArgs); i++ {
-			key := strings.TrimPrefix(cliArgs[i], "--")
-			// Support `--key=value` in addition to `--key value`.
-			inlineVal, hasInline := "", false
-			if eq := strings.IndexByte(key, '='); eq >= 0 {
-				inlineVal, key, hasInline = key[eq+1:], key[:eq], true
-			}
-			takeVal := func() string {
-				if hasInline {
-					return inlineVal
-				}
-				if i+1 < len(cliArgs) {
-					i++
-					return cliArgs[i]
-				}
-				return ""
-			}
-			switch key {
-			case "random":
-				doRandom = true
-			case "systemd":
-				doSystemd = true
-			case "uninstall":
-				doUninstall = true
-			case "yes", "force":
-				doForce = true
-			case "user":
-				setUser, hasExplicit = takeVal(), true
-			case "pass":
-				setPass, hasExplicit = takeVal(), true
-			case "path":
-				setPath, hasExplicit = takeVal(), true
-			case "port":
-				if p, err := strconv.Atoi(strings.TrimSpace(takeVal())); err == nil {
-					setPort = p
-				}
-				hasExplicit = true
-			default:
-				onlySwitches = false
-			}
+	hs := parseHostSwitches(os.Args[1:])
+	// Uninstall is exclusive. Honour it even when extra/unknown args were mixed
+	// in: requiring every token to be a known switch used to drop
+	// `--uninstall` through to flag.Parse(), which then printed "Invalid
+	// subcommands" for the documented GitHub command.
+	if hs.uninstall {
+		requireRoot()
+		runUninstall(hs.force)
+		return
+	}
+	if hs.onlyKnown && (hs.random || hs.systemd || hs.hasExplicit) {
+		requireRoot()
+		if hs.random {
+			randomizeSetting()
 		}
-		if onlySwitches && (doRandom || doSystemd || doUninstall || hasExplicit) {
-			requireRoot()
-			// Uninstall is exclusive and destructive — if requested, run only it.
-			if doUninstall {
-				runUninstall(doForce)
-				return
-			}
-			if doRandom {
-				randomizeSetting()
-			}
-			// Explicit --user/--pass/--port/--path apply after --random (an explicit
-			// value wins over the random one) and before --systemd (so the unit boots
-			// with the new settings).
-			if hasExplicit {
-				applyExplicitSetting(setUser, setPass, setPort, setPath)
-			}
-			if doSystemd {
-				installSystemd()
-			}
-			return
+		if hs.hasExplicit {
+			applyExplicitSetting(hs.user, hs.pass, hs.port, hs.path)
 		}
+		if hs.systemd {
+			installSystemd()
+		}
+		return
 	}
 
 	var showVersion bool
@@ -2760,6 +2794,8 @@ func main() {
 		openvpnEvict()
 	case "help":
 		flag.Usage()
+	case "uninstall":
+		runUninstall(hs.force)
 	default:
 		fmt.Println("Invalid subcommands")
 		fmt.Println()

@@ -113,8 +113,10 @@ curl -Ls https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/d
 ## Uninstalling the Panel
 
 ```bash
-sudo /opt/wild-panel/wild-panel-amd64 --uninstall
+sudo /opt/wild-panel/wild-panel-amd64 --uninstall --yes
 ```
+
+The same command without `--yes` asks you to type `yes` first. `sudo wild-panel uninstall --yes` also works.
 
 > [!NOTE]
 > Fresh installs use `/opt/wild-panel`, the `wild-panel` systemd unit, and `wild-panel.db`. Older installs are migrated automatically on upgrade. Current panel version is **2.0.10**.
