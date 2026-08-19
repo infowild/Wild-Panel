@@ -453,13 +453,13 @@ func runUninstall(assumeYes bool) {
 	// The teardown calls services that log through the logger package (unlike
 	// SaveService), so initialise it first to avoid a nil-logger panic.
 	initLogger()
-	// The DB is only needed to read the configured systemd service name; if it's
-	// already gone we still tear down the rest of the host with defaults.
-	if err := database.InitDB(config.GetDBPath()); err != nil {
-		fmt.Fprintln(os.Stderr, "warning: database unavailable, using defaults:", err)
-	}
 
 	exePath, _ := os.Executable()
+	if exePath != "" {
+		if real, err := filepath.EvalSymlinks(exePath); err == nil && real != "" {
+			exePath = real
+		}
+	}
 
 	if !assumeYes {
 		fmt.Println("This will REMOVE Wild Panel and everything it installed on this host:")
@@ -486,6 +486,11 @@ func runUninstall(assumeYes bool) {
 	fmt.Println("Uninstalling Wild Panel...")
 	report := service.Uninstall(service.UninstallOptions{ExePath: exePath})
 
+	// Close any connection a helper opened. InitDB was previously called here and
+	// left SQLite WAL files open, so rmdir(/opt/wild-panel) failed and the
+	// install tree looked "not uninstalled".
+	_ = database.CloseDB()
+
 	// Remove databases next to the binary (current + legacy basenames).
 	dbDir := config.GetDBFolderPath()
 	for _, base := range []string{"wild-panel", "vpn-ui", "x-ui"} {
@@ -507,13 +512,16 @@ func runUninstall(assumeYes bool) {
 		} else if !os.IsNotExist(err) {
 			report.Errors = append(report.Errors, fmt.Sprintf("%s: %v", exePath, err))
 		}
-		// Then the install directory, but ONLY when the teardown emptied it.
-		// os.Remove on a directory is a plain rmdir: it refuses a non-empty one,
-		// which is exactly the guard wanted here — an operator who kept notes or
-		// their own files in /opt/vpn-ui does not lose them, while the usual case
-		// (nothing left but the directory itself) stops leaving a stale dir on
-		// every uninstalled host.
-		if dir := filepath.Dir(exePath); dir != "" && dir != "/" && dir != "." {
+		dir := filepath.Clean(filepath.Dir(exePath))
+		switch dir {
+		case "/opt/wild-panel", "/opt/vpn-ui":
+			if err := os.RemoveAll(dir); err == nil {
+				report.Removed = append(report.Removed, dir)
+			} else if !os.IsNotExist(err) {
+				report.Errors = append(report.Errors, fmt.Sprintf("%s: %v", dir, err))
+			}
+		case "", "/", ".":
+		default:
 			if err := os.Remove(dir); err == nil {
 				report.Removed = append(report.Removed, dir)
 			}

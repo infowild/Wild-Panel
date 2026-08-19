@@ -11,6 +11,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v2/backend"
 	"github.com/mhsanaei/3x-ui/v2/config"
+	"github.com/mhsanaei/3x-ui/v2/database"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 )
@@ -58,27 +59,12 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 	r := &UninstallReport{}
 	logger.Info("uninstall: starting host teardown")
 
-	// 1. The panel's own systemd unit (default "wild-panel"). Also always try the
-	//    pre-rebrand "vpn-ui" unit so a migrated host does not leave a second unit
-	//    enabled after the operator uninstalls from the new name.
-	var sd SystemdService
-	name := sd.GetServiceName()
-	removedUnits := map[string]bool{}
-	for _, u := range []string{name, "wild-panel", "vpn-ui"} {
-		if u == "" || removedUnits[u] {
-			continue
-		}
-		removedUnits[u] = true
-		up := unitPath(u)
-		_, statErr := os.Lstat(up)
-		if err := sd.RemoveService(u); err != nil {
-			r.fail("remove systemd unit "+u, err)
-			continue
-		}
-		if statErr == nil {
-			r.Removed = append(r.Removed, up)
-		}
-	}
+	// 1. Stop/disable/remove every systemd unit that launches this panel. Do
+	//    this BEFORE any SQLite read: a live unit holds the DB, and InitDB used
+	//    to AutoMigrate it during uninstall (recreating WAL files we then
+	//    failed to rmdir). Hardcoded names plus a scan of ExecStart catch a
+	//    renamed unit.
+	removePanelSystemdUnits(r, opts.ExePath)
 
 	// 1b. Management menu + legacy symlink. Unlinking while this is the script
 	//     running uninstall is safe on Linux (bash holds an open fd on the inode).
@@ -138,6 +124,7 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 		_ = exec.Command("firewall-cmd", "--zone=trusted", "--remove-source="+vpnAddrSpace).Run()
 		_ = exec.Command("firewall-cmd", "--permanent", "--zone=trusted", "--remove-source="+vpnAddrSpace).Run()
 	}
+	cleanupUfwPanelRules(r)
 
 	// 7. Policy routing (fwmark 1 → table 100). Not reversed anywhere else.
 	if commandExists("ip") {
@@ -276,6 +263,61 @@ func Uninstall(opts UninstallOptions) *UninstallReport {
 	return r
 }
 
+func removePanelSystemdUnits(r *UninstallReport, exePath string) {
+	var sd SystemdService
+	seen := map[string]bool{}
+	remove := func(u string) {
+		u = strings.TrimSpace(u)
+		if u == "" || seen[u] {
+			return
+		}
+		seen[u] = true
+		up := unitPath(u)
+		_, statErr := os.Lstat(up)
+		if err := sd.RemoveService(u); err != nil {
+			r.fail("remove systemd unit "+u, err)
+			return
+		}
+		if statErr == nil {
+			r.Removed = append(r.Removed, up)
+		}
+	}
+	remove("wild-panel")
+	remove("vpn-ui")
+	if name, err := database.GetSettingValue(config.GetDBPath(), "systemdServiceName"); err == nil {
+		remove(name)
+	}
+	matches, _ := filepath.Glob("/etc/systemd/system/*.service")
+	for _, p := range matches {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		body := string(data)
+		if strings.Contains(body, "wild-panel-amd64") || strings.Contains(body, "vpn-ui-amd64") ||
+			(exePath != "" && strings.Contains(body, exePath)) {
+			remove(strings.TrimSuffix(filepath.Base(p), ".service"))
+		}
+	}
+}
+
+func cleanupUfwPanelRules(r *UninstallReport) {
+	if !commandExists("ufw") {
+		return
+	}
+	if port, err := database.GetSettingValue(config.GetDBPath(), "webPort"); err == nil {
+		port = strings.Trim(strings.TrimSpace(port), `"`)
+		if port != "" {
+			if err := exec.Command("ufw", "--force", "delete", "allow", port+"/tcp").Run(); err == nil {
+				r.Removed = append(r.Removed, "ufw allow "+port+"/tcp")
+			}
+		}
+	}
+	if err := exec.Command("ufw", "--force", "delete", "allow", "from", "10.0.0.0/12").Run(); err == nil {
+		r.Removed = append(r.Removed, "ufw allow from 10.0.0.0/12")
+	}
+}
+
 // scrubInstallDir removes known panel leftovers under an install root (binary,
 // databases, cert, backups, bin/, sockets) and then rmdirs the root if empty.
 func scrubInstallDir(r *UninstallReport, dir string) {
@@ -306,50 +348,59 @@ func scrubInstallDir(r *UninstallReport, dir string) {
 // spawned, mirroring procmgr.go's orphan cleanup.
 func stopVpnDaemons(r *UninstallReport, exePath string) {
 	procMgr.StopAll()
-	if !commandExists("pkill") {
+	if !commandExists("pkill") && !commandExists("pgrep") {
 		return
 	}
-	// accel-pppd and telemt were missing here even though the orphan reaper in
-	// procmgr.go has known about them for as long as they have existed. Same
-	// omission, same consequence: a daemon still holding :443 (or the MTProto
-	// port) after the panel that supervised it is gone.
+	skip := selfAndAncestors()
+	killPattern := func(args ...string) {
+		if !commandExists("pgrep") {
+			return
+		}
+		out, _ := exec.Command("pgrep", args...).Output()
+		for _, pid := range strings.Fields(string(out)) {
+			if skip[pid] {
+				continue
+			}
+			_ = exec.Command("kill", "-KILL", pid).Run()
+		}
+	}
+
 	for _, d := range []string{"openvpn", "xl2tpd", "pptpd", "accel-pppd", "telemt"} {
 		bin := daemonBin(d)
 		if bin == d {
-			continue // unresolved bare name — avoid a too-broad match
+			continue
 		}
-		_ = exec.Command("pkill", "-KILL", "-f", bin).Run()
+		killPattern("-f", bin)
 	}
-	// Both IPsec planes. libreswan's pluto is the legacy one; charon is the
-	// SHARED plane that L2TP and IKEv2 both run on, so on any host that had
-	// either of them a surviving charon holding UDP 500/4500 is the NORMAL
-	// outcome, not an edge case.
 	for _, p := range []string{
 		backend.LibreswanBundleRoot + "/libexec/ipsec/pluto.bin",
 		backend.StrongswanBundleRoot + "/libexec/ipsec/charon.bin",
 	} {
-		_ = exec.Command("pkill", "-KILL", "-f", p).Run()
+		killPattern("-f", p)
 	}
-	// ocserv RETITLES its processes, so a -f match on the binary path misses
-	// them; only an exact-name pass finds it. Same list procmgr.go reaps.
 	for _, n := range []string{"ocserv-main", "ocserv-sm", "ocserv-worker", "ocserv"} {
-		_ = exec.Command("pkill", "-KILL", "-x", n).Run()
+		killPattern("-x", n)
 	}
-	// The Xray core is not a procMgr child, so nothing else stops it: the panel
-	// is SIGKILLed below, which skips any shutdown hook, and it would be left
-	// holding every inbound port plus the API port.
 	if bin := xray.GetBinaryPath(); bin != "" {
-		_ = exec.Command("pkill", "-KILL", "-f", bin).Run()
+		if !filepath.IsAbs(bin) && exePath != "" {
+			bin = filepath.Join(filepath.Dir(exePath), bin)
+		}
+		killPattern("-f", bin)
 	}
 
-	// Kill any OTHER panel process (e.g. the one the just-removed unit ran).
-	// Exclude ourselves AND our ancestor chain: `pgrep -f <exePath>` also matches
-	// the wrapper that launched us (under `incus exec`/ssh, `sh -c "<exePath>
-	// --uninstall ..."` carries the exe path), and killing that parent severs the
-	// caller's exec channel -> spurious 255 exit though teardown still completes.
 	if exePath == "" {
 		return
 	}
+	for _, n := range []string{"wild-panel-amd64", "vpn-ui-amd64"} {
+		killPattern("-x", n)
+		if len(n) > 15 {
+			killPattern("-x", n[:15])
+		}
+	}
+	killPattern("-f", exePath)
+}
+
+func selfAndAncestors() map[string]bool {
 	skip := map[string]bool{}
 	for pid := os.Getpid(); pid > 1; {
 		skip[strconv.Itoa(pid)] = true
@@ -359,30 +410,7 @@ func stopVpnDaemons(r *UninstallReport, exePath string) {
 		}
 		pid = ppid
 	}
-	killOthers := func(pids []string) {
-		for _, pid := range pids {
-			if skip[pid] {
-				continue
-			}
-			_ = exec.Command("kill", "-KILL", pid).Run()
-		}
-	}
-	// Reap panel binaries by well-known basenames. Do NOT match `wild-panel` /
-	// `vpn-ui` — those are the management menu scripts; killing them mid-uninstall
-	// would abort the teardown that the menu just started.
-	// pkill -x <name> was wrong: it has no PID exclusion, so it SIGKILL'd the
-	// uninstall process itself (vpn-ui-amd64 is 12 chars and matches comm
-	// exactly). Linux comm is also truncated to 15 chars, so try both.
-	for _, n := range []string{"wild-panel-amd64", "vpn-ui-amd64"} {
-		out, _ := exec.Command("pgrep", "-x", n).Output()
-		killOthers(strings.Fields(string(out)))
-		if len(n) > 15 {
-			out, _ = exec.Command("pgrep", "-x", n[:15]).Output()
-			killOthers(strings.Fields(string(out)))
-		}
-	}
-	out, _ := exec.Command("pgrep", "-f", exePath).Output()
-	killOthers(strings.Fields(string(out)))
+	return skip
 }
 
 // parentPID returns the parent PID of pid by reading /proc/<pid>/stat, or 0 if it
