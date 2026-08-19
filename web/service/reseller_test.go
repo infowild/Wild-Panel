@@ -1215,6 +1215,18 @@ func TestQuoteForcedExpiryDerivesTheDeadlineFromTraffic(t *testing.T) {
 // out on its own because the consequence is not obvious: applyToSettings only
 // overwrites expiryTime when ForceExpiry is set, so on these mutations whatever
 // the request posted survives. See the report.
+func TestResellerAccountStampPrefersNickname(t *testing.T) {
+	if got := resellerAccountStamp(&model.User{Username: "login", Nickname: " Shop "}); got != "Shop" {
+		t.Errorf("nickname stamp = %q; want trimmed nickname", got)
+	}
+	if got := resellerAccountStamp(&model.User{Username: "login", Nickname: "  "}); got != "login" {
+		t.Errorf("empty nickname stamp = %q; want username", got)
+	}
+	if got := resellerAccountStamp(nil); got != "" {
+		t.Errorf("nil user stamp = %q", got)
+	}
+}
+
 func TestQuoteForcedExpiryIsSkippedWhenNothingIsCharged(t *testing.T) {
 	cases := []struct {
 		name string

@@ -90,7 +90,8 @@
     // ResellerService.Quote), so a browser that lies about its own minimums
     // buys nothing.
     const RESELLER = Object.assign(
-      { isReseller: false, unlimited: false, allowanceBytes: 0, spentBytes: 0,
+      { isReseller: false, nickname: "", username: "", unlimited: false,
+        allowanceBytes: 0, spentBytes: 0,
         availableBytes: 0, daysPerGb: 0, minCreateGb: 0, minAddGb: 0,
         allowExternalProxy: false },
       {{ .reseller }}

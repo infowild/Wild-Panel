@@ -213,6 +213,8 @@ func templateReseller(c *gin.Context) map[string]any {
 		// one. Report the role with zeroed levers rather than failing the page:
 		// the server-side checks still refuse every write.
 		out["isReseller"] = true
+		out["nickname"] = strings.TrimSpace(user.Nickname)
+		out["username"] = strings.TrimSpace(user.Username)
 		return out
 	}
 	available := p.AllowanceBytes - p.SpentBytes
@@ -220,6 +222,8 @@ func templateReseller(c *gin.Context) map[string]any {
 		available = 0
 	}
 	out["isReseller"] = true
+	out["nickname"] = strings.TrimSpace(user.Nickname)
+	out["username"] = strings.TrimSpace(user.Username)
 	out["unlimited"] = p.Unlimited
 	out["allowanceBytes"] = p.AllowanceBytes
 	out["spentBytes"] = p.SpentBytes

@@ -417,3 +417,100 @@ func TestUnfreezeCannotReviveADepletedAccount(t *testing.T) {
 		})
 	}
 }
+
+func postedComment(t *testing.T, settings string) string {
+	t.Helper()
+	var body map[string]any
+	if err := json.Unmarshal([]byte(settings), &body); err != nil {
+		t.Fatal(err)
+	}
+	clients, _ := body["clients"].([]any)
+	if len(clients) != 1 {
+		t.Fatalf("clients = %d; want 1", len(clients))
+	}
+	cm, _ := clients[0].(map[string]any)
+	s, _ := cm["comment"].(string)
+	return s
+}
+
+// A sold account must carry the reseller's nickname in comment so the inbounds
+// table shows who created it, even if the form posted something else.
+func TestPrepareClientCreateStampsResellerNickname(t *testing.T) {
+	newInboundDB(t)
+	db := database.GetDB()
+	reseller := &model.User{
+		Username: "seller1", Nickname: "Tehran Shop", Password: "x", Enable: true, IsReseller: true,
+	}
+	if err := db.Create(reseller).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ResellerProfile{
+		UserId: reseller.Id, Unlimited: true,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	body, err := json.Marshal(map[string]any{"clients": []any{map[string]any{
+		"email": "sold-stamp", "totalGB": float64(gb), "comment": "ignore me",
+	}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := &model.Inbound{Id: 1, Settings: string(body)}
+	rs := &ResellerService{}
+	if _, err := rs.PrepareClientCreate(reseller, data); err != nil {
+		t.Fatal(err)
+	}
+	if got := postedComment(t, data.Settings); got != "Tehran Shop" {
+		t.Errorf("comment = %q; want the reseller nickname, not the posted value", got)
+	}
+}
+
+func TestPrepareClientCreateStampsUsernameWhenNicknameEmpty(t *testing.T) {
+	newInboundDB(t)
+	db := database.GetDB()
+	reseller := &model.User{
+		Username: "seller2", Nickname: "  ", Password: "x", Enable: true, IsReseller: true,
+	}
+	if err := db.Create(reseller).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ResellerProfile{
+		UserId: reseller.Id, Unlimited: true,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	body, err := json.Marshal(map[string]any{"clients": []any{map[string]any{
+		"email": "sold-login", "totalGB": float64(gb),
+	}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := &model.Inbound{Id: 1, Settings: string(body)}
+	rs := &ResellerService{}
+	if _, err := rs.PrepareClientCreate(reseller, data); err != nil {
+		t.Fatal(err)
+	}
+	if got := postedComment(t, data.Settings); got != "seller2" {
+		t.Errorf("comment = %q; want the login name when nickname is empty", got)
+	}
+}
+
+func TestPrepareClientCreateDoesNotStampAdminComment(t *testing.T) {
+	admin := &model.User{Username: "admin", Nickname: "Boss", Enable: true}
+	body, err := json.Marshal(map[string]any{"clients": []any{map[string]any{
+		"email": "admin-client", "totalGB": float64(gb), "comment": "kept",
+	}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := &model.Inbound{Settings: string(body)}
+	rs := &ResellerService{}
+	if _, err := rs.PrepareClientCreate(admin, data); err != nil {
+		t.Fatal(err)
+	}
+	if got := postedComment(t, data.Settings); got != "kept" {
+		t.Errorf("comment = %q; an admin create must keep the posted comment", got)
+	}
+}

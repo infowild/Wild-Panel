@@ -285,6 +285,12 @@
                     newClient.flow = clientsBulkModal.flow;
                 }
                 newClient.reset = clientsBulkModal.reset;
+                const stamp = String(
+                    (RESELLER && (RESELLER.nickname || RESELLER.username)) || "",
+                ).trim();
+                if (RESELLER.isReseller && stamp) {
+                    newClient.comment = stamp;
+                }
                 clients.push(newClient);
             }
             ObjectUtil.execute(

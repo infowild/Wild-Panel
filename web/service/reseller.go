@@ -419,6 +419,17 @@ func postedClient(data *model.Inbound) (map[string]any, map[string]any, []any, e
 	return cm, settings, clients, nil
 }
 
+// resellerAccountStamp is written into a newly sold client's comment.
+func resellerAccountStamp(user *model.User) string {
+	if user == nil {
+		return ""
+	}
+	if n := strings.TrimSpace(user.Nickname); n != "" {
+		return n
+	}
+	return strings.TrimSpace(user.Username)
+}
+
 // applyToSettings writes the priced decisions back into the request body.
 //
 // The blob has to be patched before InboundService parses it, and doing the
@@ -483,6 +494,12 @@ func (s *ResellerService) PrepareClientCreate(user *model.User, data *model.Inbo
 	email, _ := cm["email"].(string)
 	if email == "" {
 		return ChargeTicket{}, errors.New("client email is required")
+	}
+	// The inbounds table shows this comment under the email. Stamp the reseller
+	// so an admin can see who sold the account without opening the ledger.
+	// Nickname if the admin set one, otherwise the login name.
+	if stamp := resellerAccountStamp(user); stamp != "" {
+		cm["comment"] = stamp
 	}
 
 	// SECURITY: refuse an email that already belongs to someone, BEFORE reserving.

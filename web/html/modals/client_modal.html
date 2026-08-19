@@ -115,6 +115,7 @@
             } else {
                 this.addClient(this.inbound, this.clients);
                 this.seedResellerQuota(this.clients[this.index]);
+                this.seedResellerComment(this.clients[this.index]);
             }
             this.clientStats = this.dbInbound.clientStats.find(
                 (row) => row.email === this.clients[this.index].email,
@@ -139,6 +140,14 @@
             if (client.totalGB > 0) return;
             const floorGb = Math.max(1, Number(RESELLER.minCreateGb) || 0);
             client.totalGB = floorGb * SizeFormatter.ONE_GB;
+        },
+        // Show the nickname in comment on create. The server stamps the same
+        // value on save, so leaving the field empty still records who sold it.
+        seedResellerComment(client) {
+            if (!client || !RESELLER.isReseller) return;
+            const stamp = String(RESELLER.nickname || RESELLER.username || "").trim();
+            if (!stamp || client.comment) return;
+            client.comment = stamp;
         },
         addClient(inbound, clients) {
             switch (inbound.protocol) {
