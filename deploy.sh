@@ -33,7 +33,7 @@ BACKUP_DIR="$DEST_DIR/backups"
 CERT_DIR="$DEST_DIR/cert"
 DOMAIN="${DEPLOY_DOMAIN:-}"
 EMAIL="${DEPLOY_EMAIL:-}"
-PANEL_VERSION="2.0.12"
+PANEL_VERSION="2.0.18"
 GITHUB_URL="https://github.com/$REPO"
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -371,8 +371,17 @@ fetch_asset() {
     if [[ "$DL" == "curl" ]]; then
         # HTTP/2 to GitHub CDNs often dies mid-transfer on flaky/censored links
         # (curl 92 PROTOCOL_ERROR). Force HTTP/1.1 and retry transient failures.
-        curl -fL --http1.1 --retry 5 --retry-all-errors --retry-delay 2 \
-            -sS -o "$out" "$url" 2>"$DL_ERR" &
+        # --retry-all-errors is curl 7.71+; Ubuntu 20.04 ships 7.68 and treats the
+        # unknown flag as a usage error. The operator then only saw curl's footer
+        # ("try 'curl --help'") because we used to replay the last stderr line.
+        local curl_args=(-fL -sS -o "$out")
+        local curl_help=""
+        curl_help="$(curl --help 2>&1 || true)"
+        printf '%s' "$curl_help" | grep -qF -- '--http1.1' && curl_args+=(--http1.1)
+        printf '%s' "$curl_help" | grep -qE -- '--retry([^-]|$)' && curl_args+=(--retry 5)
+        printf '%s' "$curl_help" | grep -qF -- '--retry-delay' && curl_args+=(--retry-delay 2)
+        printf '%s' "$curl_help" | grep -qF -- '--retry-all-errors' && curl_args+=(--retry-all-errors)
+        curl "${curl_args[@]}" "$url" 2>"$DL_ERR" &
     else
         wget --tries=5 -nv -O "$out" "$url" 2>"$DL_ERR" &
     fi
@@ -418,7 +427,14 @@ fetch_asset() {
     fi
     # Quiet mode swallowed curl's/wget's own diagnosis ("HTTP 404" and friends),
     # which is exactly what an operator needs here, so replay it before we fail.
-    if (( rc != 0 )) && [[ -s "$DL_ERR" ]]; then warn "$(tail -n1 "$DL_ERR")"; fi
+    # Replay every line: curl's usage footer is last, and hiding the line above
+    # it ("option --retry-all-errors: is unknown") made this look like a GitHub
+    # outage when it was just an old curl.
+    if (( rc != 0 )) && [[ -s "$DL_ERR" ]]; then
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            [[ -n "$line" ]] && warn "$line"
+        done < "$DL_ERR"
+    fi
     rm -f "$DL_ERR"; DL_ERR=""
     return "$rc"
 }
