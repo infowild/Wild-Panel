@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag (v2.0.20 or 2.0.20)
+        description: Release tag (v2.0.21 or 2.0.21)
         required: true
       make_latest:
         description: Mark this release as GitHub "latest"

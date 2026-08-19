@@ -564,3 +564,69 @@ func TestCopyInboundClientsScopedRestrictsTheSource(t *testing.T) {
 		}
 	}
 }
+
+// Deleting the only account on an inbound must succeed for a reseller: a disabled
+// hold stub keeps Xray from seeing an empty clients list.
+func TestDelInboundClientAllowHoldReplacesLastClient(t *testing.T) {
+	svc := newInboundDB(t)
+	inbound := seedPlainInbound(t, 41006, "only-client")
+
+	if _, err := svc.DelInboundClient(inbound.Id, "uuid-only-client"); err == nil {
+		t.Fatal("admin delete of the last client must still be refused")
+	}
+
+	if _, err := svc.DelInboundClientAllowHold(inbound.Id, "uuid-only-client"); err != nil {
+		t.Fatalf("DelInboundClientAllowHold: %v", err)
+	}
+
+	reloaded, err := svc.GetInbound(inbound.Id)
+	if err != nil {
+		t.Fatalf("inbound vanished: %v", err)
+	}
+	emails := clientEmailsIn(t, reloaded.Settings)
+	if len(emails) != 1 || !strings.HasPrefix(strings.ToLower(emails[0]), "wp-hold-") {
+		t.Fatalf("settings clients = %v; want one hold stub", emails)
+	}
+}
+
+// Bulk delete with SequesterLast removes every targeted account and parks a hold stub
+// when that would otherwise empty the inbound.
+func TestBulkDeleteSequesterLast(t *testing.T) {
+	svc := newInboundDB(t)
+	inbound := seedPlainInbound(t, 41007, "solo")
+
+	result, _, err := svc.BulkUpdateClients(BulkClientUpdateRequest{
+		Op:            "delete",
+		SequesterLast: true,
+		Targets:       []BulkClientTarget{{InboundId: inbound.Id, Email: "solo"}},
+	})
+	if err != nil {
+		t.Fatalf("BulkUpdateClients: %v", err)
+	}
+	if result.Applied != 1 {
+		t.Fatalf("applied = %d; want 1 delete", result.Applied)
+	}
+
+	reloaded, err := svc.GetInbound(inbound.Id)
+	if err != nil {
+		t.Fatalf("inbound vanished: %v", err)
+	}
+	emails := clientEmailsIn(t, reloaded.Settings)
+	if len(emails) != 1 || !strings.HasPrefix(strings.ToLower(emails[0]), "wp-hold-") {
+		t.Fatalf("settings clients = %v; want hold stub after sequester delete", emails)
+	}
+}
+
+// Emails in settings and in the ledger may differ in case; ownership must still match.
+func TestOwnsClientEmailCaseInsensitive(t *testing.T) {
+	f := newResellerFixture(t, "resellers-client")
+	var rs ResellerService
+
+	owns, err := rs.OwnsClientEmail("Resellers-Client", f.reseller.Id)
+	if err != nil {
+		t.Fatalf("OwnsClientEmail: %v", err)
+	}
+	if !owns {
+		t.Error("mixed-case settings email must match lower-cased ledger row")
+	}
+}

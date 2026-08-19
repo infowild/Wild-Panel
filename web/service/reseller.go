@@ -300,10 +300,16 @@ func (s *ResellerService) ProfileFor(userId int) (*model.ResellerProfile, error)
 // ownership question we cannot answer must never resolve to "allowed".
 
 // OwnsClientEmail reports whether this reseller created that account.
+// Matched case-insensitively: the inbounds table already scopes that way, so a
+// mixed-case email the reseller can see must be one they can delete.
 func (s *ResellerService) OwnsClientEmail(email string, userId int) (bool, error) {
+	key := strings.ToLower(strings.TrimSpace(email))
+	if key == "" {
+		return false, nil
+	}
 	var n int64
 	err := database.GetDB().Model(&model.ResellerClient{}).
-		Where("email = ? AND user_id = ?", email, userId).Count(&n).Error
+		Where("lower(email) = ? AND user_id = ?", key, userId).Count(&n).Error
 	if err != nil {
 		return false, err
 	}
@@ -332,7 +338,7 @@ func (s *ResellerService) OwnedEmails(userId int) (map[string]bool, error) {
 func (s *ResellerService) ClientOwner(email string) (*model.ResellerClient, error) {
 	rc := &model.ResellerClient{}
 	err := database.GetDB().Model(&model.ResellerClient{}).
-		Where("email = ?", email).First(rc).Error
+		Where("lower(email) = ?", strings.ToLower(strings.TrimSpace(email))).First(rc).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

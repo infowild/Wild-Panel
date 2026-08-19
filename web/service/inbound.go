@@ -2090,6 +2090,17 @@ func (s *InboundService) CopyInboundClientsScoped(targetInboundID int, sourceInb
 }
 
 func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool, error) {
+	return s.delInboundClient(inboundId, clientId, false)
+}
+
+// DelInboundClientAllowHold is the reseller delete path: if this is the last
+// client on the inbound, it is replaced with a disabled hold stub rather than
+// refused.
+func (s *InboundService) DelInboundClientAllowHold(inboundId int, clientId string) (bool, error) {
+	return s.delInboundClient(inboundId, clientId, true)
+}
+
+func (s *InboundService) delInboundClient(inboundId int, clientId string, allowHoldStub bool) (bool, error) {
 	oldInbound, err := s.GetInbound(inboundId)
 	if err != nil {
 		logger.Error("Load Old Data Error")
@@ -2135,7 +2146,14 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 	}
 
 	if len(newClients) == 0 {
-		return false, common.NewError("no client remained in Inbound")
+		if !allowHoldStub {
+			return false, common.NewError("no client remained in Inbound")
+		}
+		// A reseller's table is only THEIR accounts. Deleting the last one they
+		// sold would empty the inbound, which Xray refuses. Leave a disabled
+		// hold row the reseller does not own, so the account disappears from
+		// their page and the old config stops working.
+		newClients = []any{holdClientStub(oldInbound.Protocol, inboundId)}
 	}
 
 	db := database.GetDB()
@@ -2195,6 +2213,28 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 		MarkDirtyForInbound(oldInbound)
 	}
 	return needRestart, saveErr
+}
+
+// holdClientStub is a disabled client that keeps an inbound from having an empty
+// clients list after a reseller deletes the last account they sold on it.
+func holdClientStub(protocol model.Protocol, inboundId int) map[string]any {
+	id := uuid.NewString()
+	email := fmt.Sprintf("wp-hold-%d", inboundId)
+	cm := map[string]any{
+		"id":      id,
+		"email":   email,
+		"enable":  false,
+		"comment": "hold",
+	}
+	switch clientIdentityKey(protocol) {
+	case "password":
+		cm["password"] = id
+	case "email":
+		// identity is the email itself
+	case "auth":
+		cm["auth"] = id
+	}
+	return cm
 }
 
 func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId string) (bool, error) {
@@ -2442,6 +2482,10 @@ type BulkClientUpdateRequest struct {
 	SkipFirstUse  bool               `json:"skipFirstUse"`
 	SkipUnlimited bool               `json:"skipUnlimited"`
 	SkipDisabled  bool               `json:"skipDisabled"`
+	// SequesterLast: when a delete would empty the inbound, replace the last
+	// client with a disabled hold stub instead of skipping it. Reseller deletes
+	// need this; an admin's bulk delete still keeps one live client.
+	SequesterLast bool               `json:"sequesterLast"`
 	Targets       []BulkClientTarget `json:"targets"`
 }
 
@@ -2453,6 +2497,19 @@ type BulkClientUpdateResult struct {
 }
 
 const bulkMsPerDay = int64(86400000)
+
+func bulkTargeted(targets map[string]bool, email string) bool {
+	key := strings.ToLower(strings.TrimSpace(email))
+	if key == "" {
+		return false
+	}
+	for e := range targets {
+		if strings.ToLower(strings.TrimSpace(e)) == key {
+			return true
+		}
+	}
+	return false
+}
 
 // bulkNumToInt64 coerces a JSON-decoded numeric field (float64 by default) to int64.
 func bulkNumToInt64(v any) int64 {
@@ -2536,21 +2593,25 @@ func (s *InboundService) BulkUpdateClients(req BulkClientUpdateRequest) (BulkCli
 				}
 				total++
 				email, _ := cm["email"].(string)
-				if email != "" && emails[email] && !bulkClientSkipped(cm, req) {
-					del[email] = true
+				if email != "" && bulkTargeted(emails, email) && !bulkClientSkipped(cm, req) {
+					del[strings.ToLower(strings.TrimSpace(email))] = true
 				}
 			}
 			if total > 0 && len(del) >= total {
-				for e := range del { // keep one client back so the inbound isn't emptied
-					delete(del, e)
-					break
+				if req.SequesterLast {
+					// Reseller: remove every targeted account, then park a hold stub.
+				} else {
+					for e := range del { // keep one client back so the inbound isn't emptied
+						delete(del, e)
+						break
+					}
 				}
 			}
 			var kept []any
 			for i := range clientsAny {
 				cm, _ := clientsAny[i].(map[string]any)
 				email, _ := cm["email"].(string)
-				if email != "" && del[email] {
+				if email != "" && del[strings.ToLower(strings.TrimSpace(email))] {
 					if err = s.DelClientStat(tx, email); err != nil {
 						return result, touched, err
 					}
@@ -2561,12 +2622,16 @@ func (s *InboundService) BulkUpdateClients(req BulkClientUpdateRequest) (BulkCli
 					changed = true
 				} else {
 					kept = append(kept, clientsAny[i])
-					if email != "" && emails[email] {
+					if email != "" && bulkTargeted(emails, email) {
 						result.Skipped++ // targeted but retained (skip toggle or last-client guard)
 					}
 				}
 			}
 			clientsAny = kept
+			if req.SequesterLast && len(clientsAny) == 0 {
+				clientsAny = []any{holdClientStub(inbound.Protocol, inboundId)}
+				changed = true
+			}
 		} else {
 			for i := range clientsAny {
 				cm, ok := clientsAny[i].(map[string]any)
@@ -4540,6 +4605,15 @@ func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, [
 	return validEmails, extraEmails, nil
 }
 func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (bool, error) {
+	return s.delInboundClientByEmail(inboundId, email, false)
+}
+
+// DelInboundClientByEmailAllowHold is the reseller delete-by-email path.
+func (s *InboundService) DelInboundClientByEmailAllowHold(inboundId int, email string) (bool, error) {
+	return s.delInboundClientByEmail(inboundId, email, true)
+}
+
+func (s *InboundService) delInboundClientByEmail(inboundId int, email string, allowHoldStub bool) (bool, error) {
 	oldInbound, err := s.GetInbound(inboundId)
 	if err != nil {
 		logger.Error("Load Old Data Error")
@@ -4556,80 +4630,25 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 		return false, common.NewError("invalid clients format in inbound settings")
 	}
 
-	var newClients []any
-	needApiDel := false
-	found := false
-
+	clientKey := clientIdentityKey(oldInbound.Protocol)
+	clientId := ""
 	for _, client := range interfaceClients {
 		c, ok := client.(map[string]any)
 		if !ok {
 			continue
 		}
-		if cEmail, ok := c["email"].(string); ok && cEmail == email {
-			// matched client, drop it
-			found = true
-			needApiDel, _ = c["enable"].(bool)
-		} else {
-			newClients = append(newClients, client)
+		cEmail, _ := c["email"].(string)
+		if !sameEmail(cEmail, email) {
+			continue
 		}
+		clientId, _ = c[clientKey].(string)
+		if clientId == "" {
+			clientId = cEmail
+		}
+		break
 	}
-
-	if !found {
+	if clientId == "" {
 		return false, common.NewError(fmt.Sprintf("client with email %s not found", email))
 	}
-	if len(newClients) == 0 {
-		return false, common.NewError("no client remained in Inbound")
-	}
-
-	db := database.GetDB()
-	if err := adjustGroupBaselinesForRemovedTraffic(db, []string{email}); err != nil {
-		logger.Warning("adjust group baselines:", err)
-	}
-
-	settings["clients"] = newClients
-	newSettings, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return false, err
-	}
-
-	oldInbound.Settings = string(newSettings)
-
-	if err := s.DelClientIPs(db, email); err != nil {
-		logger.Error("Error in delete client IPs")
-		return false, err
-	}
-
-	needRestart := false
-
-	// remove stats too
-	if len(email) > 0 {
-		traffic, err := s.GetClientTrafficByEmail(email)
-		if err != nil {
-			return false, err
-		}
-		if traffic != nil {
-			if err := s.DelClientStat(db, email); err != nil {
-				logger.Error("Delete stats Data Error")
-				return false, err
-			}
-		}
-
-		if needApiDel {
-			s.xrayApi.Init(p.GetAPIPort())
-			if err1 := s.xrayApi.RemoveUser(oldInbound.Tag, email); err1 == nil {
-				logger.Debug("Client deleted by api:", email)
-				needRestart = false
-			} else {
-				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
-					logger.Debug("User is already deleted. Nothing to do more...")
-				} else {
-					logger.Debug("Error in deleting client by api:", err1)
-					needRestart = true
-				}
-			}
-			s.xrayApi.Close()
-		}
-	}
-
-	return needRestart, db.Save(oldInbound).Error
+	return s.delInboundClient(inboundId, clientId, allowHoldStub)
 }

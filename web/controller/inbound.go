@@ -1027,7 +1027,12 @@ func (a *InboundController) delInboundClient(c *gin.Context) {
 	// refund priced afterwards would see no consumption and return the whole
 	// charge.
 	used, usedKnown := a.usageBeforeDelete(email)
-	needRestart, err := a.inboundService.DelInboundClient(id, clientId)
+	var needRestart bool
+	if user := session.GetLoginUser(c); user != nil && user.IsReseller {
+		needRestart, err = a.inboundService.DelInboundClientAllowHold(id, clientId)
+	} else {
+		needRestart, err = a.inboundService.DelInboundClient(id, clientId)
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -1197,6 +1202,9 @@ func (a *InboundController) bulkUpdateClients(c *gin.Context) {
 	if err := json.Unmarshal([]byte(body.Data), &req); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
+	}
+	if user := session.GetLoginUser(c); user != nil && user.IsReseller && req.Op == "delete" {
+		req.SequesterLast = true
 	}
 	// Targets are a JSON array in the body. Reject the whole batch unless the caller
 	// owns every inbound named: a partial apply would be worse than a refusal.
@@ -2004,7 +2012,12 @@ func (a *InboundController) delInboundClientByEmail(c *gin.Context) {
 	}
 
 	used, usedKnown := a.usageBeforeDelete(email)
-	needRestart, err := a.inboundService.DelInboundClientByEmail(inboundId, email)
+	var needRestart bool
+	if user := session.GetLoginUser(c); user != nil && user.IsReseller {
+		needRestart, err = a.inboundService.DelInboundClientByEmailAllowHold(inboundId, email)
+	} else {
+		needRestart, err = a.inboundService.DelInboundClientByEmail(inboundId, email)
+	}
 	if err != nil {
 		jsonMsg(c, "Failed to delete client by email", err)
 		return
