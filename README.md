@@ -7,11 +7,11 @@
 </p>
 
 <p align="center">
-  <sub>Overview dashboard — live traffic, system status, and service health at a glance.</sub>
+  <sub>Overview — live traffic, host status, and service health.</sub>
 </p>
 
 <p align="center">
-  <b>Wild Panel</b> — all-in-one VPN control panel with a glass neon UI, multi-protocol cores, and Xray-powered routing.
+  <b>Wild Panel</b> — all-in-one VPN control panel: glass UI, multi-protocol cores, Xray routing, resellers, groups, and remote nodes.
 </p>
 
 <p align="center">
@@ -20,72 +20,81 @@
   <img src="https://img.shields.io/github/actions/workflow/status/infowild/Wild-Panel/release.yml?style=flat-square&label=release" alt="CI">
 </p>
 
-**Wild Panel** is a modern control panel for operators who need broad protocol coverage and a clean monitoring experience. It builds on the **[3X-UI](https://github.com/MHSanaei/3x-ui)** foundation with a redesigned glass UI, stronger branding, API tokens for sales bots, and a single self-contained binary.
+**Wild Panel** is a control panel for operators who need wide protocol coverage and a monitoring UI that stays readable. It is built on **[3X-UI](https://github.com/MHSanaei/3x-ui)** with a redesigned glass interface (dark and light), API tokens for sales bots, client groups, reseller balances, remote node sync, and a single self-contained Linux binary.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/login.png" alt="Wild Panel — Login" width="720">
 </p>
 
 <p align="center">
-  <sub>Sign-in screen — glass neon UI, dark by default.</sub>
+  <sub>Sign-in — glass neon UI, dark by default, light theme available.</sub>
 </p>
 
 ## Highlights
 
-- Glass / neon dark UI (cyan + purple), responsive on phone and desktop
-- Bearer **API tokens** for automation and sales bots (Settings → Security)
-- Single binary: Geofiles, Xray-core, and VPN daemons embedded
-- Multi-admin, resellers, bulk ops, freeze, TXT/PDF export
+- Glass UI (cyan + violet) on dark and light themes, usable on phone and desktop
+- One binary: geofiles, patched Xray-core, and VPN daemons embedded
+- Bearer **API tokens** for bots and scripts (Settings → Security)
+- Multi-admin permissions, **resellers** with a traffic wallet, **client groups**, **remote nodes**
+- SQLite **backup / restore** (this panel or a 3x-ui database), Telegram backups
+- Subscriptions, 2FA, Telegram bot, in-panel update, Let's Encrypt (including a bare public IP)
 
 ## Protocols
+
+Dial-in / tunnel cores the panel runs (or kernel-offloads):
 
 - PPTP
 - L2TP (RAW)
 - L2TP/IPsec
-- OpenVPN
+- OpenVPN (TCP and UDP, downloadable `.ovpn`)
 - OpenConnect (cisco)
 - SSTP
 - IKEv2
 - WireGuard (C)
 - AmneziaWG (obfuscated WireGuard)
-- GRE (site-to-site router tunnels, optionally over IPsec)
+- GRE (site-to-site, optional IPsec / FOU)
 - MTProto Proxy (Telegram)
-- SSH
+- SSH (in-process gateway, no extra daemon)
 
-Plus three protocols added to the patched Xray-core itself, so they are served by
-the core rather than by a daemon, and they work as **inbounds and outbounds**:
+Plus three protocols in the patched Xray-core, as **inbounds and outbounds**:
 
 - AnyTLS
 - TUIC (v5)
 - NaiveProxy
 
+Stock Xray protocols (VLESS, VMess, Trojan, Shadowsocks, WireGuard, and the rest of the 3x-ui set) are included as well.
+
 ## Features
 
-- **Multi-Admin** with per-inbound access, so each admin only sees the inbounds you assign it
-- **Reseller** accounts with a metered traffic balance an admin recharges, spent only on the inbounds it was given
-- **Client to Client** support, even as **Cross Inbound** (an internal connection between an L2TP user and an OpenVPN user)
-- Added **AES-256-GCM** and **AES-128-GCM** **Encryption** to the **Shadowsocks** protocol
-- Support for **XHTTP Object** in **Inbound** and **Outbound**
-- Automatic installation script for **[WARP-CLI](https://github.com/Sir-MmD/warp-cli)** (Cloudflare's official version)
-- A [patched **Xray-core**](https://github.com/Sir-MmD/Xray-core) that fixes the "Unsupported Cipher" error in the **Shadowsocks** protocol, and adds **AnyTLS**, **TUIC** and **NaiveProxy** as native protocols, so they inherit per-account traffic accounting, speed limits, device limits and online detection instead of needing a second core
-- Bundling all files (**Geofile**, **Xray-core**, and **Backend** cores) into a single binary
-- **Real SSL for a bare server IP**, for a host with no domain at all (Let's Encrypt issues these; the certificate names the address itself)
-- Certificate renewals are picked up **without restarting the panel**, so nobody is disconnected when a certificate rolls over
-- Exporting account links as **TXT** and **PDF**
-- Ability to **Freeze** accounts
-- Added **checkboxes** to clients and **Inbound**s
-- **Bulk Operation** support:
-    * Bulk change of accounts' traffic
-    * Bulk change of accounts' days
-    * Bulk enable/disable of accounts
-    * Bulk delete of accounts
-    * Bulk delete of Inbounds
-    * Bulk **Freeze/Un-Freeze** of accounts
+**Accounts and inbounds**
 
-## Tested Operating Systems
+- Per-account traffic, expiry, speed limits, device / IP limits, freeze
+- **Client groups** — label clients, bulk add/remove, group traffic view
+- Client-to-client and **cross-inbound** (for example L2TP talking to OpenVPN)
+- Bulk ops: traffic, days, enable/disable, delete, freeze, inbound delete
+- TXT / PDF export of links; OpenVPN / WireGuard / AmneziaWG / GRE / SSH config downloads (panel and subscription page)
+- AES-256-GCM and AES-128-GCM on Shadowsocks; **XHTTP** on inbound and outbound
 
+**Operators**
 
-| | Distribution |Version |Version |
+- **Admins** with a permission mask and per-inbound grants
+- **Resellers** with a GB balance, min create/top-up, optional days-per-GB, assigned inbounds only — they see and can delete **only the clients they created**
+- **Nodes** — mirror inbounds to another Wild Panel / 3x-ui over an API token, probe health, aggregate traffic
+- Telegram bot (status, backups, client actions)
+- LDAP sync (optional)
+
+**Panel**
+
+- Overview, inbounds, groups, nodes, settings, Xray template, core catalog
+- In-panel update from GitHub, a local binary, or a URL (DB snapshot first)
+- Database export, like-for-like restore, import of a foreign 3x-ui DB (this panel’s listen/TLS/secret kept)
+- WARP-CLI install helper ([warp-cli](https://github.com/Sir-MmD/warp-cli))
+- Real TLS for a hostname **or a bare server IP** (Let’s Encrypt); renewals apply without restarting the panel
+- Patched [Xray-core](https://github.com/Sir-MmD/Xray-core): Shadowsocks cipher fix, AnyTLS / TUIC / NaiveProxy as first-class protocols (traffic, speed and device limits follow)
+
+## Tested operating systems
+
+| | Distribution | Version | Version |
 |:---:|:---|:---:|:---:|
 | <img src="https://cdn.simpleicons.org/ubuntu" width="32" height="32" alt="Ubuntu"> | **Ubuntu** | `24.04` | `26.04` |
 | <img src="https://cdn.simpleicons.org/debian" width="32" height="32" alt="Debian"> | **Debian** | `12` | `13` |
@@ -95,33 +104,46 @@ the core rather than by a daemon, and they work as **inbounds and outbounds**:
 | <img src="https://cdn.simpleicons.org/centos" width="32" height="32" alt="CentOS Stream"> | **CentOS Stream** | `9` | `10` |
 | <img src="https://cdn.simpleicons.org/archlinux" width="32" height="32" alt="Arch Linux"> | **Arch Linux** | `Rolling` | |
 
-
 > [!IMPORTANT]
-> It is strongly recommended that you install the panel on one of the tested operating systems, because there is a high chance that the new cores will not work correctly on other operating systems!
+> Install on a tested distribution. Bundled VPN cores are built and verified there; other OS images often fail in subtle ways.
 
 > [!NOTE]
 > **AmneziaWG runs on Debian 12/13 and Ubuntu 24.04/26.04 only.**
-> Unlike every other protocol, AmneziaWG is not in any distribution's kernel: the panel compiles its kernel module on your server during setup. That module currently fails to build in two cases. On **kernel 7.1 or newer** (Fedora 43/44, Arch) the kernel removed the `ipv6_stub` symbol the module still uses. On **AlmaLinux, Rocky Linux and CentOS Stream** the backported RHEL kernels collide with the module's compatibility layer, and EL10 is not recognised by it at all. Both are limitations of the upstream AmneziaWG module, with fixes still open upstream, so they are not something the panel can configure around.
-> Setup detects this and tells you, rather than failing silently. **Every other protocol works normally on all tested operating systems.**
+> Unlike the other protocols, AmneziaWG is not in any distro kernel: the panel compiles its module on the host. That module currently fails on **kernel 7.1+** (Fedora 43/44, Arch — `ipv6_stub` removed) and on **AlmaLinux / Rocky / CentOS Stream** (RHEL backport / EL10). Those are upstream AmneziaWG limits. Setup reports the miss instead of failing silently. **Every other protocol works on all tested OS images.**
 
-## Installing the Panel
+## Install
 
 ```bash
 curl -Ls https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/deploy.sh | sudo bash
 ```
 
-## Uninstalling the Panel
+The installer puts the binary and database under `/opt/wild-panel`, installs the `wild-panel` systemd unit, and the `wild-panel` menu on `$PATH`. An older `/opt/vpn-ui` install is migrated on upgrade.
+
+Offline install (skip GitHub):
+
+```bash
+sudo LOCAL_BIN=/path/to/wild-panel-amd64 bash deploy.sh
+```
+
+After install, `sudo wild-panel` opens the management menu (port, path, SSL, update, uninstall).
+
+## Uninstall
+
+```bash
+sudo wild-panel uninstall --yes
+```
+
+Equivalent:
 
 ```bash
 sudo /opt/wild-panel/wild-panel-amd64 --uninstall --yes
 ```
 
-The same command without `--yes` asks you to type `yes` first. `sudo wild-panel uninstall --yes` also works.
+Without `--yes` you must type `yes`. Uninstall stops the unit, closes the database, and removes `/opt/wild-panel` (and leftover `/opt/vpn-ui` if present).
 
-> [!NOTE]
-> Fresh installs use `/opt/wild-panel`, the `wild-panel` systemd unit, and `wild-panel.db`. Older installs are migrated automatically on upgrade. Current panel version is **2.0.10**.
+Latest numbered release: [GitHub Releases](https://github.com/infowild/Wild-Panel/releases).
 
-## How the New Protocols Interact with Xray-core
+## How the new protocols interact with Xray-core
 
 ```mermaid
 flowchart TB
@@ -190,11 +212,11 @@ flowchart TB
   NET -.->|"replies (symmetric path back)"| OUT
 ```
 
-## How RBridge Handles Non-RADIUS Protocols
+## How RBridge handles non-RADIUS protocols
 
-WireGuard (C), AmneziaWG and the IKEv2 **PSK** / **EAP-TLS** modes authenticate with a public key or a certificate, so they never make a RADIUS round-trip. On their own they would get no session record, no traffic accounting, and no **User Limit** enforcement. **RBridge** (Radius Bridge) closes that gap: once per traffic tick its **Sweeper** polls each protocol's live tunnels, enforces quota, disable, and the per-account **User Limit** K (evicting the losers), then reconciles the survivors into the very same in-binary **RADIUS** session registry and **nftables** accounting the RADIUS protocols already use. A key-based protocol therefore behaves identically for usage, quota, and device limits, and egresses through the same Xray **dokodemo-door** data plane.
+WireGuard (C), AmneziaWG and IKEv2 **PSK** / **EAP-TLS** authenticate with a key or certificate, so they never hit RADIUS. Alone they would have no session, no traffic counters, and no **User Limit**. **RBridge** fills that: each traffic tick it polls live tunnels, enforces quota / disable / User Limit K, then writes survivors into the same in-binary RADIUS registry and nftables accounting the RADIUS protocols use. Egress is still Xray **dokodemo-door**.
 
-For the two key-based tunnel protocols, **WireGuard (C)** and **AmneziaWG**, a **User Limit** of K provisions K device slots per account: K keypairs, K configs and K distinct tunnel IPs, one config per device. That is the same model the commercial providers use, and it is what makes a single account usable on a phone, a laptop and a router at once without the devices fighting over one key.
+For **WireGuard (C)** and **AmneziaWG**, User Limit K means K device slots: K keypairs, K configs, K tunnel IPs — phone, laptop, and router on one account without fighting over a single key.
 
 ```mermaid
 flowchart TB
@@ -237,26 +259,28 @@ flowchart TB
   ACCT -.- XRAY
 ```
 
-## Building from Source
+## Building from source
+
+Needs Linux, Go (see `go.mod`), CGO, gcc, and the bundled core/daemon build scripts:
 
 ```bash
 git clone https://github.com/infowild/Wild-Panel.git && cd Wild-Panel
 ./build.sh
 ```
 
-## E2E Testing
+## E2E testing
 
 ![E2E Test](https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/test_unit.png)
 
-A complete **E2E** test written in Python has been designed for this project inside the `test_unit` folder, which you are welcome to use. The steps are as follows:
+Python E2E suite in `test_unit`:
 
-1. Go into the `test_unit` folder and enter your desired settings in `config.toml`.
-2. Run the `setup.sh` script.
-3. Place the compiled binary inside the `test_subject` folder.
-4. Run `run.sh` with `sudo` privileges.
+1. Edit `test_unit/config.toml`.
+2. Run `setup.sh`.
+3. Put the compiled binary in `test_subject`.
+4. Run `run.sh` with `sudo`.
 
 > [!IMPORTANT]
-> The full E2E test is extremely time-consuming; if you have only made a small change to the project, it is better to test only that specific part using the `--tests` switch:
+> A full run is slow. For a small change, use `--tests`:
 
 | Test ID | Description |
 | :--- | :--- |
@@ -288,7 +312,7 @@ A complete **E2E** test written in Python has been designed for this project ins
 | `uninstall` | `--uninstall` switch: install everything, tear down, assert clean host |
 | `export-js` | host-side Node TXT/PDF export test (no VM) |
 
-To test on only one specific operating system, you can use the `--only` switch:
+One OS image:
 
 ```bash
 sudo ./run.sh --only ubuntu-24

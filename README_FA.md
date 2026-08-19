@@ -7,76 +7,94 @@
 </p>
 
 <p align="center">
-  <sub>داشبورد کلی — ترافیک زنده، وضعیت سیستم و سلامت سرویس‌ها در یک نگاه.</sub>
+  <sub>داشبورد — ترافیک زنده، وضعیت سرور و سلامت سرویس‌ها.</sub>
 </p>
 
 <p align="center">
-  <b>Wild Panel</b> — پنل همه‌کارهٔ VPN با رابط شیشه‌ای نئون، پشتیبانی گسترده از پروتکل‌ها و مسیریابی مبتنی بر Xray.
+  <b>Wild Panel</b> — پنل همه‌کارهٔ VPN: رابط شیشه‌ای، هسته‌های چندپروتکلی، مسیریابی Xray، نماینده، گروه‌ها و نودهای ریموت.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/github/v/release/infowild/Wild-Panel?style=flat-square&color=06b6d4" alt="Release">
   <img src="https://img.shields.io/github/license/infowild/Wild-Panel?style=flat-square" alt="License">
+  <img src="https://img.shields.io/github/actions/workflow/status/infowild/Wild-Panel/release.yml?style=flat-square&label=release" alt="CI">
 </p>
 
-**Wild Panel** یک پنل کنترل مدرن برای اپراتورهایی است که هم پوشش پروتکل گسترده می‌خواهند و هم مانیتورینگ تمیز. بر پایهٔ **[3X-UI](https://github.com/MHSanaei/3x-ui)** ساخته شده، با UI شیشه‌ای جدید، توکن API برای ربات‌های فروش، و یک باینری خودکفا.
+**Wild Panel** پنل کنترل برای اپراتوری است که هم پوشش پروتکل می‌خواهد و هم مانیتورینگ خوانا. بر پایهٔ **[3X-UI](https://github.com/MHSanaei/3x-ui)** است، با UI شیشه‌ای (تاریک و روشن)، توکن API برای ربات فروش، گروه‌بندی کلاینت، اعتبار نماینده، همگام‌سازی نود ریموت، و یک باینری لینوکس خودکفا.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/login.png" alt="Wild Panel — Login" width="720">
 </p>
 
 <p align="center">
-  <sub>صفحهٔ ورود — رابط شیشه‌ای نئون، به‌صورت پیش‌فرض تیره.</sub>
+  <sub>ورود — رابط شیشه‌ای نئون، پیش‌فرض تیره، تم روشن هم هست.</sub>
 </p>
 
 ## نکات برجسته
 
-- UI تیرهٔ شیشه‌ای / نئون (فیروزه‌ای + بنفش)، ریسپانسیو روی موبایل و دسکتاپ
-- **توکن API** برای اتوماسیون و ربات فروش (Settings → Security)
-- یک باینری: Geofile، Xray-core و دیمون‌های VPN داخلش
-- چند مدیره، نماینده، عملیات گروهی، فریز، خروجی TXT/PDF
+- UI شیشه‌ای (فیروزه‌ای + بنفش) در تم تاریک و روشن، موبایل و دسکتاپ
+- یک باینری: Geofile، Xray-core پچ‌شده و دیمون‌های VPN داخلش
+- **توکن API** برای ربات و اسکریپت (Settings → Security)
+- چند مدیر با مجوز، **نماینده** با کیف ترافیک، **گروه کلاینت**، **نود ریموت**
+- **بکاپ / ریستور** SQLite (همین پنل یا دیتابیس 3x-ui)، بکاپ تلگرام
+- اشتراک، 2FA، ربات تلگرام، آپدیت از داخل پنل، Let's Encrypt (حتی روی IP خالی)
 
 ## پروتکل‌ها
+
+هسته‌های تونل / دایال‌این که پنل اجرا یا به کرنل می‌سپارد:
 
 - PPTP
 - L2TP (RAW)
 - L2TP/IPsec
-- OpenVPN
+- OpenVPN (TCP و UDP، فایل `.ovpn`)
 - OpenConnect (cisco)
 - SSTP
 - IKEv2
 - WireGuard (C)
-- AmneziaWG (نسخه‌ی مبهم‌سازی‌شده‌ی WireGuard)
-- GRE (تونل‌های site-to-site بین روترها، در صورت نیاز روی IPsec)
-- MTProto Proxy (Telegram)
-- SSH
+- AmneziaWG (WireGuard مبهم‌سازی‌شده)
+- GRE (site-to-site، در صورت نیاز IPsec / FOU)
+- MTProto Proxy (تلگرام)
+- SSH (گیت‌وی داخل خود پنل، بدون دیمون جدا)
+
+سه پروتکل داخل Xray-core پچ‌شده، هم **اینباند** هم **اوت‌باند**:
+
+- AnyTLS
+- TUIC (v5)
+- NaiveProxy
+
+پروتکل‌های معمولی Xray (VLESS، VMess، Trojan، Shadowsocks، WireGuard و بقیهٔ مجموعهٔ 3x-ui) هم هستند.
 
 ## امکانات
 
-- **چند مدیره** با دسترسی جداگانه به هر Inbound، هر مدیر فقط Inbound هایی را می‌بیند که به او داده‌اید
-- حساب‌های **نماینده** با اعتبار ترافیک که مدیر آن را شارژ می‌کند و فقط روی Inbound های داده‌شده خرج می‌شود
-- قابلیت **Client to Client** حتی بصورت **Cross Inbound** (اتصال داخلی کاربر L2TP به کاربر OpenVPN)
-- اضافه‌شدن **Encryption** های **AES-256-GCM** و **AES-128-GCM** به پروتکل **Shadowsocks**
-- پشتیبانی از **XHTTP Object** در **Inbound** و **Outbound**
-- اسکریپت نصب خودکار **[WARP-CLI](https://github.com/Sir-MmD/warp-cli)** (نسخه‌ی رسمی Cloudflare)
-- هسته‌ی [**Xray-core** پچ‌شده](https://github.com/Sir-MmD/Xray-core) برای رفع خطای «Unsupported Cipher» در پروتکل **Shadowsocks**
-- باندل‌شدن همه‌ی فایل‌ها (Geofile، Xray-core و هسته‌های Backend) داخل یک فایل باینریِ واحد
-- خروجی گرفتن لینک اکانت ها بصورت **TXT** و **PDF**
-- قابلیت **Freez** کردن اکانت هات
-- اضافه شدن **checkbox** به کلاینت و Inbound ها
-- قابلیت **Bulk Operation**: 
+**اکانت و اینباند**
 
-    * تغییر گروهی حجم اکانت ها
-    * تغییر گروهی روز اکانت ها
-    * فعال سازی/غیر فعال سازی گروهی اکانت ها
-    * حذف گروهی اکانت ها
-    * حذف گروهی Inbound ها
-    * قابلیت Freez/Un-Freez کردن گروهی اکانت ها
+- ترافیک، انقضا، محدودیت سرعت، محدودیت دستگاه / IP، فریز
+- **گروه کلاینت** — برچسب، افزودن/حذف گروهی، مشاهدهٔ ترافیک گروه
+- Client-to-client و **Cross Inbound** (مثلاً L2TP به OpenVPN)
+- عملیات گروهی: حجم، روز، فعال/غیرفعال، حذف، فریز، حذف اینباند
+- خروجی TXT / PDF لینک‌ها؛ دانلود کانفیگ OpenVPN / WireGuard / AmneziaWG / GRE / SSH (پنل و صفحهٔ اشتراک)
+- AES-256-GCM و AES-128-GCM روی Shadowsocks؛ **XHTTP** در اینباند و اوت‌باند
 
-## سیستم‌عامل‌های تست شده
+**اپراتور**
 
+- **ادمین** با ماسک مجوز و دسترسی اینباند
+- **نماینده** با اعتبار GB، حداقل ساخت/شارژ، اختیاری روز-به‌ازای-گیگ، فقط اینباندهای داده‌شده — فقط **اکانت‌هایی که خودش ساخته** را می‌بیند و می‌تواند حذف کند
+- **نود** — آینهٔ اینباند روی پنل ریموت (Wild Panel / 3x-ui) با توکن API، تست اتصال، جمع ترافیک
+- ربات تلگرام (وضعیت، بکاپ، اکشن کلاینت)
+- همگام‌سازی LDAP (اختیاری)
 
-| | توزیع |نسخه |نسخه |
+**پنل**
+
+- Overview، اینباندها، گروه‌ها، نودها، تنظیمات، قالب Xray، کاتالوگ هسته
+- آپدیت از GitHub، فایل محلی یا URL (اول اسنپ‌شات دیتابیس)
+- خروجی دیتابیس، ریستور مثل‌به‌مثل، ورود دیتابیس خارجی 3x-ui (آدرس/TLS/سکرت همین پنل حفظ می‌شود)
+- کمک نصب WARP-CLI ([warp-cli](https://github.com/Sir-MmD/warp-cli))
+- TLS واقعی برای دامنه **یا IP خالی سرور** (Let's Encrypt)؛ تمدید گواهی بدون ری‌استارت پنل
+- [Xray-core پچ‌شده](https://github.com/Sir-MmD/Xray-core): رفع cipher شادوساکس، AnyTLS / TUIC / NaiveProxy به‌صورت پروتکل درجه یک
+
+## سیستم‌عامل‌های تست‌شده
+
+| | توزیع | نسخه | نسخه |
 |:---:|:---|:---:|:---:|
 | <img src="https://cdn.simpleicons.org/ubuntu" width="32" height="32" alt="Ubuntu"> | **Ubuntu** | `24.04` | `26.04` |
 | <img src="https://cdn.simpleicons.org/debian" width="32" height="32" alt="Debian"> | **Debian** | `12` | `13` |
@@ -86,33 +104,46 @@
 | <img src="https://cdn.simpleicons.org/centos" width="32" height="32" alt="CentOS Stream"> | **CentOS Stream** | `9` | `10` |
 | <img src="https://cdn.simpleicons.org/archlinux" width="32" height="32" alt="Arch Linux"> | **Arch Linux** | `Rolling` | |
 
-
 > [!IMPORTANT]
-> پیشنهاد می‌شه حتماً پنل رو روی سیستم‌عامل‌های تست‌شده نصب کنید؛ چون احتمال این‌که هسته‌های جدید روی بقیه‌ی سیستم‌عامل‌ها درست کار نکنن بالاست!
+> پنل را روی توزیع تست‌شده نصب کنید. هسته‌های باندل‌شده آنجا ساخته و بررسی شده‌اند؛ روی سیستم‌عامل دیگر معمولاً مشکل ریز پیش می‌آید.
 
 > [!NOTE]
-> **پروتکل AmneziaWG فقط روی Debian 12/13 و Ubuntu 24.04/26.04 کار می‌کنه.**
-> برخلاف بقیه‌ی پروتکل‌ها، AmneziaWG توی هسته‌ی هیچ توزیعی نیست: پنل موقع راه‌اندازی، ماژول هسته‌اش رو روی سرور خودتون کامپایل می‌کنه. این ماژول فعلاً توی دو حالت بیلد نمی‌شه. روی **هسته‌ی 7.1 و بالاتر** (Fedora 43/44 و Arch) هسته سمبل `ipv6_stub` رو که ماژول هنوز ازش استفاده می‌کنه حذف کرده. روی **AlmaLinux، Rocky Linux و CentOS Stream** هم هسته‌های بک‌پورت‌شده‌ی RHEL با لایه‌ی سازگاری ماژول تداخل دارن و EL10 اصلاً براش شناخته‌شده نیست. هر دوی این‌ها محدودیت خودِ ماژول AmneziaWG هستن و رفعشون هنوز سمت پروژه‌ی اصلی بازه، پس چیزی نیست که پنل بتونه با تنظیمات دورش بزنه.
-> فرایند راه‌اندازی این رو تشخیص می‌ده و بهتون خبر می‌ده، به‌جای این‌که بی‌صدا شکست بخوره. **بقیه‌ی پروتکل‌ها روی همه‌ی سیستم‌عامل‌های تست‌شده به‌طور عادی کار می‌کنن.**
+> **AmneziaWG فقط روی Debian 12/13 و Ubuntu 24.04/26.04 کار می‌کند.**
+> برخلاف بقیه، در کرنل هیچ توزیعی نیست: پنل ماژول را روی خود سرور کامپایل می‌کند. فعلاً روی **کرنل 7.1 به بالا** (Fedora 43/44 و Arch — حذف `ipv6_stub`) و روی **AlmaLinux / Rocky / CentOS Stream** بیلد نمی‌شود. محدودیت خودِ AmneziaWG است. نصب به‌جای شکست خاموش، گزارش می‌دهد. **بقیهٔ پروتکل‌ها روی همهٔ OSهای تست‌شده کار می‌کنند.**
 
-## نصب پنل
+## نصب
 
 ```bash
 curl -Ls https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/deploy.sh | sudo bash
 ```
 
+نصب‌کننده باینری و دیتابیس را در `/opt/wild-panel` می‌گذارد، یونیت systemd به نام `wild-panel` و منوی `wild-panel` روی `$PATH`. نصب قدیمی `/opt/vpn-ui` هنگام ارتقا منتقل می‌شود.
+
+نصب آفلاین (بدون GitHub):
+
+```bash
+sudo LOCAL_BIN=/path/to/wild-panel-amd64 bash deploy.sh
+```
+
+بعد از نصب، `sudo wild-panel` منوی مدیریت را باز می‌کند (پورت، مسیر، SSL، آپدیت، حذف).
+
 ## حذف پنل
+
+```bash
+sudo wild-panel uninstall --yes
+```
+
+معادل:
 
 ```bash
 sudo /opt/wild-panel/wild-panel-amd64 --uninstall --yes
 ```
 
-بدون `--yes` باید `yes` را تایپ کنید. `sudo wild-panel uninstall --yes` هم کار می‌کند.
+بدون `--yes` باید `yes` تایپ شود. حذف یونیت را متوقف می‌کند، دیتابیس را می‌بندد و `/opt/wild-panel` (و در صورت وجود `/opt/vpn-ui`) را برمی‌دارد.
 
-> [!NOTE]
-> نصب تازه از `/opt/wild-panel`، یونیت `wild-panel` و دیتابیس `wild-panel.db` استفاده می‌کند. نصب‌های قدیمی هنگام ارتقا خودکار منتقل می‌شوند. نسخهٔ فعلی پنل **2.0.10** است.
+آخرین نسخهٔ شماره‌دار: [GitHub Releases](https://github.com/infowild/Wild-Panel/releases).
 
-## نحوه‌ی تعامل پروتکل‌های جدید با هسته‌ی Xray-core
+## تعامل پروتکل‌های جدید با Xray-core
 
 ```mermaid
 flowchart TB
@@ -181,9 +212,11 @@ flowchart TB
   NET -.->|"replies (symmetric path back)"| OUT
 ```
 
-## نحوه‌ی کار RBridge با پروتکل‌های بدون RADIUS
+## RBridge برای پروتکل‌های بدون RADIUS
 
-برای دو پروتکل tunnel مبتنی بر کلید، یعنی **WireGuard (C)** و **AmneziaWG**، مقدار K در **User Limit** به هر اکانت تعداد K جای دستگاه می‌دهد: K جفت‌کلید، K فایل config و K آدرس IP متفاوت داخل tunnel، یعنی برای هر دستگاه یک config جداگانه. این همان مدلی است که سرویس‌های تجاری استفاده می‌کنند و باعث می‌شود یک اکانت همزمان روی موبایل، لپ‌تاپ و روتر کار کند، بدون اینکه دستگاه‌ها سر یک کلید با هم تداخل پیدا کنند.
+WireGuard (C)، AmneziaWG و IKEv2 در حالت **PSK** / **EAP-TLS** با کلید یا گواهی احراز می‌شوند و به RADIUS نمی‌روند. بدون لایهٔ اضافه، سشن، شمارندهٔ ترافیک و **User Limit** نخواهند داشت. **RBridge** هر تیک ترافیک تونل‌های زنده را می‌خواند، سهمیه / غیرفعال / حد K دستگاه را اعمال می‌کند و بازمانده‌ها را در همان رجیستری RADIUS داخلی و nftables می‌نویسد. خروج همچنان از **dokodemo-door** در Xray است.
+
+برای **WireGuard (C)** و **AmneziaWG**، User Limit برابر K یعنی K جای دستگاه: K جفت‌کلید، K کانفیگ، K آدرس تونل — موبایل، لپ‌تاپ و روتر روی یک اکانت بدون جنگ سر یک کلید.
 
 ```mermaid
 flowchart TB
@@ -228,6 +261,8 @@ flowchart TB
 
 ## کامپایل از سورس
 
+لینوکس، Go (نسخهٔ `go.mod`)، CGO، gcc و اسکریپت‌های باندل هسته/دیمون:
+
 ```bash
 git clone https://github.com/infowild/Wild-Panel.git && cd Wild-Panel
 ./build.sh
@@ -237,15 +272,15 @@ git clone https://github.com/infowild/Wild-Panel.git && cd Wild-Panel
 
 ![تست E2E](https://raw.githubusercontent.com/infowild/Wild-Panel/refs/heads/main/media/test_unit.png)
 
-یک تست **E2E** کامل با Python داخل فولدر `test_unit` برای این پروژه طراحی شده که می‌تونید ازش استفاده کنید. مراحلش این‌طوریه:
+مجموعهٔ Python داخل `test_unit`:
 
-1. وارد فولدر `test_unit` بشید و تنظیمات دلخواه‌تون رو توی `config.toml` وارد کنید.
-2. اسکریپت `setup.sh` رو اجرا کنید.
-3. فایل باینریِ کامپایل‌شده رو داخل فولدر `test_subject` قرار بدید.
-4. `run.sh` رو با دسترسی `sudo` اجرا کنید.
+1. `test_unit/config.toml` را تنظیم کنید.
+2. `setup.sh` را اجرا کنید.
+3. باینری را در `test_subject` بگذارید.
+4. `run.sh` را با `sudo` اجرا کنید.
 
 > [!IMPORTANT]
-> تست کامل E2E به‌شدت زمان‌بره؛ اگه فقط یه تغییر کوچیک توی پروژه دادید، بهتره با سویچ `--tests` فقط همون بخش رو تست کنید:
+> اجرای کامل خیلی طول می‌کشد. برای تغییر کوچک از `--tests` استفاده کنید:
 
 | Test ID | Description |
 | :--- | :--- |
@@ -277,7 +312,7 @@ git clone https://github.com/infowild/Wild-Panel.git && cd Wild-Panel
 | `uninstall` | `--uninstall` switch: install everything, tear down, assert clean host |
 | `export-js` | host-side Node TXT/PDF export test (no VM) |
 
-برای تست روی فقط یک سیستم‌عامل خاص هم می‌تونید از سویچ `--only` استفاده کنید:
+یک سیستم‌عامل:
 
 ```bash
 sudo ./run.sh --only ubuntu-24
