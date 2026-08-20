@@ -137,17 +137,27 @@
       // document rather than through this.$el.
       qr(selector, value) {
         const el = document.querySelector(selector);
-        if (!el || !value) return;
-        new QRious({
-          element: el,
-          size: 360,
-          value: value,
-          background: 'white',
-          backgroundAlpha: 1,
-          foreground: 'black',
-          padding: 8,
-          level: 'L',
-        });
+        if (!el) return;
+        const plate = el.closest('.wca-card__qr');
+        if (!value) {
+          if (plate) plate.style.display = 'none';
+          return;
+        }
+        try {
+          new QRious({
+            element: el,
+            size: 360,
+            value: value,
+            background: 'white',
+            backgroundAlpha: 1,
+            foreground: 'black',
+            padding: 8,
+            level: 'L',
+          });
+          if (plate) plate.style.display = '';
+        } catch (e) {
+          if (plate) plate.style.display = 'none';
+        }
       },
       renderQrs() {
         awgConfigModal.devices.forEach((dev, index) => {

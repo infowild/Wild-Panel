@@ -95,6 +95,39 @@
     }
     .subscription-page .sub-brand .wp-mark { width: 64px; height: 64px; }
     .subscription-page .sub-brand .wp-wordmark { font-size: 12px; letter-spacing: .16em; }
+
+    .subscription-page .sub-share {
+        margin: 0 0 12px;
+        padding: 12px;
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-lg);
+        background: var(--glass-bg);
+    }
+    .subscription-page .sub-share__tag { margin-bottom: 8px; }
+    .subscription-page .sub-share__row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+    .subscription-page .sub-share__code {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text-2);
+    }
+    @media (max-width: 576px) {
+        .subscription-page tr-qr-box.qr-box { width: min(200px, 100%); }
+        .subscription-page .qr-bg-sub,
+        .subscription-page .qr-bg-sub-inner {
+            width: min(200px, calc(100vw - 72px));
+            height: min(200px, calc(100vw - 72px));
+        }
+    }
 </style>
 {{ template "page/head_end" .}}
 
@@ -141,7 +174,7 @@
                         </a-popover>
                     </template>
 
-                    <a-form layout="vertical">
+                    <a-form layout="vertical" v-if="links.length">
                         <a-form-item>
                             <a-space direction="vertical" align="center">
                                 <a-row type="flex" :gutter="[8,8]" justify="center" style="width:100%">
@@ -190,7 +223,9 @@
                                 </a-row>
                             </a-space>
                         </a-form-item>
+                    </a-form>
 
+                    <a-form layout="vertical">
                         <a-form-item>
                             <a-descriptions bordered :column="1" size="small">
                                 <a-descriptions-item label='{{ i18n "subscription.subId" }}'>[[
@@ -242,20 +277,17 @@
                         </a-form-item>
                     </a-form>
 
-                    <br />
-                    <div v-for="(link, idx) in links" :key="link"
-                        style="position: relative; margin-bottom: 20px; text-align: center;">
-                        <div class="qr-box" style="display: inline-block; width: 100%; max-width: 100%;">
-                            <a-tag color="purple"
-                                style="margin-bottom: -10px; position: relative; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                                <span>[[ linkName(link, idx) ]]</span>
-                            </a-tag>
-                            <div @click="copy(link)" class="subscription-link-box">
-                                [[ link ]]
-                            </div>
+                    <br v-if="links.length" />
+                    <div v-for="(link, idx) in links" :key="idx"
+                        class="sub-share">
+                        <a-tag color="purple" class="sub-share__tag">
+                            <span>[[ linkName(link, idx) ]]</span>
+                        </a-tag>
+                        <div class="sub-share__row">
+                            <code class="sub-share__code" :title="link">[[ linkPreview(link) ]]</code>
+                            <a-button size="small" icon="copy" @click="copy(link)">{{ i18n "copy" }}</a-button>
                         </div>
                     </div>
-                    <br />
 
                     <!-- Config files: OpenVPN, WireGuard/AmneziaWG and GRE cannot be set
                          up from a link, so their profiles are offered as downloads (GRE
@@ -281,7 +313,7 @@
                     </a-row>
                     {{ end }}
 
-                    <a-form layout="vertical">
+                    <a-form layout="vertical" v-if="links.length">
                         <a-form-item>
                             <a-row type="flex" justify="center" :gutter="[8,8]" style="width:100%">
                                 <a-col :xs="24" :sm="12" style="text-align:center;">

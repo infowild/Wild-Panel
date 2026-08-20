@@ -63,7 +63,7 @@
     </template>
     <template v-for="(row, index) in qrModal.qrcodes">
       <tr-qr-box class="wca-card">
-        <div class="wca-card__qr">
+        <div class="wca-card__qr" v-show="row.qrOk !== false">
           <div class="wca-qr">
             <canvas @click="copy(row.link)" :id="'qrCode-'+index" class="qr-cv"></canvas>
           </div>
@@ -76,16 +76,22 @@
             <div class="wca-qr-meta__name qr-tag"><span>[[ row.remark ]]</span></div>
           </div>
           <div class="wca-copyrow">
-            <span class="wca-copyrow__label">Connection link</span>
+            <span class="wca-copyrow__label">[[ isShareUri(row.link) ? 'Connection link' : 'Tunnel profile' ]]</span>
             <div class="wca-copyrow__field">
-              <code class="wca-code">[[ row.link ]]</code>
+              <code class="wca-code" :class="{ 'wca-code--block': !isShareUri(row.link) }">[[ row.link ]]</code>
               <button type="button" class="wca-copy wca-copy--primary" title='{{ i18n "copy" }}'
                 @click="copy(row.link)">
                 <a-icon type="copy"></a-icon>
               </button>
             </div>
+            <div class="wca-acts" v-if="!isShareUri(row.link)">
+              <button type="button" class="wca-act" @click="downloadProfile(row)">
+                <a-icon type="download"></a-icon>
+                <span>{{ i18n "download" }}</span>
+              </button>
+            </div>
           </div>
-          <div class="wca-hosts__row">
+          <div class="wca-hosts__row" v-if="isShareUri(row.link)">
             <span class="wca-hosts__name">{{ i18n "useIPv4ForHost" }}</span>
             <a-switch size="small" :checked="row.useIPv4" @click="toggleIPv4(index)"></a-switch>
           </div>
@@ -194,6 +200,14 @@
         }
       },
       
+      isShareUri(content) {
+        return typeof content === 'string' && /^[a-z][a-z0-9+.-]*:\/\//i.test(content.trim());
+      },
+      downloadProfile(row) {
+        const base = (qrModal.client && qrModal.client.email) || qrModal.dbInbound.remark || 'client';
+        const safe = String(row.remark || base).replace(/[^A-Za-z0-9_.-]/g, '_');
+        FileManager.downloadTextFile(row.link, safe + '.conf', { type: 'text/plain;charset=utf-8' });
+      },
       toggleIPv4(index) {
         const row = qrModal.qrcodes[index];
         row.useIPv4 = !row.useIPv4;
@@ -206,13 +220,10 @@
         }
         
         if (row.useIPv4 && this.serverStatus.publicIP.ipv4) {
-          // Replace the hostname or IP in the link with the IPv4 address
           const originalLink = row.originalLink;
-          const url = new URL(originalLink);
           const ipv4 = this.serverStatus.publicIP.ipv4;
-          
-          if (qrModal.inbound.protocol == Protocols.WIREGUARD) {
-            // Special handling for WireGuard config
+
+          if (qrModal.inbound.protocol == Protocols.WIREGUARD || !this.isShareUri(originalLink)) {
             const endpointRegex = /Endpoint = ([^:]+):(\d+)/;
             const match = originalLink.match(endpointRegex);
             if (match) {
@@ -222,9 +233,13 @@
               );
             }
           } else {
-            // For other protocols using URL format
-            url.hostname = ipv4;
-            row.link = url.toString();
+            try {
+              const url = new URL(originalLink);
+              url.hostname = ipv4;
+              row.link = url.toString();
+            } catch (e) {
+              row.link = originalLink;
+            }
           }
         } else {
           // Restore original link
@@ -243,7 +258,10 @@
           }, 600);
         }
         
-        this.setQrCode("qrCode-" + index, row.link);
+        const ok = this.isShareUri(row.link) ? this.setQrCode("qrCode-" + index, row.link) : false;
+        if (row.qrOk !== ok) {
+          this.$set(row, 'qrOk', ok);
+        }
       },
       copy(content) {
         ClipboardManager
@@ -253,16 +271,24 @@
           })
       },
       setQrCode(elementId, content) {
-        new QRious({
-          element: document.querySelector('#' + elementId),
-          size: 400,
-          value: content,
-          background: 'white',
-          backgroundAlpha: 0,
-          foreground: 'black',
-          padding: 2,
-          level: 'L'
-        });
+        const el = document.querySelector('#' + elementId);
+        if (!el || !content) return false;
+        try {
+          new QRious({
+            element: el,
+            size: 400,
+            value: content,
+            background: 'white',
+            backgroundAlpha: 0,
+            foreground: 'black',
+            padding: 2,
+            level: 'L'
+          });
+          return true;
+        } catch (e) {
+          console.warn('QR generation failed', e);
+          return false;
+        }
       },
       genSubLink(subID) {
         return app.subSettings.subURI + subID;
@@ -301,7 +327,11 @@
         }
       }
       qrModal.qrcodes.forEach((element, index) => {
-        this.setQrCode("qrCode-" + index, element.link);
+        const isShare = this.isShareUri(element.link);
+        const ok = isShare ? this.setQrCode("qrCode-" + index, element.link) : false;
+        if (element.qrOk !== ok) {
+          this.$set(element, 'qrOk', ok);
+        }
         // Update links based on current toggle state
         if (element.useIPv4 && this.serverStatus && this.serverStatus.publicIP) {
           this.updateLink(index);

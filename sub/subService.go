@@ -212,7 +212,12 @@ func (s *SubService) getLink(inbound *model.Inbound, email string) string {
 		// WireGuard, so these accounts get a working entry. The full-fidelity .conf
 		// still comes from the Clash sub and the per-client modal.
 		return s.genWireguardLink(inbound, email)
-	case "openvpn", "l2tp", "pptp", "openconnect", "sstp", "ikev2":
+	case "openvpn":
+		// OpenVPN has no importable URI. A connection card here was a fake
+		// trojan:// line plus a QR the OpenVPN app cannot scan. The .ovpn
+		// download on the HTML page is the only delivery that works.
+		return ""
+	case "l2tp", "pptp", "openconnect", "sstp", "ikev2":
 		// Username/password VPNs have no importable proxy URI at all, so the entry is
 		// a connection card: parseable enough for a client to accept the account and
 		// show its quota, with the credentials in the name.

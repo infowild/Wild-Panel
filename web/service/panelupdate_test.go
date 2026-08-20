@@ -3,7 +3,13 @@ package service
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -93,6 +99,38 @@ func TestProgressReaderSampleSpeed(t *testing.T) {
 	if got >= 1<<20 {
 		t.Errorf("speed = %d; want a decay below the previous 1 MiB/s", got)
 	}
+}
+
+func TestVerifyPanelBinaryChecksum(t *testing.T) {
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "wild-panel-amd64")
+	data := []byte("release-bytes")
+	if err := os.WriteFile(bin, data, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(data)
+
+	t.Run("accepts sha256sum format", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "%x  wild-panel-amd64\n", sum)
+		}))
+		defer srv.Close()
+
+		if err := VerifyPanelBinaryChecksum(context.Background(), bin, srv.URL); err != nil {
+			t.Fatalf("verify: %v", err)
+		}
+	})
+
+	t.Run("rejects mismatch", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, strings.Repeat("0", sha256.Size*2))
+		}))
+		defer srv.Close()
+
+		if err := VerifyPanelBinaryChecksum(context.Background(), bin, srv.URL); err == nil {
+			t.Fatal("mismatched checksum was accepted")
+		}
+	})
 }
 
 // Cancel is only legal during the download. Once installing starts, the DB snapshot

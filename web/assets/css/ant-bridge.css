@@ -2920,12 +2920,33 @@ body.dark :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#a
   /* Restated at the weighted rule's own specificity, or the details dialog
      would keep two columns here while every other dialog collapsed. */
   #inbound-info-modal .wca-split:has(> .wca-sec ~ .wca-sec) { grid-template-columns:minmax(0,1fr); }
-  #qrcode-modal .wca-card { grid-template-columns:minmax(0,1fr); gap:14px; }
+  /* WireGuard / Amnezia / SSH / GRE used to keep the 40/60 split on phones:
+     a 180px QR plate plus a .conf block cannot share ~360px, so the modal
+     overflowed sideways. Stack every share card, not only the Xray QR one. */
+  :is(#qrcode-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-card {
+    grid-template-columns:minmax(0,1fr);
+    gap:14px;
+  }
+  :is(#qrcode-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-qr .qr-cv {
+    width:160px;
+    height:160px;
+  }
+  :is(#qrcode-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-qr--sm .qr-cv {
+    width:160px;
+    height:160px;
+  }
   :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-kv--pair { grid-template-columns:minmax(70px,max-content) minmax(0,1fr); }
 }
 @media (max-width:560px) {
   :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-metrics { grid-template-columns:minmax(0,1fr); }
   :is(#qrcode-modal,#inbound-info-modal,#text-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .ant-modal-footer .ant-btn { min-width:0; flex:1 1 auto; }
+  :is(#qrcode-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-copyrow__field {
+    flex-wrap:wrap;
+  }
+  :is(#qrcode-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-code,
+  :is(#qrcode-modal,#wgc-config-modal,#awg-config-modal,#ssh-config-modal,#gre-config-modal) .wca-code--block {
+    flex:1 1 100%;
+  }
 }
 
 /* ======================================================================

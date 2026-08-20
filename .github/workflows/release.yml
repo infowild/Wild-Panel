@@ -34,6 +34,35 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Resolve release tag
+        id: meta
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            tag="$INPUT_TAG"
+          else
+            tag="${GITHUB_REF_NAME}"
+          fi
+          # Manual runs often type 2.0.20; git tags are v2.0.20. Accept both.
+          tag="v${tag#v}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "error: release tag must be semantic, e.g. v2.0.13 (got: $tag)" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout resolved tag
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git fetch --force --tags origin
+          git rev-parse --verify "$TAG^{commit}" >/dev/null
+          git checkout --detach "$TAG"
+          git submodule update --init --recursive
+
       - name: Free disk space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
@@ -74,25 +103,6 @@ jobs:
           key: embeds-amd64-${{ hashFiles('build/backend/**', 'build/core/**', '.gitmodules') }}
           restore-keys: |
             embeds-amd64-
-
-      - name: Resolve release tag
-        id: meta
-        env:
-          INPUT_TAG: ${{ inputs.tag }}
-        run: |
-          set -euo pipefail
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            tag="$INPUT_TAG"
-          else
-            tag="${GITHUB_REF_NAME}"
-          fi
-          # Manual runs often type 2.0.20; git tags are v2.0.20. Accept both.
-          tag="v${tag#v}"
-          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "error: release tag must be semantic, e.g. v2.0.13 (got: $tag)" >&2
-            exit 1
-          fi
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       # go:embed config/version is baked in at compile time — must match the tag or
       # in-panel updates succeed but the UI still shows the old version (v2.0.5 bug).
@@ -165,6 +175,8 @@ jobs:
           cp -f build/out/wild-panel-amd64 wild-panel-amd64
           # Compat name for older deploy/update fallbacks
           cp -f wild-panel-amd64 vpn-ui-amd64
+          sha256sum wild-panel-amd64 > wild-panel-amd64.sha256
+          sha256sum vpn-ui-amd64 > vpn-ui-amd64.sha256
 
       - name: Publish GitHub Release
         env:
@@ -246,7 +258,10 @@ jobs:
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG exists — uploading assets"
-            gh release upload "$TAG" wild-panel-amd64 vpn-ui-amd64 --clobber
+            gh release upload "$TAG" \
+              wild-panel-amd64 wild-panel-amd64.sha256 \
+              vpn-ui-amd64 vpn-ui-amd64.sha256 \
+              --clobber
             if [[ "$MAKE_LATEST" == "true" ]]; then
               gh release edit "$TAG" --latest
             fi
@@ -257,7 +272,9 @@ jobs:
             fi
             # Generate notes from commits since the previous tag. Do not stamp
             # the static historical v2.0.12 copy above onto every future version.
-            gh release create "$TAG" wild-panel-amd64 vpn-ui-amd64 \
+            gh release create "$TAG" \
+              wild-panel-amd64 wild-panel-amd64.sha256 \
+              vpn-ui-amd64 vpn-ui-amd64.sha256 \
               --title "Wild Panel ${TAG}" \
               --generate-notes \
               "${EXTRA[@]}"

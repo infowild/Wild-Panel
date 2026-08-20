@@ -1203,14 +1203,23 @@ func runUpdate() {
 	}
 
 	tmp := exe + ".new"
+	downloadURL := service.PanelDownloadURL
+	checksumURL := service.PanelChecksumURL
 	fmt.Printf("Downloading %s ...\n", service.PanelDownloadURL)
 	if err := service.DownloadPanelBinary(context.Background(), tmp, service.PanelDownloadURL); err != nil {
 		fmt.Fprintf(os.Stderr, "Primary asset failed (%v); trying legacy %s ...\n", err, service.PanelLegacyAsset)
+		downloadURL = service.PanelLegacyDownloadURL
+		checksumURL = service.PanelLegacyChecksumURL
 		if err2 := service.DownloadPanelBinary(context.Background(), tmp, service.PanelLegacyDownloadURL); err2 != nil {
 			_ = os.Remove(tmp)
 			fmt.Fprintln(os.Stderr, "Download failed:", err2)
 			os.Exit(1)
 		}
+	}
+	if err := service.VerifyPanelBinaryChecksum(context.Background(), tmp, checksumURL); err != nil {
+		_ = os.Remove(tmp)
+		fmt.Fprintf(os.Stderr, "Checksum verification failed for %s: %v\n", downloadURL, err)
+		os.Exit(1)
 	}
 	// An HTML 404 page, a truncated transfer or a wrong-arch asset would otherwise be
 	// renamed over the running binary and brick the panel on its next start.

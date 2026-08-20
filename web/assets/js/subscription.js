@@ -106,6 +106,12 @@
     return 'Link ' + (idx + 1);
   }
 
+  function linkPreview(link) {
+    if (!link) return '';
+    if (link.length <= 72) return link;
+    return link.slice(0, 36) + '…' + link.slice(-18);
+  }
+
   const app = new Vue({
     delimiters: ['[[', ']]'],
     el: '#app',
@@ -180,6 +186,7 @@
       copy,
       open,
       linkName,
+      linkPreview,
       i18nLabel(key) {
         return '{{ i18n "' + key + '" }}';
       },

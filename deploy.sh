@@ -10,6 +10,7 @@ DEST="$DEST_DIR/$ASSET"
 UNIT="wild-panel"
 PREV_UNIT="vpn-ui"                   # silent: stop/disable during migration only
 DL_URL="https://github.com/$REPO/releases/latest/download/$ASSET"
+SUM_URL="${DL_URL}.sha256"
 # Offline / flaky-network install: point at a pre-downloaded binary and skip GitHub.
 #   sudo LOCAL_BIN=/path/to/wild-panel-amd64 bash deploy.sh
 LOCAL_BIN="${LOCAL_BIN:-}"
@@ -40,9 +41,9 @@ if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
     B=$'\e[1m'; D=$'\e[2m'; R=$'\e[0m'
     BLUE=$'\e[38;5;39m'; GREEN=$'\e[38;5;114m'; RED=$'\e[38;5;203m'
     YELLOW=$'\e[38;5;221m'; TEAL=$'\e[38;5;44m'; WHITE=$'\e[1;38;5;255m'
-    CYAN=$'\e[38;5;51m'; MAGENTA=$'\e[38;5;213m'
+    CYAN=$'\e[38;5;51m'
 else
-    B= D= R= BLUE= GREEN= RED= YELLOW= TEAL= WHITE= CYAN= MAGENTA=
+    B=''; D=''; R=''; BLUE=''; GREEN=''; RED=''; YELLOW=''; TEAL=''; WHITE=''; CYAN=''
 fi
 
 # ":: text"  bold-blue header + bold-white message (pacman's step style)
@@ -75,7 +76,7 @@ BANNER
 # Install packages the installer itself needs (download, TLS, archive, systemd helpers).
 # Best-effort across apt / dnf / yum / apk / pacman. Skips packages already present.
 install_prerequisites() {
-    local need=() pkg missing=()
+    local need=() pkg
     for pkg in curl wget ca-certificates tar gzip unzip openssl; do
         case "$pkg" in
             ca-certificates)
@@ -264,7 +265,11 @@ else
         ver="$(curl -sILo /dev/null --http1.1 -w '%{url_effective}' "https://github.com/$REPO/releases/latest" 2>/dev/null \
                | grep -oE 'tag/[^/[:space:]]+$' | sed 's#tag/##' || true)"
     fi
-    [[ -n "$ver" ]] && act "latest release: ${GREEN}${ver}${R}" || act "asset: ${GREEN}${ASSET}${R}"
+    if [[ -n "$ver" ]]; then
+        act "latest release: ${GREEN}${ver}${R}"
+    else
+        act "asset: ${GREEN}${ASSET}${R}"
+    fi
     if [[ "$MODE" == "update" ]]; then
         act "mode:   ${YELLOW}update${R} (${OLD_VER:-unknown} -> ${ver:-latest})"
     else
@@ -439,6 +444,33 @@ fetch_asset() {
     return "$rc"
 }
 
+verify_download_checksum() {
+    local file="$1" sum_url="$2" sum_file expected got
+    sum_file="$(mktemp)"
+    if [[ "$DL" == "curl" ]]; then
+        curl -fL -sS -o "$sum_file" "$sum_url" || {
+            rm -f "$sum_file"
+            die "failed to download checksum: $sum_url"
+        }
+    else
+        wget --tries=3 -q -O "$sum_file" "$sum_url" || {
+            rm -f "$sum_file"
+            die "failed to download checksum: $sum_url"
+        }
+    fi
+    expected="$(awk 'NR==1 {print tolower($1)}' "$sum_file")"
+    rm -f "$sum_file"
+    [[ "$expected" =~ ^[0-9a-f]{64}$ ]] || die "checksum file is not a SHA-256 digest: $sum_url"
+    if command -v sha256sum >/dev/null 2>&1; then
+        printf '%s  %s\n' "$expected" "$file" | sha256sum -c - >/dev/null \
+            || die "downloaded file checksum does not match release checksum."
+    else
+        got="$(openssl dgst -sha256 -r "$file" | awk '{print tolower($1)}')"
+        [[ "$got" == "$expected" ]] || die "downloaded file checksum does not match release checksum."
+    fi
+    ok "verified SHA-256 checksum"
+}
+
 install -d -m 0755 "$DEST_DIR"
 tmp="$(mktemp "${DEST}.XXXXXX")"
 DL_PID=""; DL_ERR=""
@@ -481,6 +513,9 @@ trap - INT TERM
 
 # Sanity: non-empty and a real Linux ELF binary (not an HTML 404 page).
 [[ -s "$tmp" ]] || die "downloaded file is empty."
+if [[ -z "$LOCAL_BIN" ]]; then
+    verify_download_checksum "$tmp" "$SUM_URL"
+fi
 if command -v file >/dev/null 2>&1; then
     file -b "$tmp" | grep -qi 'ELF' || die "downloaded file is not an ELF binary (got: $(file -b "$tmp"))."
 else

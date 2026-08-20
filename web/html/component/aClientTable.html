@@ -56,7 +56,7 @@
         <a-icon type="more"></a-icon>
       </button>
       <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-        <a-menu-item v-if="app.subSettings?.enable && client.subId" @click="showQrcode(record.id,client);">
+        <a-menu-item v-if="app.subSettings?.enable && client.subId && record.protocol !== Protocols.OPENVPN" @click="showQrcode(record.id,client);">
           <a-icon type="link"></a-icon>
           {{ i18n "pages.settings.subSettings" }}
         </a-menu-item>

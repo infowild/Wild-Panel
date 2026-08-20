@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,8 +61,11 @@ const (
 	panelLatestAPI   = "https://api.github.com/repos/" + panelRepo + "/releases/latest"
 	// PanelDownloadURL is the release asset both the in-panel updater and the CLI
 	// `update` subcommand download.
-	PanelDownloadURL       = "https://github.com/" + panelRepo + "/releases/latest/download/" + PanelAsset
-	PanelLegacyDownloadURL = "https://github.com/" + panelRepo + "/releases/latest/download/" + PanelLegacyAsset
+	PanelDownloadURL             = "https://github.com/" + panelRepo + "/releases/latest/download/" + PanelAsset
+	PanelChecksumURL             = PanelDownloadURL + ".sha256"
+	PanelLegacyDownloadURL       = "https://github.com/" + panelRepo + "/releases/latest/download/" + PanelLegacyAsset
+	PanelLegacyChecksumURL       = PanelLegacyDownloadURL + ".sha256"
+	maxPanelChecksumResponseSize = 4096
 )
 
 // PanelUpdateInfo reports the running version vs. the latest published release,
@@ -335,6 +339,8 @@ func (s *ServerService) UpdatePanel() error {
 	}
 
 	tmp := exe + ".new"
+	downloadURL := PanelDownloadURL
+	checksumURL := PanelChecksumURL
 	logger.Infof("panel update: downloading %s", PanelDownloadURL)
 	if err := DownloadPanelBinary(ctx, tmp, PanelDownloadURL); err != nil {
 		if ctx.Err() != nil {
@@ -344,6 +350,8 @@ func (s *ServerService) UpdatePanel() error {
 			return ErrPanelUpdateCancelled
 		}
 		logger.Warningf("panel update: primary asset failed (%v); trying legacy %s", err, PanelLegacyAsset)
+		downloadURL = PanelLegacyDownloadURL
+		checksumURL = PanelLegacyChecksumURL
 		if err2 := DownloadPanelBinary(ctx, tmp, PanelLegacyDownloadURL); err2 != nil {
 			_ = os.Remove(tmp)
 			if ctx.Err() != nil {
@@ -353,6 +361,10 @@ func (s *ServerService) UpdatePanel() error {
 			}
 			return err2
 		}
+	}
+	if err := VerifyPanelBinaryChecksum(ctx, tmp, checksumURL); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("checksum verification failed for %s: %w", downloadURL, err)
 	}
 	// Validate it's an ELF for THIS architecture — a 404 HTML page, a truncated
 	// file, or a wrong-arch asset would otherwise be renamed over the running binary
@@ -485,6 +497,44 @@ func DownloadPanelBinary(ctx context.Context, dst, url string) error {
 	// unknown: bytes and speed are still meaningful, only the percent isn't.
 	if _, err := io.Copy(f, newProgressReader(resp.Body, resp.ContentLength)); err != nil {
 		return err
+	}
+	return nil
+}
+
+// VerifyPanelBinaryChecksum verifies path against a GitHub release .sha256 asset.
+// The checksum file may be the common "hex filename" format or just a bare hex sum.
+func VerifyPanelBinaryChecksum(ctx context.Context, path, checksumURL string) error {
+	client := &http.Client{Timeout: 30 * time.Second}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, checksumURL, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "Wild-Panel")
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("checksum download failed: HTTP %d from %s", resp.StatusCode, checksumURL)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxPanelChecksumResponseSize))
+	if err != nil {
+		return err
+	}
+	fields := strings.Fields(string(body))
+	if len(fields) == 0 || len(fields[0]) != sha256.Size*2 {
+		return fmt.Errorf("checksum file does not start with a SHA-256 hex digest")
+	}
+	want := strings.ToLower(fields[0])
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	gotBytes := sha256.Sum256(data)
+	got := fmt.Sprintf("%x", gotBytes[:])
+	if got != want {
+		return fmt.Errorf("sha256 mismatch: got %s, want %s", got, want)
 	}
 	return nil
 }
