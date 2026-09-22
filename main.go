@@ -248,6 +248,9 @@ func runWebServer() {
 
 	initLogger()
 
+	// Opt-in, loopback-only CPU/heap profiler. No-op unless WILDPANEL_PPROF is set.
+	startPprofIfRequested()
+
 	warnUnsupportedDistro()
 
 	godotenv.Load()
