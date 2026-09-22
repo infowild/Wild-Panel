@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/database"
@@ -39,7 +40,42 @@ type IPWithTimestamp struct {
 // is "none"), or plain absent without any effect on the limit that is actually applied.
 type CheckClientIpJob struct {
 	lastClear int64
+
+	// logOffset is how far into the access log the last scrape got, so the next one
+	// reads only what Xray appended since.
+	//
+	// Without it this job re-parsed the ENTIRE access log every 10 seconds while the
+	// log grew for a whole hour between truncations (see clearAccessLog). That is
+	// quadratic in traffic: 360 passes an hour over an ever-larger file, each one
+	// running three regexes per line. On a busy panel the log reaches hundreds of MB
+	// within the hour and this single job saturates a core — and it scales with user
+	// traffic, so it arrives as "the panel suddenly eats CPU" with nothing in the
+	// config having changed.
+	//
+	// Reading only the tail is not an approximation: updateInboundClientIps MERGES
+	// each scrape into the row already stored for that client (see mergeClientIps),
+	// so lines parsed on an earlier pass are still represented. Re-reading them
+	// produced the same merged result at 360x the cost.
+	logOffset int64
+
+	// limitIpCache / limitIpCachedAt memoize hasLimitIp, which otherwise JSON-decodes
+	// every client on every inbound on every tick just to answer one boolean.
+	limitIpCache    bool
+	limitIpCachedAt int64
 }
+
+// Compiled once. These used to be built inside processLogFile, so every tick paid
+// three regexp compilations before it read a single line.
+var (
+	accessIPRegex        = regexp.MustCompile(`from (?:tcp:|udp:)?\[?([0-9a-fA-F\.:]+)\]?:\d+ accepted`)
+	accessEmailRegex     = regexp.MustCompile(`email: (.+)$`)
+	accessTimestampRegex = regexp.MustCompile(`^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})`)
+)
+
+// limitIpCacheTTL bounds how stale the "does anyone have an IP cap" answer may be.
+// This job is display-only telemetry, so noticing a freshly set cap up to a minute
+// late costs nothing; re-deriving it every 10s cost a full scan of every client.
+const limitIpCacheTTL = int64(60)
 
 var job *CheckClientIpJob
 
@@ -101,14 +137,37 @@ func (j *CheckClientIpJob) clearAccessLog() {
 	err = os.Truncate(accessLogPath, 0)
 	j.checkError(err)
 
+	// The file we have been tracking an offset into is now empty; the next scrape
+	// must start from the top or it would skip everything Xray writes next.
+	j.logOffset = 0
 	j.lastClear = time.Now().Unix()
 }
 
 func (j *CheckClientIpJob) hasLimitIp() bool {
+	now := time.Now().Unix()
+	if j.limitIpCachedAt != 0 && now-j.limitIpCachedAt < limitIpCacheTTL {
+		return j.limitIpCache
+	}
+	result := j.computeHasLimitIp()
+	j.limitIpCache, j.limitIpCachedAt = result, now
+	return result
+}
+
+func (j *CheckClientIpJob) computeHasLimitIp() bool {
 	db := database.GetDB()
+
+	// The inbound-level cap is a column, so ask the database instead of decoding
+	// JSON to find out. Most panels that use IP limits at all set this one.
+	var withColumnCap int64
+	if err := db.Model(model.Inbound{}).Where("ip_limit > 0").Count(&withColumnCap).Error; err == nil && withColumnCap > 0 {
+		return true
+	}
+
 	var inbounds []*model.Inbound
 
-	err := db.Model(model.Inbound{}).Find(&inbounds).Error
+	// Only rows whose settings blob even mentions the key can carry a per-client
+	// override, so the JSON decode below runs on a fraction of the table.
+	err := db.Model(model.Inbound{}).Where("settings LIKE ?", "%limitIp%").Find(&inbounds).Error
 	if err != nil {
 		return false
 	}
@@ -133,43 +192,71 @@ func (j *CheckClientIpJob) hasLimitIp() bool {
 	return false
 }
 
-func (j *CheckClientIpJob) processLogFile() {
+// scanAccessLog reads the access log from `offset` and returns every (email -> ip ->
+// last-seen) observation in the newly appended region, plus the offset to resume from.
+//
+// Split out of processLogFile so the offset arithmetic — the part that decides whether
+// this job costs one line of work or the whole file — is exercised directly by tests
+// rather than by a copy of it.
+func scanAccessLog(f *os.File, offset int64) (map[string]map[string]int64, int64) {
+	observed := make(map[string]map[string]int64, 100)
 
-	ipRegex := regexp.MustCompile(`from (?:tcp:|udp:)?\[?([0-9a-fA-F\.:]+)\]?:\d+ accepted`)
-	emailRegex := regexp.MustCompile(`email: (.+)$`)
-	timestampRegex := regexp.MustCompile(`^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})`)
+	// Resume where the last scrape stopped, and start over if the file shrank —
+	// clearAccessLog truncates hourly, and an external rotation would do the same.
+	// A file that shrank is a NEW file as far as our offset is concerned, so holding
+	// the old offset would skip everything written after it.
+	size := int64(0)
+	if fi, err := f.Stat(); err == nil {
+		size = fi.Size()
+	}
+	if offset > size {
+		offset = 0
+	}
+	if offset > 0 {
+		if _, err := f.Seek(offset, io.SeekStart); err != nil {
+			offset = 0
+			if _, err := f.Seek(0, io.SeekStart); err != nil {
+				return observed, 0
+			}
+		}
+	}
 
-	accessLogPath, _ := xray.GetAccessLogPath()
-	file, _ := os.Open(accessLogPath)
-	defer file.Close()
+	// consumed counts only bytes belonging to COMPLETE lines. Xray appends to this
+	// file while we read it, so the final chunk can be half a line; committing it
+	// would make the next scrape resume mid-line and lose that entry. Leaving it
+	// unconsumed means the next pass re-reads the partial line whole.
+	//
+	// ReadString rather than bufio.Scanner precisely because of that: Scanner hands
+	// back the trailing partial line as an ordinary token at EOF with no way to tell
+	// it apart, so counting its bytes silently swallowed the entry. ReadString
+	// returns a nil error ONLY when it actually found the delimiter.
+	consumed := offset
+	reader := bufio.NewReaderSize(f, 64*1024)
+	for {
+		line, rerr := reader.ReadString('\n')
+		if rerr != nil {
+			break // EOF (possibly with a partial line, deliberately left unconsumed)
+		}
+		consumed += int64(len(line))
+		line = strings.TrimRight(line, "\r\n")
 
-	// Track IPs with their last seen timestamp
-	inboundClientIps := make(map[string]map[string]int64, 100)
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		ipMatches := ipRegex.FindStringSubmatch(line)
+		ipMatches := accessIPRegex.FindStringSubmatch(line)
 		if len(ipMatches) < 2 {
 			continue
 		}
-
 		ip := ipMatches[1]
-
 		if ip == "127.0.0.1" || ip == "::1" {
 			continue
 		}
 
-		emailMatches := emailRegex.FindStringSubmatch(line)
+		emailMatches := accessEmailRegex.FindStringSubmatch(line)
 		if len(emailMatches) < 2 {
 			continue
 		}
 		email := emailMatches[1]
 
-		// Extract timestamp from log line
 		var timestamp int64
-		timestampMatches := timestampRegex.FindStringSubmatch(line)
+		timestampMatches := accessTimestampRegex.FindStringSubmatch(line)
 		if len(timestampMatches) >= 2 {
 			t, err := time.Parse("2006/01/02 15:04:05", timestampMatches[1])
 			if err == nil {
@@ -181,14 +268,26 @@ func (j *CheckClientIpJob) processLogFile() {
 			timestamp = time.Now().Unix()
 		}
 
-		if _, exists := inboundClientIps[email]; !exists {
-			inboundClientIps[email] = make(map[string]int64)
+		if _, exists := observed[email]; !exists {
+			observed[email] = make(map[string]int64)
 		}
-		// Update timestamp - keep the latest
-		if existingTime, ok := inboundClientIps[email][ip]; !ok || timestamp > existingTime {
-			inboundClientIps[email][ip] = timestamp
+		if existingTime, ok := observed[email][ip]; !ok || timestamp > existingTime {
+			observed[email][ip] = timestamp
 		}
 	}
+	return observed, consumed
+}
+
+func (j *CheckClientIpJob) processLogFile() {
+	accessLogPath, _ := xray.GetAccessLogPath()
+	file, err := os.Open(accessLogPath)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	inboundClientIps, newOffset := scanAccessLog(file, j.logOffset)
+	j.logOffset = newOffset
 
 	for email, ipTimestamps := range inboundClientIps {
 
