@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag (v2.0.22 or 2.0.22)
+        description: Release tag (v2.0.23 or 2.0.23)
         required: true
       make_latest:
         description: Mark this release as GitHub "latest"
@@ -138,40 +138,47 @@ jobs:
           # Sanity: ELF amd64
           file build/out/wild-panel-amd64 | tee /tmp/file-out.txt
           grep -qi 'ELF' /tmp/file-out.txt
+
+          # Dump the binary's strings ONCE, then grep the dump.
+          #
+          # Never `strings BIG_BINARY | grep -q PATTERN` under `set -o pipefail`, which
+          # is what every check below used to do. grep -q exits at the FIRST match;
+          # these patterns all land around 10% into a ~5.5M-line dump, so strings is
+          # still writing when the pipe closes, takes SIGPIPE, and exits 141. pipefail
+          # then makes the whole pipeline non-zero EVEN THOUGH THE PATTERN MATCHED, so
+          # `if ! ...` fires and the release dies claiming the branding is missing.
+          # Measured 5/5 failures against a real 263MB build of this binary.
+          #
+          # build.sh already carries this scar (see its `git submodule status` note) —
+          # same trap, opposite symptom there because the sense of the test is flipped.
+          #
+          # Dumping once is also ~7x less work: strings walked the whole binary once
+          # per check before.
+          strings build/out/wild-panel-amd64 > /tmp/binary-strings.txt
+
+          need() {
+            # $1 = pattern, $2 = human error. -F: patterns are literals, not regexes
+            # (the version contains dots).
+            if ! grep -qF -- "$1" /tmp/binary-strings.txt; then
+              echo "error: $2" >&2
+              exit 1
+            fi
+          }
+
           # Branding + API token UI must be embedded (catch stale/wrong binary)
-          if ! strings build/out/wild-panel-amd64 | grep -q 'Wild Panel'; then
-            echo "error: binary missing 'Wild Panel' branding" >&2
-            exit 1
-          fi
-          if ! strings build/out/wild-panel-amd64 | grep -q 'apiTokens'; then
-            echo "error: binary missing API tokens UI strings" >&2
-            exit 1
-          fi
+          need 'Wild Panel'            "binary missing 'Wild Panel' branding"
+          need 'apiTokens'             "binary missing API tokens UI strings"
           # Login copy (en_US) — keep in sync with translate.en_US.toml pages.login.title
-          if ! strings build/out/wild-panel-amd64 | grep -q 'Sign in to Wild Panel'; then
-            echo "error: binary missing login UI strings (Sign in to Wild Panel)" >&2
-            exit 1
-          fi
+          need 'Sign in to Wild Panel' "binary missing login UI strings (Sign in to Wild Panel)"
           # Login scene + brand mark. `lgt-holo` belonged to the retired login;
           # `lgt-ground` is the current canvas-backed scene root.
-          if ! strings build/out/wild-panel-amd64 | grep -q 'lgt-ground'; then
-            echo "error: binary missing current login scene markup" >&2
-            exit 1
-          fi
-          if ! strings build/out/wild-panel-amd64 | grep -q 'wp-mark'; then
-            echo "error: binary missing Wild Panel brand mark class" >&2
-            exit 1
-          fi
+          need 'lgt-ground'            "binary missing current login scene markup"
+          need 'wp-mark'               "binary missing Wild Panel brand mark class"
           # Design system tokens must ship in the embedded CSS
-          if ! strings build/out/wild-panel-amd64 | grep -q 'brand-cyan'; then
-            echo "error: binary missing brand design tokens" >&2
-            exit 1
-          fi
+          need 'brand-cyan'            "binary missing brand design tokens"
+
           ver="${RELEASE_VER#v}"
-          if ! strings build/out/wild-panel-amd64 | grep -qF "$ver"; then
-            echo "error: binary missing embedded version ${ver} (config/version out of sync with tag?)" >&2
-            exit 1
-          fi
+          need "$ver" "binary missing embedded version ${ver} (config/version out of sync with tag?)"
           cp -f build/out/wild-panel-amd64 wild-panel-amd64
           # Compat name for older deploy/update fallbacks
           cp -f wild-panel-amd64 vpn-ui-amd64
