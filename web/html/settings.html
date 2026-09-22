@@ -286,16 +286,27 @@
         { label: 'Google', value: 'geosite:google' },
       ],
       get remarkModel() {
-        rm = this.allSetting.remarkModel;
+        // Declared, not a bare assignment: without a declaration rm/rs/sample
+        // were created as implicit globals on window.
+        const rm = this.allSetting.remarkModel || '-ieo';
         return rm.length > 1 ? rm.substring(1).split('') : [];
       },
       set remarkModel(value) {
-        rs = this.allSetting.remarkModel[0];
+        // Reuse the getter's own answer for the separator instead of re-deriving it
+        // from charAt(0): on a one-character model that index is the separator but
+        // the getter below reported '-', so the dropdown and the saved value
+        // disagreed until the next edit.
+        const rs = this.remarkSeparator;
         this.allSetting.remarkModel = rs + value.join('');
         this.changeRemarkSample();
       },
       get remarkSeparator() {
-        return this.allSetting.remarkModel.length > 1 ? this.allSetting.remarkModel.charAt(0) : '-';
+        // A one-character model IS just a separator (every field deselected), so its
+        // single character is the answer. Falling back to '-' there displayed the
+        // wrong separator for any panel whose model had been emptied down to, say,
+        // '@'.
+        const rm = this.allSetting.remarkModel;
+        return rm && rm.length >= 1 ? rm.charAt(0) : '-';
       },
       set remarkSeparator(value) {
         this.allSetting.remarkModel = value + this.allSetting.remarkModel.substring(1);
@@ -308,7 +319,7 @@
         this.allSetting.datepicker = value;
       },
       changeRemarkSample() {
-        sample = []
+        const sample = [];
         this.remarkModel.forEach(r => sample.push(this.remarkModels[r]));
         this.remarkSample = sample.length == 0 ? '' : sample.join(this.remarkSeparator);
       }

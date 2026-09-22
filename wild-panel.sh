@@ -554,7 +554,7 @@ obtain_letsencrypt_cert() {
     # Ensure acme.sh's host prerequisites BEFORE touching it. Its `--install`
     # pre-check HARD-FAILS on a box with no cron daemon (minimal Fedora ships no
     # cronie), so the client never installs and real SSL silently drops to HTTP with
-    # "acme.sh not found after install" â€” even though the box had internet. It also
+    # "acme.sh not found after install" — even though the box had internet. It also
     # needs socat or python for the standalone HTTP-01 server. The panel binary
     # installs both cross-distro (see EnsureAcmeDeps). No-op when already present;
     # best-effort, since --install --force below still issues without cron (only

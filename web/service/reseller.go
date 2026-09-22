@@ -1005,10 +1005,11 @@ func (s *ResellerService) GetResellers(caller *model.User) ([]ResellerView, erro
 		if gs == nil {
 			gs = []int{} // marshal as [], not null: the UI ticks against it
 		}
-		available := p.AllowanceBytes - p.SpentBytes
-		if available < 0 {
-			available = 0
-		}
+		// AvailableBytes, not a second copy of its arithmetic. The helper also folds
+		// a negative SpentBytes to zero (see its comment for why that clamp exists),
+		// which this open-coded version silently dropped — two answers to one money
+		// question, differing exactly where the balance is already corrupt.
+		available := AvailableBytes(p)
 		out = append(out, ResellerView{
 			Id:                  u.Id,
 			Username:            u.Username,

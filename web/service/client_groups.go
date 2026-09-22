@@ -35,10 +35,55 @@ type clientGroupMember struct {
 	Down  int64
 }
 
-// scanMembers walks every inbound's settings.clients and joins client_traffics.
-// When allowedEmails is non-nil, only those emails (already lowercased) are kept —
-// used to scope reseller views without exposing other operators' accounts.
-func (s *ClientGroupService) scanMembers(allowedEmails map[string]struct{}) ([]clientGroupMember, error) {
+// groupScope is what one caller may see and touch in the Groups feature.
+//
+// Two different scopes exist because the panel has two different kinds of limited
+// operator, and the Groups feature reaches BOTH of them:
+//
+//   - a plain admin is scoped by INBOUND GRANT (model.InboundAccess). Everything on a
+//     granted inbound is theirs to see; anything unticked "does not exist" for them.
+//   - a reseller is scoped by ACCOUNT OWNERSHIP. They see only the clients they sold,
+//     even on an inbound they share with an admin, so the inbound grant they also hold
+//     is too wide and the email set is the only scope that means anything.
+//
+// A nil set means UNRESTRICTED and is only ever produced for a super admin. Every other
+// caller gets a non-nil (possibly empty) set, so a scope that could not be resolved
+// fails CLOSED rather than degrading to "see everything" — which is exactly how this
+// feature leaked every panel-wide client email to any admin holding PermAccessInbounds.
+type groupScope struct {
+	// inboundIds limits which inbound rows are read and written. nil = every inbound.
+	inboundIds map[int]struct{}
+	// emails limits which accounts count, already lower-cased. nil = every account.
+	emails map[string]struct{}
+}
+
+// unrestrictedScope is the super-admin scope, and the scope for the panel-wide
+// uniqueness questions (does this group name already exist anywhere?) that must be
+// answered over the whole table whoever is asking.
+func unrestrictedScope() groupScope { return groupScope{} }
+
+// allowsInbound reports whether this scope covers that inbound row.
+func (g groupScope) allowsInbound(id int) bool {
+	if g.inboundIds == nil {
+		return true
+	}
+	_, ok := g.inboundIds[id]
+	return ok
+}
+
+// allowsEmail reports whether this scope covers that account. The key is folded here
+// rather than at each call site: one that forgets matches nothing, which fails closed
+// but is indistinguishable from an operator who owns nothing, and so would ship.
+func (g groupScope) allowsEmail(email string) bool {
+	if g.emails == nil {
+		return true
+	}
+	_, ok := g.emails[strings.ToLower(strings.TrimSpace(email))]
+	return ok
+}
+
+// scanMembers walks the inbounds this scope covers and joins client_traffics.
+func (s *ClientGroupService) scanMembers(scope groupScope) ([]clientGroupMember, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	if err := db.Model(&model.Inbound{}).Find(&inbounds).Error; err != nil {
@@ -56,6 +101,9 @@ func (s *ClientGroupService) scanMembers(allowedEmails map[string]struct{}) ([]c
 
 	seen := make(map[string]clientGroupMember)
 	for _, ib := range inbounds {
+		if !scope.allowsInbound(ib.Id) {
+			continue
+		}
 		clients, err := s.Inbound.GetClients(ib)
 		if err != nil {
 			continue
@@ -66,10 +114,8 @@ func (s *ClientGroupService) scanMembers(allowedEmails map[string]struct{}) ([]c
 				continue
 			}
 			key := strings.ToLower(email)
-			if allowedEmails != nil {
-				if _, ok := allowedEmails[key]; !ok {
-					continue
-				}
+			if !scope.allowsEmail(key) {
+				continue
 			}
 			group := strings.TrimSpace(c.Group)
 			t := byEmail[key]
@@ -97,29 +143,50 @@ func (s *ClientGroupService) scanMembers(allowedEmails map[string]struct{}) ([]c
 	return out, nil
 }
 
-func (s *ClientGroupService) allowedSet(user *model.User) (map[string]struct{}, error) {
-	if user == nil || !user.IsReseller {
-		return nil, nil
+// scopeFor resolves what this caller may see and touch. See groupScope for why the
+// two roles are scoped on different axes.
+//
+// Fails CLOSED in every direction: a nil user and an unreadable grant/ownership table
+// both produce an EMPTY (non-nil) scope, which shows nothing and authorizes nothing.
+// The previous version returned a nil (= unrestricted) set for everyone who was not a
+// reseller, which silently handed every plain admin the whole panel.
+func (s *ClientGroupService) scopeFor(user *model.User) (groupScope, error) {
+	if user == nil {
+		return groupScope{inboundIds: map[int]struct{}{}, emails: map[string]struct{}{}}, nil
 	}
-	owned, err := (&ResellerService{}).OwnedEmails(user.Id)
+	if user.IsSuperAdmin {
+		return unrestrictedScope(), nil
+	}
+	if user.IsReseller {
+		owned, err := (&ResellerService{}).OwnedEmails(user.Id)
+		if err != nil {
+			return groupScope{emails: map[string]struct{}{}}, err
+		}
+		set := make(map[string]struct{}, len(owned))
+		for email := range owned {
+			set[email] = struct{}{}
+		}
+		return groupScope{emails: set}, nil
+	}
+	ids, err := (&AdminService{}).AccessibleInboundIds(user.Id)
 	if err != nil {
-		return nil, err
+		return groupScope{inboundIds: map[int]struct{}{}}, err
 	}
-	set := make(map[string]struct{}, len(owned))
-	for email := range owned {
-		set[email] = struct{}{}
+	set := make(map[int]struct{}, len(ids))
+	for _, id := range ids {
+		set[id] = struct{}{}
 	}
-	return set, nil
+	return groupScope{inboundIds: set}, nil
 }
 
 // ListGroups merges placeholder client_groups rows with distinct group labels
 // currently set on clients. Traffic is absolute sum minus ResetUp/ResetDown baselines.
 func (s *ClientGroupService) ListGroups(user *model.User) ([]GroupSummary, error) {
-	allowed, err := s.allowedSet(user)
+	scope, err := s.scopeFor(user)
 	if err != nil {
 		return nil, err
 	}
-	members, err := s.scanMembers(allowed)
+	members, err := s.scanMembers(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -183,22 +250,11 @@ func (s *ClientGroupService) EmailsByGroup(user *model.User, name string) ([]str
 	if name == "" {
 		return []string{}, nil
 	}
-	allowed, err := s.allowedSet(user)
+	scope, err := s.scopeFor(user)
 	if err != nil {
 		return nil, err
 	}
-	members, err := s.scanMembers(allowed)
-	if err != nil {
-		return nil, err
-	}
-	emails := make([]string, 0)
-	for _, m := range members {
-		if m.Group == name {
-			emails = append(emails, m.Email)
-		}
-	}
-	sort.Strings(emails)
-	return emails, nil
+	return s.membersOfGroup(scope, name)
 }
 
 // CreateGroup inserts an empty placeholder so the label is selectable before assignment.
@@ -215,8 +271,11 @@ func (s *ClientGroupService) CreateGroup(name string) error {
 	if count > 0 {
 		return common.NewError("group already exists")
 	}
-	// Also refuse if clients already use this label (derived group).
-	members, err := s.scanMembers(nil)
+	// Also refuse if clients already use this label (derived group). Deliberately
+	// UNSCOPED: name uniqueness is a property of the whole panel, so a caller who
+	// cannot see the colliding clients must still be refused rather than handed a
+	// duplicate that later merges with someone else's group.
+	members, err := s.scanMembers(unrestrictedScope())
 	if err != nil {
 		return err
 	}
@@ -230,12 +289,22 @@ func (s *ClientGroupService) CreateGroup(name string) error {
 
 // ResetGroupTraffic snapshots current member counters into baselines without
 // touching client_traffics (Sanaei behaviour).
+//
+// The baseline it writes is a property of the WHOLE group (ListGroups subtracts it
+// from the full member sum), so it is computed over every member and only offered to
+// a caller who can see every member. It used to sum the CALLER'S members and store
+// that panel-wide: a reseller's reset then left an admin reading a partially-reset
+// group, and an admin's reset left the reseller's scoped sum below the full baseline,
+// clamped to zero, showing that group as permanently empty for them.
 func (s *ClientGroupService) ResetGroupTraffic(user *model.User, name string) error {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return common.NewError("group name is required")
 	}
-	emails, err := s.EmailsByGroup(user, name)
+	if err := s.ensureWholeGroupVisible(user, name); err != nil {
+		return err
+	}
+	emails, err := s.membersOfGroup(unrestrictedScope(), name)
 	if err != nil {
 		return err
 	}
@@ -304,7 +373,11 @@ func (s *ClientGroupService) AddToGroup(user *model.User, emails []string, group
 	if len(cleaned) == 0 {
 		return 0, nil
 	}
-	if err := s.ensureOwned(user, cleaned); err != nil {
+	scope, err := s.scopeFor(user)
+	if err != nil {
+		return 0, err
+	}
+	if err := s.ensureInScope(scope, cleaned); err != nil {
 		return 0, err
 	}
 
@@ -316,7 +389,9 @@ func (s *ClientGroupService) AddToGroup(user *model.User, emails []string, group
 		}
 		if exists == 0 {
 			// Only create placeholder if no client already carries this label.
-			members, err := s.scanMembers(nil)
+			// Unscoped for the same reason as CreateGroup: whether the label is
+			// already derived is a panel-wide fact.
+			members, err := s.scanMembers(unrestrictedScope())
 			if err != nil {
 				return 0, err
 			}
@@ -335,7 +410,7 @@ func (s *ClientGroupService) AddToGroup(user *model.User, emails []string, group
 		}
 	}
 
-	return s.patchClientGroups(cleaned, func(current string) (string, bool) {
+	return s.patchClientGroups(scope, cleaned, func(current string) (string, bool) {
 		if current == group {
 			return current, false
 		}
@@ -343,13 +418,34 @@ func (s *ClientGroupService) AddToGroup(user *model.User, emails []string, group
 	})
 }
 
+// replaceGroupValue renames a group (newName != "") or deletes it (newName == ""),
+// moving the shared client_groups row and every member label together.
+//
+// AUTHORIZE FIRST, THEN WRITE. The previous version mutated the panel-wide
+// client_groups row at the top and only afterwards resolved which members the caller
+// could see — so a caller with no members in the group still deleted the shared row
+// (and its reset baselines) and got a "0 changed, no error" success, and a caller who
+// failed the ownership check further down got their error back with the row already
+// renamed and no rollback. Every check now runs before the first write.
 func (s *ClientGroupService) replaceGroupValue(user *model.User, oldName, newName string) (int, error) {
+	// The shared row is panel-wide, so a partial-visibility caller may not touch it.
+	if err := s.ensureWholeGroupVisible(user, oldName); err != nil {
+		return 0, err
+	}
+	scope, err := s.scopeFor(user)
+	if err != nil {
+		return 0, err
+	}
+	emails, err := s.membersOfGroup(scope, oldName)
+	if err != nil {
+		return 0, err
+	}
+	if err := s.ensureInScope(scope, emails); err != nil {
+		return 0, err
+	}
+
 	db := database.GetDB()
-	if newName == "" {
-		if err := db.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
-			return 0, err
-		}
-	} else {
+	if newName != "" {
 		var exists int64
 		if err := db.Model(&model.ClientGroup{}).Where("name = ?", newName).Count(&exists).Error; err != nil {
 			return 0, err
@@ -357,51 +453,93 @@ func (s *ClientGroupService) replaceGroupValue(user *model.User, oldName, newNam
 		if exists > 0 {
 			return 0, common.NewError("group already exists")
 		}
-		res := db.Model(&model.ClientGroup{}).Where("name = ?", oldName).Update("name", newName)
-		if res.Error != nil {
-			return 0, res.Error
-		}
-		if res.RowsAffected == 0 {
-			// Derived-only group: ensure a row exists under the new name so baselines
-			// (if any later) and ListGroups keep showing it after all clients move.
-			_ = db.Create(&model.ClientGroup{Name: newName}).Error
-			_ = db.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error
-		}
 	}
 
-	emails, err := s.EmailsByGroup(user, oldName)
+	// The shared row and the member labels move in ONE transaction: a failure partway
+	// used to leave the row renamed and the clients still carrying the old label,
+	// which is the split-group state this function exists to avoid.
+	affected := 0
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if newName == "" {
+			if err := tx.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
+				return err
+			}
+		} else {
+			res := tx.Model(&model.ClientGroup{}).Where("name = ?", oldName).Update("name", newName)
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected == 0 {
+				// Derived-only group: ensure a row exists under the new name so
+				// baselines (if any later) and ListGroups keep showing it after all
+				// clients move.
+				if err := tx.Create(&model.ClientGroup{Name: newName}).Error; err != nil {
+					return err
+				}
+				if err := tx.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
+					return err
+				}
+			}
+		}
+		if len(emails) == 0 {
+			return nil
+		}
+		n, perr := patchClientGroupsTx(tx, scope, emails, func(current string) (string, bool) {
+			if current != oldName {
+				return current, false
+			}
+			return newName, true
+		})
+		affected = n
+		return perr
+	})
 	if err != nil {
 		return 0, err
 	}
-	if len(emails) == 0 {
-		return 0, nil
-	}
-	if err := s.ensureOwned(user, emails); err != nil {
-		return 0, err
-	}
-	return s.patchClientGroups(emails, func(current string) (string, bool) {
-		if current != oldName {
-			return current, false
-		}
-		return newName, true
-	})
+	return affected, nil
 }
 
-// patchClientGroups rewrites settings.clients[].group for the given emails.
-// mutate returns (newGroup, changed). Empty newGroup deletes the JSON key.
-func (s *ClientGroupService) patchClientGroups(emails []string, mutate func(current string) (string, bool)) (int, error) {
+// patchClientGroups rewrites settings.clients[].group for the given emails, in its
+// own transaction. Callers that already hold one use patchClientGroupsTx.
+func (s *ClientGroupService) patchClientGroups(scope groupScope, emails []string, mutate func(current string) (string, bool)) (int, error) {
+	affected := 0
+	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+		n, perr := patchClientGroupsTx(tx, scope, emails, mutate)
+		affected = n
+		return perr
+	})
+	return affected, err
+}
+
+// patchClientGroupsTx is the body of the patch, on a caller-supplied tx.
+//
+// mutate returns (newGroup, changed); an empty newGroup deletes the JSON key.
+//
+// The scope is enforced HERE as well as at the door, and that redundancy is the point:
+// this function rewrites inbound settings blobs by email, so without it a caller who
+// reached it by any route could write the group label onto accounts living on inbounds
+// they were never granted. Callers still pre-authorize with ensureInScope so a request
+// naming an inaccessible account is REFUSED rather than silently reduced to the part
+// the caller may touch.
+func patchClientGroupsTx(tx *gorm.DB, scope groupScope, emails []string, mutate func(current string) (string, bool)) (int, error) {
 	emailSet := make(map[string]struct{}, len(emails))
 	for _, e := range emails {
-		emailSet[strings.ToLower(strings.TrimSpace(e))] = struct{}{}
+		key := strings.ToLower(strings.TrimSpace(e))
+		if !scope.allowsEmail(key) {
+			continue
+		}
+		emailSet[key] = struct{}{}
 	}
-	db := database.GetDB()
 	affected := 0
-	err := db.Transaction(func(tx *gorm.DB) error {
+	{
 		var inbounds []*model.Inbound
 		if err := tx.Find(&inbounds).Error; err != nil {
-			return err
+			return 0, err
 		}
 		for _, ib := range inbounds {
+			if !scope.allowsInbound(ib.Id) {
+				continue
+			}
 			var settings map[string]any
 			if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
 				continue
@@ -440,32 +578,97 @@ func (s *ClientGroupService) patchClientGroups(emails []string, mutate func(curr
 			settings["clients"] = clients
 			raw, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
-				return err
+				return 0, err
 			}
 			if err := tx.Model(&model.Inbound{}).Where("id = ?", ib.Id).
 				Update("settings", string(raw)).Error; err != nil {
-				return err
+				return 0, err
 			}
 		}
-		return nil
-	})
-	return affected, err
+	}
+	return affected, nil
 }
 
-func (s *ClientGroupService) ensureOwned(user *model.User, emails []string) error {
-	if user == nil || !user.IsReseller {
-		return nil
+// ensureInScope refuses the whole request unless EVERY named account is one this
+// caller can already see.
+//
+// Checked against the members the scope actually resolves to, not against the scope
+// sets directly, because the two roles answer "may I touch this account" differently
+// (ownership vs. inbound grant) and only the member scan knows which inbound an email
+// lives on. One predicate, so neither role can be fixed without the other.
+//
+// All-or-nothing on purpose: patchClientGroups writes each inbound's settings blob in
+// one transaction, so silently skipping the accounts a caller may not touch would
+// report a partial success as a full one.
+func (s *ClientGroupService) ensureInScope(scope groupScope, emails []string) error {
+	if scope.inboundIds == nil && scope.emails == nil {
+		return nil // super admin
 	}
-	owned, err := (&ResellerService{}).OwnedEmails(user.Id)
+	members, err := s.scanMembers(scope)
 	if err != nil {
 		return err
 	}
+	visible := make(map[string]struct{}, len(members))
+	for _, m := range members {
+		visible[strings.ToLower(strings.TrimSpace(m.Email))] = struct{}{}
+	}
 	for _, e := range emails {
-		if !owned[strings.ToLower(strings.TrimSpace(e))] {
-			return common.NewError("client not owned by reseller")
+		if _, ok := visible[strings.ToLower(strings.TrimSpace(e))]; !ok {
+			return common.NewError("client not accessible: ", e)
 		}
 	}
 	return nil
+}
+
+// ensureWholeGroupVisible refuses an operation that rewrites the group's SHARED state
+// (the client_groups row: its name, its existence, its reset baselines) unless this
+// caller can see every member of the group.
+//
+// That row is panel-wide while the member list a scoped caller sees is not, so a
+// partial-visibility caller acting on it corrupts the group for everyone else: a
+// rename relabels only their own clients and SPLITS the group in two, a delete drops
+// baselines that belonged to members they cannot see, and a traffic reset writes a
+// baseline summed over their subset which every other operator then reads as the
+// whole group's. Refusing is the only outcome that keeps the shared row true.
+//
+// A scoped operator whose group holds only their own clients — the normal case — sees
+// every member and is unaffected.
+func (s *ClientGroupService) ensureWholeGroupVisible(user *model.User, name string) error {
+	if user != nil && user.IsSuperAdmin {
+		return nil
+	}
+	scope, err := s.scopeFor(user)
+	if err != nil {
+		return err
+	}
+	scoped, err := s.membersOfGroup(scope, name)
+	if err != nil {
+		return err
+	}
+	all, err := s.membersOfGroup(unrestrictedScope(), name)
+	if err != nil {
+		return err
+	}
+	if len(scoped) != len(all) {
+		return common.NewError("this group also holds clients you cannot access: ", name)
+	}
+	return nil
+}
+
+// membersOfGroup lists the emails carrying this label under the given scope.
+func (s *ClientGroupService) membersOfGroup(scope groupScope, name string) ([]string, error) {
+	members, err := s.scanMembers(scope)
+	if err != nil {
+		return nil, err
+	}
+	emails := make([]string, 0)
+	for _, m := range members {
+		if m.Group == name {
+			emails = append(emails, m.Email)
+		}
+	}
+	sort.Strings(emails)
+	return emails, nil
 }
 
 func uniqueEmails(emails []string) []string {

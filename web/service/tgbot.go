@@ -92,7 +92,38 @@ var (
 	client_Method       string
 )
 
-var userStates = make(map[int64]string)
+// userStateMap is the bot's per-chat conversation state ("awaiting_email", ...).
+//
+// Guarded because telego dispatches updates CONCURRENTLY and several handlers here
+// additionally hand the work to a goroutine off messageWorkerPool, so two chats - or
+// one chat sending twice - reach these reads and writes at the same time. As a bare
+// map that is not a lost update but a `fatal error: concurrent map writes`, which no
+// recover() can catch: it takes down the whole panel, not just the bot.
+type userStateMap struct {
+	mu sync.RWMutex
+	m  map[int64]string
+}
+
+func (u *userStateMap) get(chatId int64) (string, bool) {
+	u.mu.RLock()
+	defer u.mu.RUnlock()
+	v, ok := u.m[chatId]
+	return v, ok
+}
+
+func (u *userStateMap) set(chatId int64, state string) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.m[chatId] = state
+}
+
+func (u *userStateMap) clear(chatId int64) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	delete(u.m, chatId)
+}
+
+var userStates = &userStateMap{m: make(map[int64]string)}
 
 // LoginStatus represents the result of a login attempt.
 type LoginStatus byte
@@ -466,7 +497,7 @@ func (t *Tgbot) OnReceive() {
 		tgBotMutex.Unlock()
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
-			delete(userStates, message.Chat.ID)
+			userStates.clear(message.Chat.ID)
 			t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.keyboardClosed"), tu.ReplyKeyboardRemove())
 			return nil
 		}, th.TextEqual(t.I18nBot("tgbot.buttons.closeKeyboard")))
@@ -477,7 +508,7 @@ func (t *Tgbot) OnReceive() {
 				messageWorkerPool <- struct{}{}        // Acquire worker
 				defer func() { <-messageWorkerPool }() // Release worker
 
-				delete(userStates, message.Chat.ID)
+				userStates.clear(message.Chat.ID)
 				t.answerCommand(&message, message.Chat.ID, checkAdmin(message.From.ID))
 			}()
 			return nil
@@ -489,19 +520,19 @@ func (t *Tgbot) OnReceive() {
 				messageWorkerPool <- struct{}{}        // Acquire worker
 				defer func() { <-messageWorkerPool }() // Release worker
 
-				delete(userStates, query.Message.GetChat().ID)
+				userStates.clear(query.Message.GetChat().ID)
 				t.answerCallback(&query, checkAdmin(query.From.ID))
 			}()
 			return nil
 		}, th.AnyCallbackQueryWithMessage())
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
-			if userState, exists := userStates[message.Chat.ID]; exists {
+			if userState, exists := userStates.get(message.Chat.ID); exists {
 				switch userState {
 				case "awaiting_id":
 					if client_Id == strings.TrimSpace(message.Text) {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
-						delete(userStates, message.Chat.ID)
+						userStates.clear(message.Chat.ID)
 						inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
 						message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
 						t.addClient(message.Chat.ID, message_text)
@@ -510,7 +541,7 @@ func (t *Tgbot) OnReceive() {
 
 					client_Id = strings.TrimSpace(message.Text)
 					if t.isSingleWord(client_Id) {
-						userStates[message.Chat.ID] = "awaiting_id"
+						userStates.set(message.Chat.ID, "awaiting_id")
 
 						cancel_btn_markup := tu.InlineKeyboard(
 							tu.InlineKeyboardRow(
@@ -521,7 +552,7 @@ func (t *Tgbot) OnReceive() {
 						t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.incorrect_input"), cancel_btn_markup)
 					} else {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_id"), 3, tu.ReplyKeyboardRemove())
-						delete(userStates, message.Chat.ID)
+						userStates.clear(message.Chat.ID)
 						inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
 						message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
 						t.addClient(message.Chat.ID, message_text)
@@ -529,13 +560,13 @@ func (t *Tgbot) OnReceive() {
 				case "awaiting_password_tr":
 					if client_TrPassword == strings.TrimSpace(message.Text) {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
-						delete(userStates, message.Chat.ID)
+						userStates.clear(message.Chat.ID)
 						return nil
 					}
 
 					client_TrPassword = strings.TrimSpace(message.Text)
 					if t.isSingleWord(client_TrPassword) {
-						userStates[message.Chat.ID] = "awaiting_password_tr"
+						userStates.set(message.Chat.ID, "awaiting_password_tr")
 
 						cancel_btn_markup := tu.InlineKeyboard(
 							tu.InlineKeyboardRow(
@@ -546,7 +577,7 @@ func (t *Tgbot) OnReceive() {
 						t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.incorrect_input"), cancel_btn_markup)
 					} else {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_password"), 3, tu.ReplyKeyboardRemove())
-						delete(userStates, message.Chat.ID)
+						userStates.clear(message.Chat.ID)
 						inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
 						message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
 						t.addClient(message.Chat.ID, message_text)
@@ -554,13 +585,13 @@ func (t *Tgbot) OnReceive() {
 				case "awaiting_password_sh":
 					if client_ShPassword == strings.TrimSpace(message.Text) {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
-						delete(userStates, message.Chat.ID)
+						userStates.clear(message.Chat.ID)
 						return nil
 					}
 
 					client_ShPassword = strings.TrimSpace(message.Text)
 					if t.isSingleWord(client_ShPassword) {
-						userStates[message.Chat.ID] = "awaiting_password_sh"
+						userStates.set(message.Chat.ID, "awaiting_password_sh")
 
 						cancel_btn_markup := tu.InlineKeyboard(
 							tu.InlineKeyboardRow(
@@ -571,7 +602,7 @@ func (t *Tgbot) OnReceive() {
 						t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.incorrect_input"), cancel_btn_markup)
 					} else {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_password"), 3, tu.ReplyKeyboardRemove())
-						delete(userStates, message.Chat.ID)
+						userStates.clear(message.Chat.ID)
 						inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
 						message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
 						t.addClient(message.Chat.ID, message_text)
@@ -579,13 +610,13 @@ func (t *Tgbot) OnReceive() {
 				case "awaiting_email":
 					if client_Email == strings.TrimSpace(message.Text) {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
-						delete(userStates, message.Chat.ID)
+						userStates.clear(message.Chat.ID)
 						return nil
 					}
 
 					client_Email = strings.TrimSpace(message.Text)
 					if t.isSingleWord(client_Email) {
-						userStates[message.Chat.ID] = "awaiting_email"
+						userStates.set(message.Chat.ID, "awaiting_email")
 
 						cancel_btn_markup := tu.InlineKeyboard(
 							tu.InlineKeyboardRow(
@@ -596,7 +627,7 @@ func (t *Tgbot) OnReceive() {
 						t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.incorrect_input"), cancel_btn_markup)
 					} else {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_email"), 3, tu.ReplyKeyboardRemove())
-						delete(userStates, message.Chat.ID)
+						userStates.clear(message.Chat.ID)
 						inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
 						message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
 						t.addClient(message.Chat.ID, message_text)
@@ -604,13 +635,13 @@ func (t *Tgbot) OnReceive() {
 				case "awaiting_comment":
 					if client_Comment == strings.TrimSpace(message.Text) {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
-						delete(userStates, message.Chat.ID)
+						userStates.clear(message.Chat.ID)
 						return nil
 					}
 
 					client_Comment = strings.TrimSpace(message.Text)
 					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_comment"), 3, tu.ReplyKeyboardRemove())
-					delete(userStates, message.Chat.ID)
+					userStates.clear(message.Chat.ID)
 					inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
 					message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
 					t.addClient(message.Chat.ID, message_text)
@@ -1752,7 +1783,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
 	case "add_client_ch_default_email":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		userStates[chatId] = "awaiting_email"
+		userStates.set(chatId, "awaiting_email")
 		cancel_btn_markup := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("add_client_default_info"),
@@ -1762,7 +1793,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
 	case "add_client_ch_default_id":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		userStates[chatId] = "awaiting_id"
+		userStates.set(chatId, "awaiting_id")
 		cancel_btn_markup := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("add_client_default_info"),
@@ -1772,7 +1803,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
 	case "add_client_ch_default_pass_tr":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		userStates[chatId] = "awaiting_password_tr"
+		userStates.set(chatId, "awaiting_password_tr")
 		cancel_btn_markup := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("add_client_default_info"),
@@ -1782,7 +1813,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
 	case "add_client_ch_default_pass_sh":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		userStates[chatId] = "awaiting_password_sh"
+		userStates.set(chatId, "awaiting_password_sh")
 		cancel_btn_markup := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("add_client_default_info"),
@@ -1792,7 +1823,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
 	case "add_client_ch_default_comment":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		userStates[chatId] = "awaiting_comment"
+		userStates.set(chatId, "awaiting_comment")
 		cancel_btn_markup := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("add_client_default_info"),
@@ -1890,12 +1921,12 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "add_client_default_info":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
-		delete(userStates, chatId)
+		userStates.clear(chatId)
 		inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
 		message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
 		t.addClient(chatId, message_text)
 	case "add_client_cancel":
-		delete(userStates, chatId)
+		userStates.clear(chatId)
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.cancel"), 3, tu.ReplyKeyboardRemove())
 	case "add_client_default_traffic_exp":
@@ -3792,7 +3823,7 @@ func (t *Tgbot) SendMsgToTgbotDeleteAfter(chatId int64, msg string, delayInSecon
 	go func() {
 		time.Sleep(time.Duration(delayInSeconds) * time.Second) // Wait for the specified delay
 		t.deleteMessageTgBot(chatId, sentMsg.MessageID)         // Delete the message
-		delete(userStates, chatId)
+		userStates.clear(chatId)
 	}()
 }
 

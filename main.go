@@ -2008,9 +2008,32 @@ func ovpnLeaseBlockIP(inboundId int, username, poolIP, sessionKey string) (strin
 	// devices dialing at once can both read the block as free and lease the SAME IP
 	// (an over-admit / duplicate-IP race). An exclusive flock makes the whole
 	// read-decide-write below atomic across hooks; it releases when this process exits.
-	if lf, lerr := os.OpenFile(filepath.Join(dir, "connect-"+proto+".lock"), os.O_CREATE|os.O_RDWR, 0644); lerr == nil {
+	//
+	// A lock we could not take is reported, never ignored. Both failure paths used to
+	// fall through silently into the unsynchronized read-decide-write below — which is
+	// precisely the duplicate-IP race this lock exists to prevent, happening in the one
+	// situation nobody would think to look at. LOCK_EX blocks, so a failure here is
+	// rare (EINTR in a short-lived hook that caught a signal, or a lock file we cannot
+	// create), but rare and silent is how it would stay unexplained.
+	lockPath := filepath.Join(dir, "connect-"+proto+".lock")
+	if lf, lerr := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644); lerr != nil {
+		logger.Warning("openvpn lease: cannot open lock ", lockPath, ": ", lerr,
+			" — proceeding unsynchronized, concurrent dials may share an IP")
+	} else {
 		defer lf.Close()
-		if syscall.Flock(int(lf.Fd()), syscall.LOCK_EX) == nil {
+		// Retry EINTR: a signal landing on a blocking flock is the one failure that is
+		// genuinely transient, and giving up on it would drop the lock for no reason.
+		var ferr error
+		for {
+			ferr = syscall.Flock(int(lf.Fd()), syscall.LOCK_EX)
+			if ferr != syscall.EINTR {
+				break
+			}
+		}
+		if ferr != nil {
+			logger.Warning("openvpn lease: cannot lock ", lockPath, ": ", ferr,
+				" — proceeding unsynchronized, concurrent dials may share an IP")
+		} else {
 			defer syscall.Flock(int(lf.Fd()), syscall.LOCK_UN)
 		}
 	}

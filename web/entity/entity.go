@@ -178,6 +178,19 @@ func (s *AllSetting) CheckValid() error {
 		s.SubClashPath += "/"
 	}
 
+	// RemarkModel is "<separator><field order>", e.g. "-ieo". It is INDEXED at [0] by
+	// the subscription service, so an empty one is a panic on the request path rather
+	// than a cosmetic default.
+	//
+	// It reaches empty without anyone typing it: updateSetting binds a zero-valued
+	// AllSetting and UpdateAllSetting then persists EVERY field by reflection, so any
+	// caller posting a partial settings body (a bot, a script, a hand-rolled curl)
+	// blanks whatever it left out. Normalizing here covers the whole write path,
+	// because this is the one gate every settings write passes through.
+	if strings.TrimSpace(s.RemarkModel) == "" {
+		s.RemarkModel = "-ieo"
+	}
+
 	_, err := time.LoadLocation(s.TimeLocation)
 	if err != nil {
 		return common.NewError("time location not exist:", s.TimeLocation)

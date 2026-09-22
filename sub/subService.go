@@ -42,6 +42,12 @@ type SubService struct {
 }
 
 // NewSubService creates a new subscription service with the given configuration.
+// defaultRemarkModel is the shipped remark pattern: the first rune is the separator,
+// the rest are the field order (i=inbound, e=email, o=other). Kept here rather than
+// duplicated at each fallback so the panel default and the sub server's cannot drift.
+// Mirrors defaultValueMap["remarkModel"] in web/service/setting.go.
+const defaultRemarkModel = "-ieo"
+
 func NewSubService(showInfo bool, remarkModel string) *SubService {
 	return &SubService{
 		showInfo:    showInfo,
@@ -1408,8 +1414,16 @@ func cloneStringMap(source map[string]string) map[string]string {
 }
 
 func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
-	separationChar := string(s.remarkModel[0])
-	orderChars := s.remarkModel[1:]
+	// Never index a value that reached us from a settings row. The caller already
+	// substitutes the default for an empty model, so this is the backstop for any
+	// future path that constructs a SubService directly: the cost is one comparison
+	// per link, and the alternative is a panic on the request path.
+	pattern := s.remarkModel
+	if pattern == "" {
+		pattern = defaultRemarkModel
+	}
+	separationChar := string(pattern[0])
+	orderChars := pattern[1:]
 	orders := map[byte]string{
 		'i': "",
 		'e': "",

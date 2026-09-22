@@ -127,9 +127,14 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		return nil, err
 	}
 
+	// The empty check matters as much as the error one. getString returns ("", nil)
+	// for a row that EXISTS holding an empty string, so keying only on err left
+	// RemarkModel == "" and genRemark then indexed [0] on it — a panic recovered as a
+	// 500 on every subscription fetch, for the whole life of the process, because this
+	// value is captured once here at server start.
 	RemarkModel, err := s.settingService.GetRemarkModel()
-	if err != nil {
-		RemarkModel = "-ieo"
+	if err != nil || strings.TrimSpace(RemarkModel) == "" {
+		RemarkModel = defaultRemarkModel
 	}
 
 	SubUpdates, err := s.settingService.GetSubUpdates()

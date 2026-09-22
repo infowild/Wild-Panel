@@ -13,6 +13,15 @@ import (
 	"github.com/op/go-logging"
 )
 
+// groupSuperAdmin is the unscoped operator these tests act as.
+//
+// They used to pass a nil *model.User, which the service read as "no scoping". That
+// is the reading that let every non-reseller admin see the whole panel, so nil now
+// denies everything and the caller has to be explicit about being a super admin.
+func groupSuperAdmin() *model.User {
+	return &model.User{Id: 1, Username: "root", IsSuperAdmin: true, Enable: true}
+}
+
 func initGroupTestDB(t *testing.T) {
 	t.Helper()
 	logger.InitLogger(logging.CRITICAL)
@@ -53,7 +62,7 @@ func TestClientGroupsCreateListAssignRenameReset(t *testing.T) {
 		t.Fatal("duplicate CreateGroup should fail")
 	}
 
-	rows, err := svc.ListGroups(nil)
+	rows, err := svc.ListGroups(groupSuperAdmin())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +80,7 @@ func TestClientGroupsCreateListAssignRenameReset(t *testing.T) {
 		}
 	}
 
-	affected, err := svc.AddToGroup(nil, []string{"a@b.c", "d@e.f"}, "vip")
+	affected, err := svc.AddToGroup(groupSuperAdmin(), []string{"a@b.c", "d@e.f"}, "vip")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +88,7 @@ func TestClientGroupsCreateListAssignRenameReset(t *testing.T) {
 		t.Fatalf("affected=%d want 2", affected)
 	}
 
-	emails, err := svc.EmailsByGroup(nil, "vip")
+	emails, err := svc.EmailsByGroup(groupSuperAdmin(), "vip")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +96,7 @@ func TestClientGroupsCreateListAssignRenameReset(t *testing.T) {
 		t.Fatalf("emails=%v", emails)
 	}
 
-	rows, err = svc.ListGroups(nil)
+	rows, err = svc.ListGroups(groupSuperAdmin())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,10 +110,10 @@ func TestClientGroupsCreateListAssignRenameReset(t *testing.T) {
 		t.Fatalf("vip summary: %+v", vip)
 	}
 
-	if err := svc.ResetGroupTraffic(nil, "vip"); err != nil {
+	if err := svc.ResetGroupTraffic(groupSuperAdmin(), "vip"); err != nil {
 		t.Fatal(err)
 	}
-	rows, err = svc.ListGroups(nil)
+	rows, err = svc.ListGroups(groupSuperAdmin())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,14 +132,14 @@ func TestClientGroupsCreateListAssignRenameReset(t *testing.T) {
 		t.Fatalf("client counters must survive group reset: up=%d down=%d", ct.Up, ct.Down)
 	}
 
-	affected, err = svc.RenameGroup(nil, "vip", "gold")
+	affected, err = svc.RenameGroup(groupSuperAdmin(), "vip", "gold")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if affected != 2 {
 		t.Fatalf("rename affected=%d", affected)
 	}
-	emails, err = svc.EmailsByGroup(nil, "gold")
+	emails, err = svc.EmailsByGroup(groupSuperAdmin(), "gold")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,14 +147,14 @@ func TestClientGroupsCreateListAssignRenameReset(t *testing.T) {
 		t.Fatalf("after rename: %v", emails)
 	}
 
-	affected, err = svc.DeleteGroup(nil, "gold")
+	affected, err = svc.DeleteGroup(groupSuperAdmin(), "gold")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if affected != 2 {
 		t.Fatalf("delete affected=%d", affected)
 	}
-	emails, err = svc.EmailsByGroup(nil, "gold")
+	emails, err = svc.EmailsByGroup(groupSuperAdmin(), "gold")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,14 +191,14 @@ func TestClientGroupBaselineSurvivesClientReset(t *testing.T) {
 	if err := db.Create(&xray.ClientTraffic{Email: "u1@x.y", Enable: true, Up: 50, Down: 70}).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.ResetGroupTraffic(nil, "team"); err != nil {
+	if err := svc.ResetGroupTraffic(groupSuperAdmin(), "team"); err != nil {
 		t.Fatal(err)
 	}
 	inboundSvc := &InboundService{}
 	if err := inboundSvc.ResetClientTrafficByEmail("u1@x.y"); err != nil {
 		t.Fatal(err)
 	}
-	rows, err := svc.ListGroups(nil)
+	rows, err := svc.ListGroups(groupSuperAdmin())
 	if err != nil {
 		t.Fatal(err)
 	}

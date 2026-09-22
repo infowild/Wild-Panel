@@ -119,7 +119,28 @@ type managedProc struct {
 	cmd     *exec.Cmd
 	stopped bool // Stop() called → suppress auto-restart
 	gen     int  // bumped on every (re)start/stop; supervisors compare against it
+
+	// restartDelay is how long the NEXT auto-restart waits. It doubles each time the
+	// daemon dies too quickly to count as having run, and resets once one stays up.
+	restartDelay time.Duration
+	// startedAt is when the current generation launched, for that "stayed up" test.
+	startedAt time.Time
 }
+
+// Auto-restart backoff. A daemon that dies on startup can never succeed by being
+// retried harder: ocserv whose port an orphan still holds, charon with a bad config,
+// a bundle whose kernel module is missing. The old supervisor retried every one of
+// those at a flat 5s forever — a process spawn and a log line every 5 seconds, for as
+// long as the panel ran, on a box where nothing was going to change by itself.
+//
+// procRestartHealthy is what separates "crashed on startup" from "ran fine, then
+// died": a generation that lived longer than this is treated as healthy, so the next
+// failure starts again at the fast delay instead of inheriting a long one.
+const (
+	procRestartDelayMin = 5 * time.Second
+	procRestartDelayMax = 2 * time.Minute
+	procRestartHealthy  = 60 * time.Second
+)
 
 // ProcManager supervises the bundled VPN daemons as child processes.
 type ProcManager struct {
@@ -203,6 +224,7 @@ func (p *managedProc) launchLocked() error {
 	p.cmd = cmd
 	p.log.add("[procmgr] started: " + p.bin + " " + strings.Join(p.args, " "))
 	gen := p.gen
+	p.startedAt = time.Now()
 	go p.supervise(cmd, gen)
 	return nil
 }
@@ -221,11 +243,26 @@ func (p *managedProc) supervise(cmd *exec.Cmd, gen int) {
 	if waitErr != nil {
 		msg = "exited: " + waitErr.Error()
 	}
-	logger.Warningf("procmgr: %s %s — restarting in 5s", p.name, msg)
-	p.log.add("[procmgr] " + msg + " — restarting in 5s")
+
+	// Widen the delay only when this generation died young. A daemon that served for
+	// a while and then fell over is a transient fault and deserves the fast retry.
+	if p.restartDelay < procRestartDelayMin {
+		p.restartDelay = procRestartDelayMin
+	} else if !p.startedAt.IsZero() && time.Since(p.startedAt) >= procRestartHealthy {
+		p.restartDelay = procRestartDelayMin
+	} else if p.restartDelay < procRestartDelayMax {
+		p.restartDelay *= 2
+		if p.restartDelay > procRestartDelayMax {
+			p.restartDelay = procRestartDelayMax
+		}
+	}
+	delay := p.restartDelay
+
+	logger.Warningf("procmgr: %s %s — restarting in %s", p.name, msg, delay)
+	p.log.add("[procmgr] " + msg + " — restarting in " + delay.String())
 	restartGen := p.gen
 	go func() {
-		time.Sleep(5 * time.Second)
+		time.Sleep(delay)
 		p.mu.Lock()
 		defer p.mu.Unlock()
 		if p.stopped || p.gen != restartGen {

@@ -192,7 +192,7 @@ func (h *Hub) broadcastParallel(clients []*Client, message []byte) {
 				default:
 					// Client's send buffer is full, disconnect
 					logger.Debugf("WebSocket client %s send buffer full, disconnecting", c.ID)
-					h.Unregister(c)
+					h.unregisterAsync(c)
 				}
 			}(client)
 		}
@@ -226,7 +226,7 @@ func (h *Hub) broadcastParallel(clients []*Client, message []byte) {
 					default:
 						// Client's send buffer is full, disconnect
 						logger.Debugf("WebSocket client %s send buffer full, disconnecting", client.ID)
-						h.Unregister(client)
+						h.unregisterAsync(client)
 					}
 				}()
 			}
@@ -353,7 +353,11 @@ func (h *Hub) Register(client *Client) {
 	}
 }
 
-// Unregister unregisters a client from the hub
+// Unregister removes a client from the hub.
+//
+// BLOCKS until the hub loop accepts the client (or the hub shuts down), so it must
+// never be called from anything the hub loop itself is waiting on. The broadcast path
+// is exactly that, which is why it uses unregisterAsync below.
 func (h *Hub) Unregister(client *Client) {
 	if h == nil || client == nil {
 		return
@@ -362,6 +366,30 @@ func (h *Hub) Unregister(client *Client) {
 	case h.unregister <- client:
 	case <-h.ctx.Done():
 		// Hub is shutting down
+	}
+}
+
+// unregisterAsync drops a client WITHOUT ever blocking the caller.
+//
+// The broadcast path runs inside Run()'s own goroutine (broadcastParallel is called
+// from the select loop and waits on its workers), and Run() is the only reader of
+// h.unregister. A blocking send from a broadcast worker therefore deadlocks the whole
+// hub the moment the 100-slot buffer fills: every worker waits for the loop to drain
+// the channel, and the loop waits for the workers. With >100 slow clients on one tick
+// that is permanent — no further broadcast, registration or disconnect is ever served
+// again until Stop().
+//
+// The fast path stays synchronous so the common case costs nothing; only a full buffer
+// spills into a goroutine, which is free to block because it is not the hub's.
+func (h *Hub) unregisterAsync(client *Client) {
+	if h == nil || client == nil {
+		return
+	}
+	select {
+	case h.unregister <- client:
+	case <-h.ctx.Done():
+	default:
+		go h.Unregister(client)
 	}
 }
 

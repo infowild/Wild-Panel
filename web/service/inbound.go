@@ -2915,8 +2915,14 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		return err
 	}
 
-	// Avoid empty slice error
+	// Avoid empty slice error. Publish the (now empty) online set on the way out
+	// rather than returning bare: this tick reported traffic for accounts that no
+	// longer have a client_traffics row, so nobody measurable is online, and leaving
+	// early stranded the PREVIOUS tick's list as the panel's answer forever.
 	if len(dbClientTraffics) == 0 {
+		if p != nil {
+			p.SetOnlineClients(make([]string, 0))
+		}
 		return nil
 	}
 

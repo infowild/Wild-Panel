@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
@@ -14,13 +16,29 @@ import (
 
 const (
 	maxLogBufferSize = 10240                 // Maximum log entries kept in memory
-	logFileName      = "vpn-ui.log"            // Log file name
+	logFileName      = "vpn-ui.log"          // Log file name
 	timeFormat       = "2006/01/02 15:04:05" // Log timestamp format
 )
 
 var (
-	logger  *logging.Logger
+	// logger holds the active backend. Atomic because InitLogger REPLACES it while
+	// other goroutines are logging through it: harmless in the panel, where main
+	// initialises once before anything spawns, but a genuine data race for any caller
+	// that re-initialises (every test that sets up a fresh panel does). An atomic
+	// pointer costs a plain load on the logging path, so the fix is free where it
+	// matters.
+	logger  atomic.Pointer[logging.Logger]
 	logFile *os.File
+
+	// logBufferMu guards logBuffer.
+	//
+	// The buffer is written by addToBuffer, which runs on EVERY goroutine in the
+	// panel — each cron job, the websocket hub, the Telegram bot, the daemon
+	// supervisors, the traffic collector — and read by GetLogs from the HTTP handler
+	// behind the panel's log viewer. Unguarded, those concurrent appends silently
+	// dropped entries and could hand the reader a half-written record; the race
+	// detector flags it on any test that logs from two goroutines.
+	logBufferMu sync.Mutex
 
 	// logBuffer maintains recent log entries in memory for web UI retrieval
 	logBuffer []struct {
@@ -52,8 +70,14 @@ func InitLogger(level logging.Level) {
 
 	multiBackend := logging.MultiLogger(backends...)
 	newLogger.SetBackend(multiBackend)
-	logger = newLogger
+	logger.Store(newLogger)
 }
+
+// log returns the active backend, or nil before InitLogger has run. Every exported
+// logging function goes through it and skips the call when it is nil: the package is
+// reachable from CLI subcommands and tests that never initialise it, and the old code
+// dereferenced the nil pointer straight into a segfault.
+func log() *logging.Logger { return logger.Load() }
 
 // initDefaultBackend creates the console/syslog logging backend.
 // Attempts syslog, falls back to stderr.
@@ -118,67 +142,91 @@ func CloseLogger() {
 
 // Debug logs a debug message and adds it to the log buffer.
 func Debug(args ...any) {
-	logger.Debug(args...)
+	if l := log(); l != nil {
+		l.Debug(args...)
+	}
 	addToBuffer("DEBUG", fmt.Sprint(args...))
 }
 
 // Debugf logs a formatted debug message and adds it to the log buffer.
 func Debugf(format string, args ...any) {
-	logger.Debugf(format, args...)
+	if l := log(); l != nil {
+		l.Debugf(format, args...)
+	}
 	addToBuffer("DEBUG", fmt.Sprintf(format, args...))
 }
 
 // Info logs an info message and adds it to the log buffer.
 func Info(args ...any) {
-	logger.Info(args...)
+	if l := log(); l != nil {
+		l.Info(args...)
+	}
 	addToBuffer("INFO", fmt.Sprint(args...))
 }
 
 // Infof logs a formatted info message and adds it to the log buffer.
 func Infof(format string, args ...any) {
-	logger.Infof(format, args...)
+	if l := log(); l != nil {
+		l.Infof(format, args...)
+	}
 	addToBuffer("INFO", fmt.Sprintf(format, args...))
 }
 
 // Notice logs a notice message and adds it to the log buffer.
 func Notice(args ...any) {
-	logger.Notice(args...)
+	if l := log(); l != nil {
+		l.Notice(args...)
+	}
 	addToBuffer("NOTICE", fmt.Sprint(args...))
 }
 
 // Noticef logs a formatted notice message and adds it to the log buffer.
 func Noticef(format string, args ...any) {
-	logger.Noticef(format, args...)
+	if l := log(); l != nil {
+		l.Noticef(format, args...)
+	}
 	addToBuffer("NOTICE", fmt.Sprintf(format, args...))
 }
 
 // Warning logs a warning message and adds it to the log buffer.
 func Warning(args ...any) {
-	logger.Warning(args...)
+	if l := log(); l != nil {
+		l.Warning(args...)
+	}
 	addToBuffer("WARNING", fmt.Sprint(args...))
 }
 
 // Warningf logs a formatted warning message and adds it to the log buffer.
 func Warningf(format string, args ...any) {
-	logger.Warningf(format, args...)
+	if l := log(); l != nil {
+		l.Warningf(format, args...)
+	}
 	addToBuffer("WARNING", fmt.Sprintf(format, args...))
 }
 
 // Error logs an error message and adds it to the log buffer.
 func Error(args ...any) {
-	logger.Error(args...)
+	if l := log(); l != nil {
+		l.Error(args...)
+	}
 	addToBuffer("ERROR", fmt.Sprint(args...))
 }
 
 // Errorf logs a formatted error message and adds it to the log buffer.
 func Errorf(format string, args ...any) {
-	logger.Errorf(format, args...)
+	if l := log(); l != nil {
+		l.Errorf(format, args...)
+	}
 	addToBuffer("ERROR", fmt.Sprintf(format, args...))
 }
 
 // addToBuffer adds a log entry to the in-memory ring buffer for web UI retrieval.
 func addToBuffer(level string, newLog string) {
 	t := time.Now()
+
+	logBufferMu.Lock()
+	defer logBufferMu.Unlock()
+
 	if len(logBuffer) >= maxLogBufferSize {
 		logBuffer = logBuffer[1:]
 	}
@@ -199,6 +247,9 @@ func addToBuffer(level string, newLog string) {
 func GetLogs(c int, level string) []string {
 	var output []string
 	logLevel, _ := logging.LogLevel(level)
+
+	logBufferMu.Lock()
+	defer logBufferMu.Unlock()
 
 	for i := len(logBuffer) - 1; i >= 0 && len(output) <= c; i-- {
 		if logBuffer[i].level <= logLevel {
