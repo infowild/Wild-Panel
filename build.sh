@@ -129,7 +129,13 @@ OUT_DIR="$REPO_ROOT/build/out"
 OUT_BIN="$OUT_DIR/wild-panel-$ARCH"
 step "compiling Wild Panel"
 mkdir -p "$OUT_DIR"
-CGO_ENABLED=1 go build -o "$OUT_BIN" main.go
+# Build the PACKAGE, not a file list. `go build main.go` compiles that one file and
+# nothing else in package main, so every other file in the package is silently dropped
+# — the build then fails on the first symbol defined in one of them (measured:
+# "undefined: startPprofIfRequested" the moment a second file was added, after
+# `go build ./...` and `go vet ./...` had both passed). A package build cannot drift
+# from the source tree this way.
+CGO_ENABLED=1 go build -o "$OUT_BIN" .
 
 hr
 ok "done: ${_CB:-}$(ls -lh "$OUT_BIN" | awk '{print $5}')${_CR:-} -> ${_CB:-}build/out/wild-panel-${ARCH}${_CR:-}"

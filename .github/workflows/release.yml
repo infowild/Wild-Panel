@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag (v2.0.25 or 2.0.25)
+        description: Release tag (v2.0.26 or 2.0.26)
         required: true
       make_latest:
         description: Mark this release as GitHub "latest"
@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 360
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -123,6 +123,15 @@ jobs:
           set -euo pipefail
           go vet ./...
           go test ./... -count=1
+          # Compile the main package exactly as build.sh does, BEFORE the 20-minute
+          # daemon-bundle build. v2.0.25 died at the very end on
+          # "undefined: startPprofIfRequested" because build.sh built `main.go` rather
+          # than the package, so a second file in package main was never compiled —
+          # and `go vet ./...` above cannot see that class of failure, because it
+          # builds the package correctly. This catches it in seconds instead of after
+          # the whole bundle has been rebuilt.
+          CGO_ENABLED=1 go build -o /tmp/panel-compile-check .
+          rm -f /tmp/panel-compile-check
 
       - name: Build Wild Panel
         env:
